@@ -8,19 +8,16 @@ output: html_document
 
 ```{r setup}
 #set up and get SQL connection
-library(tidyverse)
 library(RMySQL)
 library(SnowballC)
 library(childesr)
 library(tidytext)
 library(tictoc)
 library(ggridges)
+library(tidyverse)
+library(here)
 
-
-connect_to_ldp <- function() {
-
-}
-
+source(here("read_ldp.R"))
 ldp <- connect_to_ldp()
 ```
 
