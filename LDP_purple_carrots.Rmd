@@ -1,0 +1,511 @@
+---
+title: "Modification and Prototypicality in LDP"
+author: "ben morris"
+date: "6/28/2019"
+output: html_document
+---
+
+
+```{r setup}
+#set up and get SQL connection
+library(tidyverse)
+library(RMySQL)
+library(SnowballC)
+library(childesr)
+library(tidytext)
+library(tictoc)
+library(ggridges)
+
+
+connect_to_ldp <- function() {
+
+}
+
+ldp <- connect_to_ldp()
+```
+
+```{r}
+list_tables <- function(connection) {
+  DBI::dbListTables(connection)
+}
+
+get_table <- function(connection, name) {
+  dplyr::tbl(connection, name)
+}
+
+list_tables(ldp)
+get_table(ldp, "ppvt")
+```
+
+```{r}
+tic()
+utts <- get_table(ldp, "utterances") %>%
+  collect()
+toc()
+beep()
+
+utts_clean <- utts %>%
+  #grab parent utterances
+  filter(!is.na(p_chat))  %>%
+  #drop the many things we don't care about
+  select(subject, session, p_chat, p_mor)  %>%
+  #add new utt_id variable
+  mutate(utt_id= row_number())
+
+PoS <- utts_clean %>% 
+  # filter(session==1) %>%
+  unnest_tokens(PoS, p_mor, drop=FALSE, token = stringr::str_split, pattern = " ") %>%
+  filter(PoS != "")
+```
+
+
+```{r}
+  #unnest just morph codes --> PoS
+  # then split morph code into morph + word (but ugly stem stuff, could be tricksome)
+head(PoS)
+tagged <- PoS %>%
+  separate(PoS, into=c("PoS", "word"), sep="\\|") %>%
+  filter(!is.na(word)) %>%
+  separate(word, into=c("word", "garbage"), sep= "[^[:alnum:]]") %>%
+  mutate(stem = wordStem(word)) %>%  
+  select(-garbage)
+
+tagged %>%
+  mutate(stem = wordStem(word)) %>%  
+  anti_join(stop_words) %>%
+  filter(grepl("n:",PoS, fixed=TRUE) | 
+           grepl("n|",PoS, fixed=TRUE) |
+           grepl("n",PoS, fixed=TRUE)) %>%
+  count(stem, sort=TRUE) %>% 
+  head(100)
+
+tagged %>%
+  filter(PoS=="adj") %>%
+  # filter(grepl("adj",PoS, fixed=TRUE)) %>%
+  count(word, sort=TRUE) 
+```
+
+
+#check noun usage consistency across ages
+#correlate rank frequency across age groups for available nouns?
+```{r}
+ranked <- tagged %>%
+  ungroup() %>%
+  mutate(age_quant = ntile(tagged$session,4)) %>%
+  anti_join(stop_words) %>%
+  filter(stem != "") %>%
+  filter(grepl("n:",PoS, fixed=TRUE) | 
+           grepl("n|",PoS, fixed=TRUE) |
+           grepl("n",PoS, fixed=TRUE)) %>%
+  group_by(stem, age_quant) %>%
+  summarize(n=n()) %>% 
+  arrange(age_quant, desc(n)) %>%
+  group_by(age_quant) %>%
+  mutate(rank = row_number())
+
+ranked_wide <- ranked %>% 
+  select(stem, age_quant, rank) %>% 
+  spread(age_quant, rank) %>%
+  rowwise() %>%
+  mutate(tot_usage = sum(`1`, `2`, `3`, `4`, na.rm=TRUE)) %>%
+  mutate(all_sess = if_else(is.na(`1` + `2` + `3` + `4`), F, T))
+
+#filtered to things only in all sessions
+ranked_all_sess <- ranked_wide %>% filter(all_sess==T)
+
+cor.test(ranked_wide$`1`, ranked_wide$`2`, na.rm=TRUE)
+cor.test(ranked_wide$`1`, ranked_wide$`4`, na.rm=TRUE)
+
+```
+###quick descriptives:
+- 9,174 distinct nouns used across LDP (probably some data cleaning to do...)
+
+- seperate 12 sessions into 4 bins, 1 year... ?
+- 2,153 distinct nouns, after filtering only to things in all 4 years of measurment?
+- 0.68 correlation of noun freq rank between time 1 and time 2, for all nouns
+  - 0.59 correlation of noun freq rank between time 1 and time 4, for all nouns
+
+
+#grab adjectives from target nouns
+```{r}
+#ranked_all_sess
+#only nouns used in each year starting at session 1 (i.e. sessions [1:3, 4:6, 7:9, 10:12])
+target_nouns <- ranked_all_sess %>% pull(stem)
+
+# mcrae_concepts <- read.csv("data/mcrae_concepts.csv")
+# mcrae_nouns <- mcrae_concepts %>% 
+#   mutate(word=Concept) %>%
+#   separate(word, into=c("word", "parenthetical"), sep="_") %>%
+#   mutate(stem=wordStem(word)) %>%
+#   select(word, stem) 
+
+
+# target_nouns <- mcrae_nouns
+
+
+#grab target utterances with target nouns
+total_utts <- tagged
+target_utts <- total_utts[total_utts$stem %in% target_nouns,] %>% 
+  filter(PoS== "n") %>%
+  rename(noun=word,
+         noun_PoS = PoS) %>% 
+  select(-stem)
+
+
+adj_list <- total_utts %>% 
+  filter(grepl("adj", PoS)) %>%
+  filter(PoS == "adj") %>%
+  distinct(PoS) %>% 
+  pull(PoS)
+
+all_adjectives <- total_utts[total_utts$PoS %in% adj_list,] %>% 
+  rename(adj=word,
+         adj_PoS = PoS) %>% 
+  select(-stem)
+
+#all the target utts with an ajective
+adj_noun_utts <- inner_join( target_utts, all_adjectives, by=c("subject", "session", "p_chat", "p_mor")) %>% filter(adj!="")
+
+#peak at most common pairs
+adj_noun_utts %>% 
+  count(adj, noun, sort=TRUE) %>%
+  head(50)
+
+#ALL pairs
+adj_noun_pairs_target_full <- adj_noun_utts %>% 
+  count(adj, noun, sort=TRUE) %>%
+  mutate(rank = row_number()) 
+
+#ALL pairs, split by session
+adj_noun_pairs_target_session <- adj_noun_utts %>% 
+  count(adj, noun, session) %>%
+  arrange(session, desc(n), adj, noun)
+
+#a ton of these pairs occur just once
+adj_noun_pairs_target_full %>% filter(n==1) %>%
+  group_by(adj, noun) %>% nrow
+```
+
+#Use Brysbaert threshold
+```{r}
+#get brysbaert concreteness
+concrete_concepts <- read.csv("data/concreteness.csv") %>%
+  mutate(stem= wordStem(Word)) %>%
+  # filter(stem %in% target_nouns) %>%
+  select(Word, stem, Conc.M, Conc.SD)
+
+#get sense of concretness range across all 40,000 items
+hist(concrete_concepts$Conc.M)
+
+most_concrete <- concrete_concepts %>%
+  mutate(conc_rank = ntile(Conc.M,4)) %>%
+  arrange(desc(Conc.M)) %>%
+  filter(conc_rank == 4)
+#using 4 bins thresholds concreteness scores of 3.89 or higher...
+
+#filter to concrete adjective + noun
+adj_noun_concrete <- adj_noun_pairs_target_full %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) 
+
+#peak at resulting set
+adj_noun_concrete %>% 
+  head(50) 
+
+
+adj_noun_concrete %>% group_by(adj) %>% 
+  summarize(n=sum(n)) %>%
+  arrange(desc(n))
+
+adj_noun_concrete %>% 
+  group_by(noun) %>% 
+  summarize(n=sum(n)) %>% 
+  nrow()
+
+```
+
+
+```{r}
+#read in the judgment data
+full_turk_counts <- read.csv("data/judgments_session.csv")
+final_adjs <- full_turk_counts %>% distinct(adj) %>% pull(adj)
+final_nouns <- full_turk_counts %>% distinct(noun) %>% pull(noun)
+```
+  
+
+#session usage plot by typicality judgments
+```{r}
+#take session level usage
+#  plot overall frequencies at each session
+full_turk_counts_plot <- full_turk_counts
+full_turk_counts_plot$session2 <- cut(full_turk_counts_plot$session, 
+                   breaks=c(0, 2, 4, 6, 8, 10, 12),
+                   labels = c(14, 22, 30, 38, 42, 50))
+                   # breaks=c(0, 3, 6, 9, 12, 10, 12))
+
+
+full_turk_counts %>%
+  mutate(typicality=mean_typ) %>%
+  mutate(age = (4*session + 10)) %>%
+  filter(age <= 38) %>%
+  group_by(session) %>%
+  mutate(age=min(age)) %>% 
+  ggplot( aes(x=as.numeric(typicality), y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                                                    More Typical \n   Typicality of adjective-noun pairs") +
+  ggtitle("Density plot of parents' adjective use across development") +
+  # geom_mark_rect(aes(filter= typicality >= 6, y=15.5)) +
+  # geom_mark_rect(aes(filter= typicality >= 6, y=60)) +
+  theme_minimal() +
+  scale_fill_gradient(low="cornsilk", high=("red")) +
+  theme(panel.grid = element_line(color="lightgrey",size=0.5),
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text = element_text(size=20),
+    axis.text.x = element_text(angle=30, hjust=1)) +
+  # scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1))+
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 42, 4), breaks = seq(14, 38, 4))
+  
+
+```
+
+
+#session prototypicals plot by typicality judgments
+```{r}
+#look for prototypicals
+#  defined as anything 5 or higher, "somewhat typical" to "extremely  typical"
+prototypicals <- full_turk_counts %>% 
+  mutate(typicality=mean_typ) %>%
+  group_by(session, typicality) %>%
+  summarize(sum=sum(n)) %>%
+  mutate(howTyp = if_else(typicality>=5, T, F)) %>%
+  group_by(session, howTyp) %>%
+  summarize(sum=sum(sum)) %>%
+  mutate(prop=sum/sum(sum)) %>%
+  filter(howTyp)
+
+
+prototypicals %>%
+  mutate(age = (4*session + 10)) %>%
+  ggplot(aes(x=age,y=prop, colour=age)) +
+  geom_smooth(method= loess, color= "black")+
+  geom_point(aes(fill=age), colour="black",pch=21, size=5) +
+  ylab("Proportion of modifiers that rated as \n typical of modified noun") +
+  xlab("Child's Age (months)") +
+  scale_x_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))+
+  theme_minimal() +
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme(axis.line = element_line(colour = "black"),
+        axis.ticks = element_line(),
+        axis.text = element_text(size=20),
+        panel.grid = element_line(color="lightgrey",size=0.5))
+
+
+```
+  
+
+#get utt level
+```{r}
+final_utts <- adj_noun_utts %>% 
+  filter(noun %in% final_nouns & adj %in% final_adjs)
+
+full_turk_counts %>% summarize(sum(n))
+
+final_utts <- 
+  final_utts %>% left_join(full_turk_counts) %>% filter(!is.na(mean_typ))
+```
+
+
+
+
+
+
+#overall word freq
+```{r}
+# need to know overall word frequency to normalize or do conditional probability
+word_freq <- total_utts %>%
+  count(stem, sort=TRUE) %>%
+  rename(word_freq = n)
+
+# mcrae_pairs_with_freq <- mcrae_context_pairs_2 %>% 
+#   mutate(adjStem = wordStem(adj)) %>%
+#   left_join(word_freq, by=c("adjStem"= "stem")) %>%
+#   rename(adj_freq = word_freq) %>%
+#   mutate(nounStem = wordStem(noun)) %>%
+#   left_join(word_freq, by=c("nounStem"= "stem")) %>%
+#   rename(noun_freq = word_freq) %>%
+#   select(adj, adj_freq, noun, noun_freq, n)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+<!-- ############### -->
+### old notessss
+<!-- ##############  -->
+
+### Code block for turk stimuli
+```{r}
+#get correct, human coded articles for each noun ("a"/"an"/or " "(for mass nouns)
+articles <- read_csv("conc_nouns_CBjudgments.csv") %>%
+  mutate(article = ifelse(is.na(mass), "", mass)) %>%
+  select(-X1, -mass)
+
+
+# generate csv(s) for turk, with articles so that the questions look right
+#  turk only takes 500 at a time, delete irrelvant stuff
+turk_input <- adj_noun_concrete %>%
+  left_join(articles) %>%
+  select(adj, noun, article)
+
+#random order
+turk_input <- turk_input[sample(nrow(turk_input)),]
+
+turk_input %>%
+  mutate(question = paste0("How typical is it for ", article," ", noun," to be ", adj, "?")) %>%
+  mutate(typicality = NA) %>%
+  write_csv("concrete_pairs_qs.csv")
+```
+
+
+#if we go mcrae route...
+### grab utts from 
+
+
+#if we do mcrae 541 concepts, a la Willits
+```{r}
+mcrae_nouns
+
+mcrae_in_mine <- adj_noun_pairs_target %>%
+  filter(noun %in% mcrae_nouns$word) %>%
+  distinct(noun) %>% pull(noun)
+
+mcrae_in_mine_stemmed <- adj_noun_pairs_target %>%
+  mutate(stemNoun = wordStem(noun)) %>%
+  filter(stemNoun %in% mcrae_nouns$stem) %>%
+  distinct(noun) %>% pull(noun)
+
+mcrae_in_mine_stemmed[!(mcrae_in_mine_stemmed %in% mcrae_in_mine)]
+
+
+#mcrae concepts if look across all words used (not the clean nouns i grabbed above)
+  #buys like an extra 10 words
+utts_tagged %>%
+  filter(word %in% mcrae_nouns$word) %>%
+  distinct(word) %>% pull(word)
+
+#which mcrae concepts are we not capturing
+mcrae_nouns$word[!(mcrae_nouns$word %in% mcrae_in_mine)]
+
+
+
+#adj_noun_pairs from target utts only (i.e. no context, where noun is mcrae conceept!)
+adj_noun_mcrae <- adj_noun_pairs_target %>%
+  filter(noun %in% mcrae_nouns$word)
+
+
+
+total_utts <- tagged
+target_utts <- total_utts[total_utts$stem %in% mcrae_nouns$stem,] %>% 
+  filter(PoS== "n") %>%
+  rename(noun=word,
+         noun_PoS = PoS) %>% 
+  select(-stem)
+
+```
+### coarse pass, but only finding like 350 of the mcrae concepts in our thing
+### ~5000 distinct paris for our 350 mcrae concepets...
+
+
+
+
+
+#do it with context?
+```{r}
+# function to grab utterances with target noun in them
+grab_target_utts <- function(utterances, target) {
+  targetStem <- wordStem(target)
+  
+  this_target_utts <- utterances[utterances$stem == targetStem,] %>% 
+    filter(PoS== "n") %>%
+    rename(noun=word,
+           noun_PoS = PoS) %>% 
+    select(-stem)
+}
+
+#simple, dumb function to grab window of utterance ids
+grab_context_ids <- function(utterance_ids, window) {
+  seq <- window[1]:window[2]
+
+  output <- NULL
+  for (i in 1:length(seq)){
+    output <- append(output, map_dbl(utterance_ids, function(x) {x+seq[i]}))
+  }
+  output[output > 0]
+}
+
+
+context_utt_ids <- grab_context_ids(target_utts$utt_id, c(-2,2)) %>% unique()
+
+#grab target utterances with target nouns
+target_words <- c("ball", "dog")
+
+total_utts <- tagged
+#function to grab all adjectives from target+context utterances
+#probably need to resolve getting context that's actually cross session/subject...
+get_context_adjectives <- function(utterances, target, window) {
+  
+  this_target_utts<- grab_target_utts(utterances, target)
+  
+  context_utt_ids <- grab_context_ids(this_target_utts$utt_id, window) %>% 
+    #unique line should prevent doubling of context, but do we want that?
+    unique()
+  context_utts <- utterances[utterances$utt_id %in% context_utt_ids,]
+  
+  modified <- context_utts[context_utts$PoS == "adj",] %>%
+    rename(adj=word,
+           adj_PoS = PoS) %>%
+    mutate(noun=target)
+  
+  modified
+}
+
+
+tic()
+mcrae_context_utts_2 <- map_df(mcrae_nouns$word, function(target) {
+  get_context_adjectives(total_utts, target, c(-2,2))
+  })
+toc()
+
+
+mcrae_context_pairs_0 <- mcrae_context_utts_0 %>%
+  count(adj, noun, sort=TRUE)
+
+mcrae_context_pairs_1 <- mcrae_context_utts_1 %>%
+  count(adj, noun, sort=TRUE)
+
+mcrae_context_pairs_2 <- mcrae_context_utts_2 %>%
+  count(adj, noun, sort=TRUE) 
+
+
+```
+
+
+
+
+
+
+
