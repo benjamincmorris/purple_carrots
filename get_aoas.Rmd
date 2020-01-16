@@ -1,0 +1,117 @@
+---
+  title: "Similar Tangrams"
+author: "Dan Yurovsky"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+  toc: false
+number_sections: false
+theme: lumen
+toc_float: false
+code_folding: hide
+---
+  
+```{r load-libraries, warning = FALSE, show = FALSE}
+library(here)
+library(knitr)
+library(wordbankr)
+library(tidyverse)
+library(glue)
+library(readxl)
+library(janitor)
+
+opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, 
+               error = FALSE, cache = TRUE, tidy = FALSE)
+
+theme_set(theme_classic(base_size = 14))
+```
+
+```{r load-wordbank-data, include = F}
+administrations <- get_administration_data(language = "English (American)",
+                                           original_ids = TRUE)
+
+first_longitudinals <- administrations %>%
+  filter(longitudinal) %>%
+  arrange(original_id, age) %>%
+  group_by(original_id) %>%
+  slice(1)
+
+cross_sectional <- administrations %>%
+  mutate(cross_sectional = !longitudinal |
+           (longitudinal & (data_id %in% first_longitudinals$data_id))) %>%
+  filter(cross_sectional)
+```
+
+```{r wordbank-animals, include = F}
+ws_data <- get_instrument_data(language = "English (American)", form = "WS", 
+                                      administrations =  filter(cross_sectional, 
+                                               form == "WS"),
+                               iteminfo = TRUE) %>%
+  filter(type == "word") %>%
+  select(data_id, age, value, form, definition, uni_lemma)
+
+wg_data <- get_instrument_data(language = "English (American)", form = "WG", 
+                                      administrations =  filter(cross_sectional, 
+                                               form == "WG"),
+                               iteminfo = TRUE) %>%
+  filter(type == "word") %>%
+  select(data_id, age, value, form, definition, uni_lemma)
+
+
+wordbank_data <- bind_rows(ws_data, wg_data) %>%
+  mutate(word = sub(" .*", "",  uni_lemma)) %>%
+  select(-definition, -uni_lemma) %>%
+  group_by(word) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(num_item_id = paste0("item_", 1:n())) %>%
+  unnest(cols = c(data))
+
+wordbank_aoas <- fit_aoa(wordbank_data, method = "glmrob") %>%
+  ungroup() %>%
+  left_join(select(wordbank_data, num_item_id, word) %>% distinct(),
+            by = "num_item_id") %>%
+  select(-num_item_id) %>%
+  mutate(source = "wordbank")
+```
+
+
+```{r load-kuperman, include = F}
+kuperman_aoas <- read_excel(
+  here("data/AoA_ratings_Kuperman_et_al_BRM.xlsx")) %>%
+  clean_names() %>%
+  select(word, rating_mean) %>%
+  rename(aoa = rating_mean) %>%
+  mutate(aoa = as.numeric(aoa) * 12) %>%
+  mutate(source = "kuperman", aoa = as.numeric(aoa))
+```
+
+```{r descriptives, include = F}
+joint_aoas <- bind_rows(kuperman_aoas, wordbank_aoas) %>%
+  pivot_wider(names_from = source, values_from = aoa) %>%
+  filter(!is.na(wordbank) | !is.na(kuperman))
+
+correlation <- cor.test(joint_aoas$kuperman, joint_aoas$wordbank)
+
+kable(tidy(correlation))
+```
+
+```{r estimate-aoas, include = F}
+aoa_model <- joint_aoas %>%
+  filter(!is.na(wordbank) & !is.na(kuperman)) %>%
+  lm(wordbank ~ log(kuperman), data = .)
+
+predicted_aoas <- joint_aoas %>%
+  mutate(predicted = predict(aoa_model, 
+                             newdata = joint_aoas)) %>%
+  mutate(aoa = if_else(is.na(wordbank), predicted, wordbank)) %>%
+  arrange(aoa)
+
+ggplot(predicted_aoas, aes(x = predicted, y = wordbank)) + 
+  geom_point() + 
+  geom_smooth() 
+```
+
+```{r write-aoas}
+write_csv(predicted_aoas, here("data/aoas.csv"))
+```
