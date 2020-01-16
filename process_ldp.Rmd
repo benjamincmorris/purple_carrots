@@ -1,0 +1,59 @@
+---
+title: "Process LDP to text"
+author: "Dan Yurovsky"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+  highlight: tango
+theme: sandstone
+code_folding: show
+toc: false
+toc_float: false
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, library, message=F, results='hide', warning=FALSE}
+library(here)
+library(tidyverse)
+library(tidytext)
+library(glue)
+```
+
+```{r}
+source(here("read_ldp.R"))
+```
+
+
+Load utterances
+```{r load-ldp-data}
+ldp <- connect_to_ldp()
+
+utts <- get_table(ldp, "utterances") %>%
+  select(time, row, subject, session, p_chat, c_chat) %>%
+  collect() %>%
+  gather(person, utterance, p_chat, c_chat) %>%
+  filter(!is.na(utterance)) %>%
+  arrange(subject, session, row)
+```
+
+```{r, write-files}
+write_file <- function(utterances, speaker = "parent") {
+  speaker_tag <- if_else(speaker == "child", "c_chat", "p_chat") 
+  
+  utterances %>%
+    filter(person == speaker_tag) %>%
+    select(subject, session, row, utterance) %>%
+    unnest_tokens(word, utterance) %>%
+    group_by(subject, session, row) %>%
+    summarise(utterance = paste0(word, collapse = " ")) %>%
+    pull(utterance) %>%
+    write_lines(here(glue("data/ldp_{speaker}.txt")))
+}
+
+walk(c("parent", "child"), ~write_file(utts, .x))
+
+```
+
