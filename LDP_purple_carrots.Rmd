@@ -16,6 +16,9 @@ library(tictoc)
 library(ggridges)
 library(tidyverse)
 library(here)
+library(scales)
+library(tidyboot)
+library(lme4)
 
 source(here("read_ldp.R"))
 ldp <- connect_to_ldp()
@@ -129,16 +132,6 @@ cor.test(ranked_wide$`1`, ranked_wide$`4`, na.rm=TRUE)
 #only nouns used in each year starting at session 1 (i.e. sessions [1:3, 4:6, 7:9, 10:12])
 target_nouns <- ranked_all_sess %>% pull(stem)
 
-# mcrae_concepts <- read.csv("data/mcrae_concepts.csv")
-# mcrae_nouns <- mcrae_concepts %>% 
-#   mutate(word=Concept) %>%
-#   separate(word, into=c("word", "parenthetical"), sep="_") %>%
-#   mutate(stem=wordStem(word)) %>%
-#   select(word, stem) 
-
-
-# target_nouns <- mcrae_nouns
-
 
 #grab target utterances with target nouns
 total_utts <- tagged
@@ -161,9 +154,19 @@ all_adjectives <- total_utts[total_utts$PoS %in% adj_list,] %>%
   select(-stem)
 
 #all the target utts with an ajective
-adj_noun_utts <- inner_join( target_utts, all_adjectives, by=c("subject", "session", "p_chat", "p_mor")) %>% filter(adj!="")
+adj_noun_utts <- inner_join(target_utts, all_adjectives, by=c("subject", "session", "p_chat", "p_mor", "utt_id"))
+ # %>% filter(adj=="")
 
-#peak at most common pairs
+unmod_utts <- anti_join(target_utts, adj_noun_utts, by=c("subject", "session", "p_chat", "p_mor", "utt_id")) 
+
+#should be 0
+nrow(target_utts) - nrow(adj_noun_utts) - nrow(anti_utts)
+
+target_utts %>% mutate(rowid_to_column())
+
+
+
+#peek at most common pairs
 adj_noun_utts %>% 
   count(adj, noun, sort=TRUE) %>%
   head(50)
@@ -201,25 +204,22 @@ most_concrete <- concrete_concepts %>%
 #using 4 bins thresholds concreteness scores of 3.89 or higher...
 
 #filter to concrete adjective + noun
-adj_noun_concrete <- adj_noun_pairs_target_full %>%
+adj_noun_concrete <- adj_noun_utts %>%
   mutate(adj_stem = wordStem(adj),
          noun_stem = wordStem(noun)) %>%
   filter(adj %in% most_concrete$Word &
-         noun_stem %in% most_concrete$stem) 
+         noun_stem %in% most_concrete$stem) %>%
+  distinct()
 
-#peak at resulting set
+
 adj_noun_concrete %>% 
-  head(50) 
-
-
-adj_noun_concrete %>% group_by(adj) %>% 
-  summarize(n=sum(n)) %>%
+  count(adj) %>%
   arrange(desc(n))
 
 adj_noun_concrete %>% 
-  group_by(noun) %>% 
-  summarize(n=sum(n)) %>% 
-  nrow()
+  count(noun)  %>%
+  arrange(desc(n)) 
+
 
 ```
 
@@ -242,8 +242,9 @@ full_turk_counts_plot$session2 <- cut(full_turk_counts_plot$session,
                    labels = c(14, 22, 30, 38, 42, 50))
                    # breaks=c(0, 3, 6, 9, 12, 10, 12))
 
+full_expanded <- full_turk_counts[rep(row.names(full_turk_counts), full_turk_counts$n), 1:17]
 
-full_turk_counts %>%
+full_expanded %>%
   mutate(typicality=mean_typ) %>%
   mutate(age = (4*session + 10)) %>%
   filter(age <= 38) %>%
@@ -275,10 +276,10 @@ full_turk_counts %>%
 ```{r}
 #look for prototypicals
 #  defined as anything 5 or higher, "somewhat typical" to "extremely  typical"
-prototypicals <- full_turk_counts %>% 
+prototypicals <- full_expanded %>% 
   mutate(typicality=mean_typ) %>%
   group_by(session, typicality) %>%
-  summarize(sum=sum(n)) %>%
+  summarize(sum=n()) %>%
   mutate(howTyp = if_else(typicality>=5, T, F)) %>%
   group_by(session, howTyp) %>%
   summarize(sum=sum(sum)) %>%
@@ -302,8 +303,89 @@ prototypicals %>%
         panel.grid = element_line(color="lightgrey",size=0.5))
 
 
+
+
 ```
+
+```{r}
+booted <- full_expanded %>%
+  mutate(typicality = mean_typ) %>%
+  mutate(age = (4*session + 10)) %>%
+  group_by(age) %>%
+  tidyboot_mean(typicality)
+
+booted %>%
+  ggplot(aes(x=age, y=empirical_stat))+
+  geom_bar(stat='identity') +
+  geom_linerange(aes(ymin=ci_lower, ymax=ci_upper)) +
+  geom_smooth(method=lm) +
+  coord_cartesian(ylim=c(2.6,3.6))
+```
+
+
+#aoas
+```{r}
+aoas <- read_csv('data/aoas.csv')
+full_aoas <- full_expanded %>%
+  left_join(aoas, by=c("noun" = "word")) %>%
+  mutate(typicality = mean_typ) %>%
+  mutate(age = (4*session + 10)) %>%
+  mutate(acquired = if_else(predicted <= age, T, F)) %>%
+  filter(! is.na(acquired))
   
+
+#problem- small range? can't really do the 'acquired' thing
+range(full_aoas$predicted)
+
+
+full_aoas$aoa_bin <- cut(full_aoas$predicted, 
+                   # breaks=c(18, 20, 22, 24, 26, 28, 30, 34))
+                   breaks=c(18, 22, 26, 30, 34))
+
+full_aoas %>%
+  group_by(predicted) %>%
+  summarize(typicality = mean(typicality)) %>%
+  ggplot(aes(x=(predicted), y= (typicality))) +
+  geom_point() +
+  geom_smooth(method=lm)
+
+
+full_aoas %>%
+  mutate(early = if_else(predicted < median(full_aoas$predicted), T, F)) %>%
+  filter(age <= 34) %>%
+  ggplot(aes(x=as.numeric(typicality), y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  facet_grid(.~early)
+
+```
+
+
+
+
+#overall word freq
+```{r}
+# need to know overall word frequency to normalize or do conditional probability
+word_freq <- total_utts %>%
+  count(stem, sort=TRUE) %>%
+  rename(word_freq = n)
+
+modified_freq <- adj_noun_utts %>%
+  count(noun, sort=TRUE) %>%
+  rename(mod_freq = n)
+
+full_freq <- full_aoas %>%
+  left_join(word_freq, by=c("noun_stem" = "stem")) %>%
+  left_join(modified_freq, by=c("noun" = "noun")) %>%
+  mutate(prop_mod = mod_freq/word_freq)
+
+full_freq %>% 
+  group_by(predicted, age) %>%
+  summarize(mean = mean(prop_mod)) %>%
+  ggplot(aes(x=predicted, y=mean, group=age))+geom_point() + facet_wrap(~age)+
+  geom_smooth(method=lm)
+```
+
+
 
 #get utt level
 ```{r}
@@ -319,30 +401,56 @@ final_utts <-
 
 
 
-
-
-#overall word freq
+tag the true prenominals?
 ```{r}
-# need to know overall word frequency to normalize or do conditional probability
-word_freq <- total_utts %>%
-  count(stem, sort=TRUE) %>%
-  rename(word_freq = n)
+adj_noun_concrete_utts <- adj_noun_utts %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) 
 
-# mcrae_pairs_with_freq <- mcrae_context_pairs_2 %>% 
-#   mutate(adjStem = wordStem(adj)) %>%
-#   left_join(word_freq, by=c("adjStem"= "stem")) %>%
-#   rename(adj_freq = word_freq) %>%
-#   mutate(nounStem = wordStem(noun)) %>%
-#   left_join(word_freq, by=c("nounStem"= "stem")) %>%
-#   rename(noun_freq = word_freq) %>%
-#   select(adj, adj_freq, noun, noun_freq, n)
+tmp <- tagged %>%
+  inner_join(adj_noun_concrete_utts, by=c("p_chat", "utt_id"))
 
+prenominals <- tmp %>%
+  group_by(p_chat) %>%
+  mutate(lag_word = lag(word)) %>%
+  filter(noun == word) %>%
+  mutate(prenominal = if_else(lag_word == adj, T, F)) %>%
+  distinct(utt_id, noun, adj, .keep_all = TRUE) 
 
+prenominals %>%
+  ungroup() %>%
+  count(prenominal) %>%
+  mutate(prop = n/sum(n))
+
+prenominals %>% 
+  filter(prenominal) %>%
+  inner_join(full_turk_counts %>% select(adj, noun, mean_typ))  %>%
+  distinct()
+  
+    mutate(age = (4*session + 10)) %>%
+  filter(age <= 38) %>%
+  group_by(session) %>%
+  mutate(age=min(age)) %>%
+  ggplot( aes(x=as.numeric(typicality), y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                                                    More Typical \n   Typicality of adjective-noun pairs") +
+  ggtitle("Density plot of parents' adjective use across development") +
+  # geom_mark_rect(aes(filter= typicality >= 6, y=15.5)) +
+  # geom_mark_rect(aes(filter= typicality >= 6, y=60)) +
+  theme_minimal() +
+  scale_fill_gradient(low="cornsilk", high=("red")) +
+  theme(panel.grid = element_line(color="lightgrey",size=0.5),
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text = element_text(size=20),
+    axis.text.x = element_text(angle=30, hjust=1)) +
+  # scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1))+
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 42, 4), breaks = seq(14, 38, 4))
 ```
-
-
-
-
 
 
 
