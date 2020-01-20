@@ -164,8 +164,6 @@ nrow(target_utts) - nrow(adj_noun_utts) - nrow(anti_utts)
 
 target_utts %>% mutate(rowid_to_column())
 
-
-
 #peek at most common pairs
 adj_noun_utts %>% 
   count(adj, noun, sort=TRUE) %>%
@@ -326,14 +324,35 @@ booted %>%
 #aoas
 ```{r}
 aoas <- read_csv('data/aoas.csv')
+
 full_aoas <- full_expanded %>%
   left_join(aoas, by=c("noun" = "word")) %>%
   mutate(typicality = mean_typ) %>%
-  mutate(age = (4*session + 10)) %>%
+  mutate(age = (4 * session + 10)) %>%
   mutate(acquired = if_else(predicted <= age, T, F)) %>%
-  filter(! is.na(acquired))
-  
+  filter(! is.na(acquired)) %>%
+  as_tibble()
+```
 
+
+```{r predicting-typicality}
+freqs <- read_csv(here("data/full_freq.csv"))
+
+tidy_aoas <- freqs %>%
+  select(predicted, age, adj, noun, x1:x5, word_freq, mod_freq, prop_mod) %>%
+  pivot_longer(cols = x1:x5, names_to = "rater", values_to = "score") %>%
+  filter(!is.na(score))
+
+lmer(score ~ log(age) + log(predicted) + scale(log(word_freq)) +
+       (1|noun) + (1|adj), tidy_aoas) %>%
+  summary()
+
+glmer(cbind(mod_freq, word_freq - mod_freq) ~ log(predicted) + score +
+       (1|noun) + (1|adj), family = "binomial", tidy_aoas) %>%
+  summary()
+```
+
+```{r}
 #problem- small range? can't really do the 'acquired' thing
 range(full_aoas$predicted)
 

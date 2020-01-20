@@ -38,8 +38,7 @@ library(tidyverse)
 
 Children learn a tremendous amount about the structure of the world around in just a few short years. From the rules that govern the movement of physical objects to the hierarchical structure of natural categories and even relational structures among social and cultural groups [@baillargeon1994; @rogers2004; @legare2016]. Where does the information for this rapid acquisition come from? Undoubtedly, a sizeable comoponent in at least some domains comes from direct experience observing and interacting with the world [@sloutsky2004; @stahl2015]. But, another important source of information arises from cultural learning: the information in the language of people around them [@landauer1997; @rhodes2012]. 
 
-How similar is the information that children learn from language to the information available from direct experience. 
-
+How similar is the information available from children's direct experience to the information available in the language children hear? Several lines of work suggest that they may be surprisingly similar. One compelling area of work has been the comparison of semantic structures learned by congentinally blind children to those of their sighted peers. In serveral domains that would at first blush rely heavily on perceptual information--like color or in verbs of perception (e.g. *look*, *see*), blind children's semantic similarity judgments are quite similar to those of sighted children [@landau2009]. Further, blind adults' judgments of perceptual verbs are sensitive to highly detailed information like variation in (e.g. blaze vs. glow), just like sighted adults [@bedny2019]. Another piece of evidence in favor of the redundance of vision and language is the broad success of statistical models trained on the statistics of language in approximating human judgments across a variety of domains [@landauer1997; @mikolov2013, @devlin2018].
 
 
 # Experiment 1: Judgements
