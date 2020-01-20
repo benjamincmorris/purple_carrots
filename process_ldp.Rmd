@@ -20,6 +20,7 @@ library(here)
 library(tidyverse)
 library(tidytext)
 library(glue)
+library(udpipe)
 ```
 
 ```{r}
@@ -57,3 +58,12 @@ walk(c("parent", "child"), ~write_file(utts, .x))
 
 ```
 
+```{r, include = F, eval = F}
+el <- udpipe_download_model(language = "english")
+udmodel <- udpipe_load_model(file = el$file_model)
+
+adult <- read_lines(here("data/ldp_parent.txt")) %>%
+  enframe(name = NULL, value = "utterance") %>%
+  mutate(annotation = udpipe_annotate(udmodel, utterance))
+
+```

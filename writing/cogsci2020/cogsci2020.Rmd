@@ -1,0 +1,76 @@
+---
+title: "Child language input does not reflect world frequency: Typical and atypical feature description across development"
+bibliography: purple-carrots.bib
+csl: apa6.csl
+document-params: "10pt, letterpaper"
+
+author-information: > 
+    \author{{\large \bf Morton Ann Gernsbacher (MAG@Macc.Wisc.Edu)} \\ Department of Psychology, 1202 W. Johnson Street \\ Madison, WI 53706 USA
+    \AND {\large \bf Sharon J.~Derry (SDJ@Macc.Wisc.Edu)} \\ Department of Educational Psychology, 1025 W. Johnson Street \\ Madison, WI 53706 USA}
+
+abstract: >
+    Language provides children a powerful source of information about the world. From language alone, simple distributional learning models can recover enough information to perform comparably to non-native college applicants on the TOEFL (Landauer & Dumais, 1997). Blind children learn the same kinds of relationships among perceptual categories as sighted children, without any of the relevant visual input (Landau & Gleitman, 1985). However, language does not perfectly reflect the world: the most typical features of natural kinds may often go unremarked. For instance, adults rarely describe the color of an orange carrot, as world knowledge makes this description redundant. Given children’s nascent world knowledge, does parents’ speech to children follow this pattern? From longitudinal corpus data of parent-child communication (Goldin-Meadow et al., 2014) between 14–58 months, we extracted usage data for 684 high-frequency concrete nouns and co-occurring adjectives. Independent raters coded the typicality of over 2,000 unique adjective–noun pairs on a 7-point Likert scale (interrater reliability: r = 0.8 in a subset of the data). If language statistics reflect world statistics, description should be dominated by the typical (strong negative skew); however, across all ages, we see descriptors concentrated in the atypical range (positive skewness = 0.38). Parents were reliably more likely to use typical descriptors when talking to younger rather than older children. Overall, child language input reflects notable more than typical features, but increased description of typical features early in development may provide a foothold for young learners.
+
+keywords: >
+    referential pacts; parent-child communication
+    
+output: cogsci2016::cogsci_paper
+#final-submission: \cogscifinalcopy
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=3, fig.height=3, fig.crop = F, 
+                      fig.pos = "tb", fig.path='figs/',
+                      echo=F, warning=F, cache=F, 
+                      message=F, sanitize = T)
+# Note: to build, 
+```
+
+```{r, libraries}
+library(png)
+library(grid)
+library(ggplot2)
+library(xtable)
+library(here)
+library(tidyverse)
+
+```
+
+Children learn a tremendous amount about the structure of the world around in just a few short years. From the rules that govern the movement of physical objects to the hierarchical structure of natural categories and even relational structures among social and cultural groups [@baillargeon1994; @rogers2004; @legare2016]. Where does the information for this rapid acquisition come from? Undoubtedly, a sizeable comoponent in at least some domains comes from direct experience observing and interacting with the world [@sloutsky2004; @stahl2015]. But, another important source of information arises from cultural learning: the information in the language of people around them [@landauer1997; @rhodes2012]. 
+
+How similar is the information that children learn from language to the information available from direct experience. 
+
+
+
+# Experiment 1: Judgements
+
+## Method
+
+### Participants
+
+
+### Stimuli 
+
+### Procedure
+
+### Design
+
+## Results
+
+
+
+# Acknowledgements
+
+Place acknowledgments (including funding information) in a section at
+the end of the paper.
+
+# References 
+
+```{r}
+# References will be generated automatically by Pandoc and included here.
+# The following code is some latex to format the bibliography. Do not remove it.
+```
+
+\setlength{\parindent}{-0.1in} 
+\setlength{\leftskip}{0.125in}
+\noindent
