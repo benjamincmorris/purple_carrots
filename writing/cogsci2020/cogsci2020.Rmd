@@ -9,10 +9,10 @@ author-information: >
     \AND {\large \bf Sharon J.~Derry (SDJ@Macc.Wisc.Edu)} \\ Department of Educational Psychology, 1025 W. Johnson Street \\ Madison, WI 53706 USA}
 
 abstract: >
-    Language provides children a powerful source of information about the world. From language alone, simple distributional learning models can recover enough information to perform comparably to non-native college applicants on the TOEFL (Landauer & Dumais, 1997). Blind children learn the same kinds of relationships among perceptual categories as sighted children, without any of the relevant visual input (Landau & Gleitman, 1985). However, language does not perfectly reflect the world: the most typical features of natural kinds may often go unremarked. For instance, adults rarely describe the color of an orange carrot, as world knowledge makes this description redundant. Given children’s nascent world knowledge, does parents’ speech to children follow this pattern? From longitudinal corpus data of parent-child communication (Goldin-Meadow et al., 2014) between 14–58 months, we extracted usage data for 684 high-frequency concrete nouns and co-occurring adjectives. Independent raters coded the typicality of over 2,000 unique adjective–noun pairs on a 7-point Likert scale (interrater reliability: r = 0.8 in a subset of the data). If language statistics reflect world statistics, description should be dominated by the typical (strong negative skew); however, across all ages, we see descriptors concentrated in the atypical range (positive skewness = 0.38). Parents were reliably more likely to use typical descriptors when talking to younger rather than older children. Overall, child language input reflects notable more than typical features, but increased description of typical features early in development may provide a foothold for young learners.
+    Language provides children a powerful source of information about the world. From language alone, simple distributional learning models can recover enough information to perform comparably to non-native college applicants on the TOEFL (Landauer & Dumais, 1997). Blind children learn the same kinds of relationships among perceptual categories as sighted children, without any of the relevant visual input (Landau & Gleitman, 1985). However, language does not perfectly reflect the world: the most typical features of natural kinds may often go unremarked. For instance, adults rarely describe the color of an orange carrot, as world knowledge makes this description redundant. Given children’s nascent world knowledge, does parents’ speech to children follow this pattern? From longitudinal corpus data of parent-child communication (Goldin-Meadow et al., 2014) between 14–58 months, we extracted usage data for 684 high-frequency concrete nouns and co-occurring adjectives. Independent raters coded the typicality of over 2,000 unique adjective–noun pairs on a 7-point Likert scale. If language statistics reflect world statistics, description should be dominated by the typical (strong negative skew); however, across all ages, we see descriptors concentrated in the atypical range (positive skewness = 0.65). However, parents were reliably more likely to use typical descriptors when talking to younger copmared with older children. Overall, child language input reflects notable more than typical features, but increased description of typical features early in development may provide a foothold for young learners.
 
 keywords: >
-    referential pacts; parent-child communication
+    language input, language acquisition, child-directed speech
     
 output: cogsci2016::cogsci_paper
 #final-submission: \cogscifinalcopy
@@ -30,31 +30,265 @@ knitr::opts_chunk$set(fig.width=3, fig.height=3, fig.crop = F,
 library(png)
 library(grid)
 library(ggplot2)
-library(xtable)
 library(here)
 library(tidyverse)
-
+library(ggridges)
+library(scales)
+library(tidyboot)
+library(xtable)
 ```
 
-Children learn a tremendous amount about the structure of the world around in just a few short years. From the rules that govern the movement of physical objects to the hierarchical structure of natural categories and even relational structures among social and cultural groups [@baillargeon1994; @rogers2004; @legare2016]. Where does the information for this rapid acquisition come from? Undoubtedly, a sizeable comoponent in at least some domains comes from direct experience observing and interacting with the world [@sloutsky2004; @stahl2015]. But, another important source of information arises from cultural learning: the information in the language of people around them [@landauer1997; @rhodes2012]. 
+Children learn a tremendous amount about the structure of the world around them in just a few short years, from the rules that govern the movement of physical objects to the hierarchical structure of natural categories and even relational structures among social and cultural groups [@baillargeon1994; @rogers2004; @legare2016]. Where does the information for this rapid acquisition come from? Undoubtedly, a sizeable component comes from direct experience observing and interacting with the world [@sloutsky2004; @stahl2015]. But another important source of information comes from the language people use to talk about the world [@landauer1997; @rhodes2012]. 
 
-How similar is the information available from children's direct experience to the information available in the language children hear? Several lines of work suggest that they may be surprisingly similar. One compelling area of work has been the comparison of semantic structures learned by congentinally blind children to those of their sighted peers. In serveral domains that would at first blush rely heavily on perceptual information--like color or in verbs of perception (e.g. *look*, *see*), blind children's semantic similarity judgments are quite similar to those of sighted children [@landau2009]. Further, blind adults' judgments of perceptual verbs are sensitive to highly detailed information like variation in (e.g. blaze vs. glow), just like sighted adults [@bedny2019]. Another piece of evidence in favor of the redundance of vision and language is the broad success of statistical models trained on the statistics of language in approximating human judgments across a variety of domains [@landauer1997; @mikolov2013, @devlin2018].
+How similar is the information available from children's direct experience to the information available in the language children hear? Several lines of work suggest that they may be surprisingly similar. One compelling area of work is the comparison of semantic structures learned by congentinally blind children to those of their sighted peers. In several domains that would at first blush rely heavily on perceptual information, such as color terms or verbs of perception (e.g. *look*, *see*), blind children's semantic similarity judgments are quite similar to those of sighted children [@landau2009]. Further, blind adults' judgments of perceptual verbs are sensitive to highly detailed information like variation in intensity (e.g. blaze vs. glow), just like sighted adults [@bedny2019]. Another piece of evidence in favor of the redundance of vision and language is the broad success of statistical models trained on language alone in approximating human judgments across a variety of domains [@landauer1997; @mikolov2013, @devlin2018]. Language information, even in isolation, clearly provides sufficient structure to bootstrap learning across a number of dimensions.
+
+However, a great deal of theoretical claims and experimental work suggest that language is not a veridical mirror of the world, but is instead used to selectively comment on the new and the unusual; thus, language may be argued to contain information that is highly divergent from world statistics (CITATION). On pragmatic accounts of language, people typically are 'as informative as is required' in their language, not more or less so (Grice, 1979). Thus, speakers are informative in relation to common knowledge amongst interlocutors and available information in the environment, not redundant with these other sources of knowledge. Language production tasks in the lab largely bolster this claim, finding that people are sensitive to informativity in formulating and interpreting utterances (e.g., Rubio-Fernandez, 2016). In particular, speakers are informative in relation to both the current context of objects in the environment and the typical features of those objects (Rubio-Fernandez, 2016). While speakers overwhelmingly refer to an object that is typical of its category with a bare noun—e.g., calling a yellow banana "a banana"—they often describe more about the object's features when they are atypical, rarely referring to a green or blue banana without specifying its color. Listeners are similarly affected by color description, expecting a color adjective to be used when an object's color is atypical (Sedivy, 2003).
+
+While such effects have been demonstrated in the lab, the extent to which these language pressures structure naturalistic language remains unclear. A recent analysis of co-occuring adjective-noun pairs in the Wikipedia corpus asked human raters to judge the whether a given adjective was 'always true', 'sometimes true', or 'never true/unrelated' to a co-occuring noun (Willits,// *personal communication * // ? ). The analysis revealed that language usage is dominated by descriptions that are only 'sometimes true' of the described category, and thus suggests that naturalistic language usage reflects pressures to comment on the atypical (Willits,// *personal communication * // ? ).
+
+If the information in language statistics is indeed not a reflection of world statistics, young children may be faced with a difficult learning problem. Language provides a crucial information source for young children to learn about the complex world around them [@landauer1997; @rhodes2012]. Without the relevant world knowledge, young children learning from language input that is biased to overrepresent atypical features could develop inaccurate or distorted understandings of the categories being described. 
+
+It could be that the language input to young children is far different from the language on Wikipedia, such that children are learning from language that is much more veridical than the world around them.  Child-directed speech (CDS) differs from typical adult-directed speech along a number of structural dimensions, having simpler syntax and more reduplications (Snow, 1972).CDS also changes across development, with parents modulating the way they talk as a function of child's age (Snow, 1972). It is plausible that caregivers, especially of young children, would provide more description of typical features, whether simply to communicate effectively with a child who has less world knowledge or to explicitly teach their child about the world. The current study asks whether CDS is biased to highlight atypical features, as in adult speech (WILLITS, personal communication), or to more veridically reflects typical information about the world.
+
+We first asked how information is distributed in CDS, and how similar it is to ADS. In a longitudinal corpus of parent-child communication, we collected usage data for adjective-noun pairs that co-occur within the same utterance. Human raters on Amazon Mechanical Turk then judged typicality (e.g., "How common is it for a banana to be a yellow banana?") on a 7-point scale. Using these data, we first demonstrate that child-directed speech (even to children as young as 14 months) is dominated by descriptions of lower-typicality features (e.g., "green banana"), rather than potentially redundant highly-typical features (e.g., "yellow banana"). 
+
+We next asked if the kind of information in CDS changes as children develop. We find evidence that description changes across development, with young children hearing relatively more talk about highly-typical features compared with older children.
+
+We lastly discuss what these data may imply for the developing learner. Children rapidly develop sophisticated conceptual repetoires, yet the language children hear seems biased to overrepresent certain features. We consider a few potential cues that could allow children to extract better typicality information from language, such as tracking second-order co-occurence or possible syntactic cues. 
 
 
-# Experiment 1: Judgements
+# Corpus Analysis
 
-## Method
+We first analyze caregiver speech to extract the usage statistics for all co-occuring adjective-noun pairs within an utterance. After subsetting the data to the concrete concepts (Brysbaert et al., 2014), human raters judged the typicality of each adjective-noun pair. Combining our usage data across the developmental range (ages 14-58 months) with the typicality judgements, we can examine how information is distrubted in caregiver descriptions.
 
-### Participants
+### Corpus Method
+
+We used data from the Language Development Project– a large-scale, longitudinal corpus of parent child-interaction in the home with families who are representative of the Chicago community in socio-economic and racial diversity (Goldin-Meadow et al., 2014). Recordings were taken in the home every 4-months from when the child was 14-months-old until they were 58-months-old, resulting in 12 timepoints. Recordings were 90 minute sessions, and participants were given no instructions. The Language Development Project corpus contains transcription of all speech and communicative gestures produced by children and their caregivers over the course of the 90-minute home recordings. 
+
+To determine the extant information structure in children's language input, we subset the corpus to only caregiver speech, yielding a set of 828,392 distinct utterances. While it is important to consider children's own productions as an integral part their language environments (CITATION), description of a concept relies heavily on  linguisitic and world knowledge, and so it is necessary to analyze caregiver speech separately. For example, at our earliest timepoint (14-months), children are not producing multiword utterances with adjectives and nouns, or even reliably producing many adjectives at all.  
+
+Based on part-of-speech tags, we extracted usage rates for all nouns in the corpus. To ensure that the set of nouns we examined were relatively constant across our developmental samples, we subset all nouns that caregivers produced to only include nouns that were produced at least once every 3 sessions (i.e. per developmental year). This yielded a set of some 2,000 potential target nouns.
+
+We next tagged every utterance that included both one of the target nouns and an adjecitve. Any possible resulting pairs was counted seperately (i.e. utterances with one noun and multiple adjectives were coded as multiple pairs ) Many resulting high-frequency pairs proved difficult to classify on our typicality schema (e.g., "good"-- "job"; "little" -- "bit"). To identify potentially problematic pairs, we joined human judgments of concreteness for both the noun and the adjective (Brysbaert). We set our threshold at the top 25% of the concreteness ratings, and excluded any pair where either the adjective or noun was not rated above that threshold. Finally, all pairs were given to 7 human coders to judge whether the pair was "incoherent or unrelated" and we thus excluded a further XXX pairs from the sample (e.g., incoherent pairs such as "wet" -- "brown", and presumably errorfully coded pairs such as "orange" -- "orange").
+
+Thus, our final sample included 2,220 unique adjective-noun pairs drawn from over 6,000 utterances. The pairs were combinations of 684 distinct concrete nouns and 118 distinct concrete adjectives. We compiled these pairs and collected human judgments on Amazon Mechanical Turk for each pair, as described below. Table 1 contains example utterances from the final set and typicality judgments from our human raters.
 
 
-### Stimuli 
+## Ratings Method
 
-### Procedure
+To evaluate the typicality of the adjective–noun pairs pulled from the corpus, we asked participants on Amazon Mechanical Turk to rate each pair. Participants were presented with a question of the form “How common is it for a cow to be a brown cow?” and asked to provide a rating on a seven-point scale: (1) never, (2) rarely, (3) sometimes, (4) about half the time, (5) often, (6) almost always, (7) always. Each participant rated 20 pairs, and each pair was rated by four participants; we used Dallinger [CITE], a tool for automating complex recruitment on Amazon Mechanical Turk, to balance recruitment. Overall, we recruited 444 participants to rate 2200 adjective–noun pairs. After exclusions using an attention check, we retained 8580 judgments, with each adjective–noun pair retaining at least two judgments.
 
-### Design
+```{r utt_table}
+Example_Utterance  <- c('"Especially with wooden shoes."','"Some of our green bananas too."', '"Are bananas yellow?"')
+Typicality <- c(2.75, 3.75, 5.75)
+tmp <- data.frame(Example_Utterance, Typicality)
+
+xtable(tmp)
+```
+
+
+```{r distribution_plot, fig.height = 6, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "Denisity plots showing the usage amount at each timepoint based on the typicality of the adj-noun pair."}
+full_turk_counts <- read.csv("../../data/judgments_session.csv")
+
+full_turk_counts_plot <- full_turk_counts
+full_turk_counts_plot$session2 <- cut(full_turk_counts_plot$session, 
+                   breaks=c(0, 2, 4, 6, 8, 10, 12),
+                   labels = c(14, 22, 30, 38, 42, 50))
+                   # breaks=c(0, 3, 6, 9, 12, 10, 12))
+
+full_expanded <- full_turk_counts[rep(row.names(full_turk_counts), full_turk_counts$n), 1:17]
+
+full_expanded %>%
+  mutate(typicality=mean_typ) %>%
+  mutate(age = (4*session + 10)) %>%
+  # filter(age <= 38) %>%
+  group_by(session) %>%
+  mutate(age=min(age)) %>% 
+  ggplot(aes(x=as.numeric(typicality), y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+   geom_vline(xintercept = 4)+
+  theme_minimal() +
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme(panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=12, angle=28, hjust=1),
+    axis.text.y = element_text(size=12),
+    legend.position = "none") +
+  # scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1))+
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))
+```
 
 ## Results
+
+If description in child-directed speech mirrors adult-directed speech, we should see that caregiver descripiton is dominated by modifiers that are sometimes true of the noun they modify. If instead child-directed speech privledges redundant or assumed information, caregiver description would yield a distinct distribution dominated by highly typical modifiers. As can be seen in figure \ref{fig:distribution_plot}, there is remarkable developmental consistency such that caregiver description largely focuses on features that are only sometimes true of the concept.
+
+### Developmental Consistency.
+
+Examining usage data as a function of typicality (see figure \ref{fig:distribution_plot}), we see evidence of a positive skew (0.65) such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). Data from every time point from 14-58 months seems to show a similar pattern (skews 0.23 - 0.82). These data suggest that even when talking with very young children, caregiver speech structures information similarly to adult-directed speech.
+
+### Talk about the Highly-Typical.
+
+Despite of the striking consistency of description in caregiver speech across development, we were interested in identifying  observable differences in description across development. One such hypothesis was that the youngest children should be most likely to hear description of highly typical features, compared to older children. This would suggest children with the least developed world knowledge actually get more information about aspects of the world that are likely to be true and easily learned via observation, compared with older children. Indeed, when we look at the proportion of all description that is about highly-typical features (i.e. features that are 'often', 'almost always', or 'always' true), we see a significant negative correlation with age (*r* = -0.8231762, p < 0.01). While children at all ages hear more talk about what is atypically true (figure \ref{fig:distribution_plot}), younger children hear relatively more talk about what is typically true than older children (figure \ref{fig:prototypical_plot}, see also figure \ref{fig:mean_change}).
+
+```{r prototypical_plot, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "This plot shows the proportion of caregiver description that is about typically-true features, as a function of age."}
+#look for prototypicals
+#  defined as anything 5 or higher, "somewhat typical" to "extremely  typical"
+prototypicals <- full_expanded %>%
+  mutate(age = (4*session + 10)) %>%
+  mutate(typicality=mean_typ) %>%
+  group_by(age, typicality) %>%
+  summarize(sum=n()) %>%
+  mutate(howTyp = if_else(typicality>=5, T, F)) %>%
+  group_by(age, howTyp) %>%
+  summarize(sum=sum(sum)) %>%
+  mutate(prop=sum/sum(sum)) %>%
+  filter(howTyp)
+
+
+prototypicals %>%
+  ggplot(aes(x=age,y=prop, colour=age)) +
+  geom_smooth(method= loess, color= "black")+
+  geom_point(aes(fill=age), colour="black",pch=21, size=5) +
+  ylab("Proportion of modifiers that rated as \n typical of modified noun") +
+  xlab("Child's Age (months)") +
+  scale_x_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))+
+  theme_minimal() +
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme(axis.line = element_line(colour = "black"),
+        axis.ticks = element_line(),
+        axis.text = element_text(size=14),
+        panel.grid = element_line(color="lightgrey",size=0.5),
+        axis.text.x = element_text(size=10, angle=15),
+        legend.position = "none") 
+```
+
+
+
+# Other Ways of Extracting Structure from Language?
+
+## Second-order Co-occurence 
+
+In our analyses of the concrete adjectives parents use to describe concrete nouns to their children, we find that parents tend to describe atypical rather than typical features of objects. This usage aligns with the idea that language is used informatively in relation to background knowledge about the world. It may pose a problem, however, for young language learners with still-developing world knowledge. If language does not transparently convey the typical features of objects, and instead (perhaps misleadingly) notes the atypical ones, how might one use language to learn what objects are typically like? One possibility is that information about typical features is captured in regularities across many utterances.
+
+Kim et al. (2019) demonstrate blind people's striking convergence with sighted people's feature judgments about animals, and posit that blind people may use animal taxonomy knowledge to selectively generalize features between species. In a response, Lewis et al. (2019) note that complex inferential machinery is not necessary to make these nuanced generalizations, and in fact much of this feature information is captured by simpler associations between words in the language one hears. We take a similar approach to ask whether typical feature information is expressed in the structure of the language children hear.
+
+Information in language goes beyond what can be learned from any one utterance. Though one might never hear the words /kumquat/ and /grapefruit/ in the same sentence, their common contexts—other words like /eat/, /rind/, /tree/, /tart/, and /seeds/—are clues that they have some similarities. Models of distributional semantics capitalize on these patterns by representing words using their contexts, and judging two words to be similar if they are surrounded by similar sets of words. Though we found that children get more information about atypical than typical features of objects on the utterance level, perhaps patterns of language use across many utterances could be used to extract typical feature information. 
+
+### Word2Vec
+
+To test this possibility, we trained word2vec, a model that predicts words using their contexts, on the same corpus of child-directed speech used in our first set of analyses. Our model is a continuous-bag-of-words word2vec model trained using the package gensim [CITE]. If the model captures information about the typical features of objects, we should see that the model's word pair similarities are correlated with the typicality ratings we elicited from human raters.  
+
+### Results
+
+We find that similarities in the model have near zero correlation with human adjective–noun typicality ratings (r = 0.018). This is in spite of better correlations with large sets of human similarity judgments between different kinds of word pairs (correlation with  wordsim353, 0.37; correlation with simlex, 0.15). This suggests that statistical patterns in child-directed speech are likely insufficient to encode information about the typical features of objects, despite encoding at least some information about word meaning more broadly. However, the corpus on which we trained this model was small; perhaps our model did not get enough language to draw out the patterns that would reflect the typical features of objects. To test this possibility, we asked whether word vectors trained on a much larger corpus—English Wikipedia—strongly correlate with typicality ratings. We find that while the correlation between similarities in the Wikipedia–trained model and human noun–adjective typicality ratings is stronger, it is still fairly weak at r = 0.24. Overall, these results suggest that models of distributional semantics fail to extract typical feature information from language in which atypical features are more often described.
+
+
+```{r word2vec, fig.align='center', fig.width = 4, set.cap.width=T, num.cols.cap=1, fig.cap = "Correlation of vector distances from word2vec (trained on the LDP corpus) and human-rated typicality judgments."}
+img <- png::readPNG(here("writing/cogsci2020/figs/word2vec.png"))
+grid::grid.raster(img)
+```
+
+## Age of Aquisition
+
+Given our finding that young children hear relatively more description of typical features, it could be that linguistic input is more helpfully structured for the developing learner if we have a more nuanced measure linguistic experience. For example, one possibility is that caregivers are selectively overdescribing (or at least describing typical features) of concepts unfamiliar to their child. This possibility makes a clear prediction: namely, that information in CDS to children at a given age may differ as a function of whether the child knows the word being described, or not. 
+
+To address this question we combined age of aquisition data from Wordbank and from adult-generated recollections (Kuperman et al., 2012). 
+
+## Syntax
+
+# Other pieces to include?
+# Child Productions
+
+What kind of information is contained in children's own speech? By analyzing at children's productions, we can determine when children come to use description in a way that looks like caregiver speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe other features of the world?
+
+### Method. 
+
+The Language Development Corpus contains 442,048 child utterances. Using the same data-processing pipeline described for the caregiver speech, we filter to utterances which contain both at least one adjective and at least one noun and filter to include only concrete concepts (Brysbaert et al., 2014). Using the set of adjective-noun pairs for which we have judgments from our analysis of caregiver speech, we end up with a set of 533 distinct adjective-noun pairs. Note that at our earliest timepoints (14 and 18 months), children were not reliably producing enough utterances with adjectives and nouns to be included.
+
+### Results. 
+
+Examining usage data as a function of typicality (see figure \ref{fig:kid_plot}), we again see evidence of a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). A t-test confirms that children's description focuses on the atypical (mean typicality = 3.2) rather than the typical (compared with a null-value of 4 or "about half") (*t* = -25.44, p<0.001). 
+
+These data suggest that children's productions, like adults, focus on describing less typical features of world. Of course, these utterances come from naturalistic conversations with caregivers, and the pattern of description is likely highly dependent on the interlocutor. That is, if a parent chooses to describe the *purpleness* of a cat in book, the child may well respond by asking about that same feature. Thus it is perhaps unsurpising that their usage patterns would be well-aligned.
+
+```{r kid_plot, fig.height = 5.5, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "Analyzing child productions, these denisity plots show the usage amount at each timepoint based on the typicality of the adj-noun pair. Note that at our earliest timepoints (14 and 18 months), children were not reliably producing enough utterances with adjectives and nouns to be included here."}
+kid_production <- read.csv("../../data/kid_production.csv")
+
+kid_production %>%
+  mutate(typicality=mean_typ) %>%
+  mutate(age = session) %>%
+  mutate(age = (4*session + 10)) %>%
+  ggplot( aes(x=as.numeric(typicality), y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  theme_minimal() +
+  scale_fill_gradient(low="cornsilk", high=muted("purple")) +
+  theme(panel.grid = element_line(color="lightgrey",size=0.5),
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text = element_text(size=12),
+    axis.text.x = element_text(angle=30, hjust=1),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +  
+  scale_y_continuous(minor_breaks = seq(22, 58, 4), breaks = seq(22, 58, 4)) +
+  geom_vline(xintercept=4)
+```
+
+# Adult Comparison
+
+To understand a reasonable hile some recent work has established a general pattern of 
+
+### Method. 
+
+Examining data from the Corpus of Contemporary American English, we can look at adult-directed speech across a range of settings. Using the same data-processing pipeline described for the caregiver speech, we filter to utterances which contain both at least one adjective and at least one noun and filter to include only concrete concepts (Brysbaert et al., 2014). Using the set of adjective-noun pairs for which we have judgments from our analysis of caregiver speech, we end up with a set of 1,357 distinct adjective-noun pairs. 
+
+### Results. 
+
+Examining usage data as a function of typicality (see figure \ref{fig:adult_directed}), we again see evidence of a positive skew (0.68), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). A t-test confirms that  description in adult-directed speech focuses on the atypical (mean typicality = 3.48) rather than the typical (compared with a null-value of 4 or "about half") (*t* = -211.44, p<0.001). 
+
+Overall, the usage distributions in adult-directed speech seem qualitatively similar to the distributions we found in child-directed speech. The difference of settings makes it difficult to compare these data directly with our data from the Language Devleopment Project corpus. Four of the COCA datasets are drawn from written texts, which puts in place distinct language pressures and removes visual common ground. While there is one subset of the corpus drawn from spoken data, those utterances come from TV and radio programs. All of these settings are likely quite different environements for language than the naturalistic in-home setting that our Language Development Project corpus draws from. In light of these differences, any observed similarity in usage seems remarkable.
+
+```{r adult_directed, fig.height=4, fig.width=3.8, fig.align = "left", num.cols.cap=1, fig.cap = "Looking at COCA data, these denisity plots show the usage amount based on the typicality of the adj-noun pair, seperated by the type of language (e.g., written)."}
+adult_tokens <- read_csv("../../data/adult_tokens.csv")
+
+adult_tokens$type <- factor(adult_tokens$type, levels=c("acad", "fic", "mag", "news", "spok"), labels=c("Academic \n Journals", "Fiction", "Magazines", "Newspapers", "Spoken \n(TV + radio)"))
+
+adult_tokens %>%
+  ggplot(aes(x=as.numeric(mean_typ), y=type, group=type, fill=type)) +
+  geom_density_ridges2(scale=1.4) +
+  ylab("Source of Adult Speech") +
+  xlab("More Atypical                     More Typical \n Typicality of adjective-noun pairs") +
+  theme_minimal() +
+  theme(panel.grid = element_line(color="lightgrey",size=0.5),
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x  = element_text(size=10, angle=30, hjust=1),
+    axis.text.y = element_text(size=10, angle=25),
+    legend.position = "none") +
+  geom_vline(xintercept = 4) +
+    scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always'))+
+      scale_fill_brewer(palette = "Accent") 
+```
+
+
+# Discussion
+
+importance of conversational pressures in determining information in language
+
+>AL: "Why would adults provide so little typical feature information (or at least less than we might think)? Are they just avoiding over-informativity, even with presumably more ignorant conversational partners? Maybe the way they talk is actually important for kids to learn pragmatics / how to talk about features?"
+
+learning problem for kids. maybe the prototypicals is a foothold for young learners.... 
+
+>AL: Do you think there is enough of the prototypicals? given that even the youngest kids only hear like 20% typical adjectives -- but maybe that's already a lot (?)
+
+more thoughts on potential ways kids extract more information
+
+limitations... abstract language?
 
 
 
