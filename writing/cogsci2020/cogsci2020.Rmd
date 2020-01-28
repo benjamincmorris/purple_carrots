@@ -37,6 +37,9 @@ library(scales)
 library(tidyboot)
 library(xtable)
 library(papaja)
+library(lme4)
+library(lmerTest)
+library(broom.mixed)
 ```
 
 Children learn a tremendous amount about the structure of the world around them in just a few short years, from the rules that govern the movement of physical objects to the hierarchical structure of natural categories and even relational structures among social and cultural groups [@baillargeon1994; @rogers2004; @legare2016]. Where does the information for this rapid acquisition come from? Undoubtedly, a sizeable component comes from direct experience observing and interacting with the world [@sloutsky2004; @stahl2015]. But another important source of information comes from the language people use to talk about the world [@landauer1997; @rhodes2012]. 
@@ -92,7 +95,7 @@ print(xtable(tab), type = "latex", comment = F, table.placement = "tb",
 
 
 ```{r distribution_plot, fig.height = 6, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "Denisity plots showing the usage amount at each timepoint based on the typicality of the adj-noun pair."}
-full_turk_counts <- read.csv("../../data/judgments_session.csv")
+full_turk_counts <- read_csv(here("data/judgments_session.csv"))
 
 full_turk_counts_plot <- full_turk_counts
 full_turk_counts_plot$session2 <- cut(full_turk_counts_plot$session, 
@@ -126,6 +129,56 @@ full_expanded %>%
   scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))
 ```
 
+```{r models}
+tidy_turk_counts <- full_turk_counts %>%
+    select(-range, -mean_typ, -noun_stem, -adj_stem, -attncheckscore) %>%
+    pivot_longer(cols = x1:x5, names_to = "rater", values_to = "score") %>%
+    mutate(offset = 4,
+           age = 10 + 4 * session,
+           article = case_when(is.na(article) ~ "",
+                               article %in% c("a","an") ~ "a/an",
+                               T ~ "the"))
+
+token_weight <- lmer(score ~ log(age) + (1|noun) + (1|network_id),
+                     offset = offset, 
+                     weights = n,
+                     data = tidy_turk_counts) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+
+type_weight <- lmer(score ~ log(age) + (1|noun) + (1|network_id),
+                     offset = offset, 
+                     data = tidy_turk_counts) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+```
+
+
+```{r word2vec-pairs, include = FALSE, eval = FALSE}
+pairs <- tidy_turk_counts %>%
+    group_by(noun, adj) %>%
+    summarise(typicality = mean(score, na.rm = TRUE)) %>%
+    group_by(noun) %>%
+    mutate(max_typ = max(typicality),
+           min_typ = min(typicality)) %>%
+    distinct(noun, min_typ, max_typ) %>%
+    filter(min_typ != max_typ, max_typ >= 5, min_typ <= 3)
+
+# filter to prenominals?
+tidy_turk_counts %>%
+    filter(noun %in% pairs$noun) %>%
+    group_by(noun, adj) %>%
+    summarise(typicality = mean(score, na.rm = TRUE)) %>%
+    filter(typicality <= 3 | typicality >= 5) %>%
+    group_by(noun) %>%
+    arrange(desc(typicality)) %>%
+    slice(c(1, n())) %>%
+    mutate(n = 1:n()) %>%
+    select(-typicality) %>%
+    spread(n, adj)
+```
 ## Results
 
 If description in child-directed speech mirrors adult-directed speech, we should see that caregiver descripiton is dominated by modifiers that are sometimes true of the noun they modify. If instead child-directed speech privledges redundant or assumed information, caregiver description would yield a distinct distribution dominated by highly typical modifiers. As can be seen in figure \ref{fig:distribution_plot}, there is remarkable developmental consistency such that caregiver description largely focuses on features that are only sometimes true of the concept.
