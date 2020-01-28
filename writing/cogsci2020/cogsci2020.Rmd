@@ -36,6 +36,7 @@ library(ggridges)
 library(scales)
 library(tidyboot)
 library(xtable)
+library(papaja)
 ```
 
 Children learn a tremendous amount about the structure of the world around them in just a few short years, from the rules that govern the movement of physical objects to the hierarchical structure of natural categories and even relational structures among social and cultural groups [@baillargeon1994; @rogers2004; @legare2016]. Where does the information for this rapid acquisition come from? Undoubtedly, a sizeable component comes from direct experience observing and interacting with the world [@sloutsky2004; @stahl2015]. But another important source of information comes from the language people use to talk about the world [@landauer1997; @rhodes2012]. 
@@ -78,12 +79,15 @@ Thus, our final sample included 2,220 unique adjective-noun pairs drawn from ove
 
 To evaluate the typicality of the adjective–noun pairs pulled from the corpus, we asked participants on Amazon Mechanical Turk to rate each pair. Participants were presented with a question of the form “How common is it for a cow to be a brown cow?” and asked to provide a rating on a seven-point scale: (1) never, (2) rarely, (3) sometimes, (4) about half the time, (5) often, (6) almost always, (7) always. Each participant rated 20 pairs, and each pair was rated by four participants; we used Dallinger [CITE], a tool for automating complex recruitment on Amazon Mechanical Turk, to balance recruitment. Overall, we recruited 444 participants to rate 2200 adjective–noun pairs. After exclusions using an attention check, we retained 8580 judgments, with each adjective–noun pair retaining at least two judgments.
 
-```{r utt_table}
-Example_Utterance  <- c('"Especially with wooden shoes."','"Some of our green bananas too."', '"Are bananas yellow?"')
-Typicality <- c(2.75, 3.75, 5.75)
-tmp <- data.frame(Example_Utterance, Typicality)
+```{r utt_table, results="asis", tab.env = "table"}
+tab <- tibble(utterance = c("especially with wooden shoes",
+                            "some of our green bananas too", 
+                            "are bananas yellow?"),
+              pair = c("wooden shoe", "green banana", "yellow banana"),
+              typicality = c(2.75, 3.75, 5.75))
 
-xtable(tmp)
+print(xtable(tab), type = "latex", comment = F, table.placement = "tb",
+      include.rownames = FALSE)
 ```
 
 
