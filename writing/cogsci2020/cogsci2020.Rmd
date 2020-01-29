@@ -52,13 +52,15 @@ While such effects have been demonstrated in the lab, the extent to which these 
 
 If the information in language statistics is indeed not a reflection of world statistics, young children may be faced with a difficult learning problem. Language provides a crucial information source for young children to learn about the complex world around them [@landauer1997; @rhodes2012]. Without the relevant world knowledge, young children learning from language input that is biased to overrepresent atypical features could develop inaccurate or distorted understandings of the categories being described. 
 
-It could be that the language input to young children is far different from the language on Wikipedia, such that children are learning from language that is much more veridical than the world around them.  Child-directed speech (CDS) differs from typical adult-directed speech along a number of structural dimensions, having simpler syntax and more reduplications (Snow, 1972).CDS also changes across development, with parents modulating the way they talk as a function of child's age (Snow, 1972). It is plausible that caregivers, especially of young children, would provide more description of typical features, whether simply to communicate effectively with a child who has less world knowledge or to explicitly teach their child about the world. The current study asks whether CDS is biased to highlight atypical features, as in adult speech (WILLITS, personal communication), or to more veridically reflects typical information about the world.
+It could be that the language input to young children is far different from the language on Wikipedia, such that children are learning from language that is much more veridical about the world around them.  Child-directed speech (CDS) differs from typical adult-directed speech along a number of structural dimensions, having simpler syntax and more reduplications (Snow, 1972). The current study asks whether CDS is biased to highlight atypical features, as in adult speech (WILLITS, personal communication), or to more veridically reflects typical information about the world.
 
 We first asked how information is distributed in CDS, and how similar it is to ADS. In a longitudinal corpus of parent-child communication, we collected usage data for adjective-noun pairs that co-occur within the same utterance. Human raters on Amazon Mechanical Turk then judged typicality (e.g., "How common is it for a banana to be a yellow banana?") on a 7-point scale. Using these data, we first demonstrate that child-directed speech (even to children as young as 14 months) is dominated by descriptions of lower-typicality features (e.g., "green banana"), rather than potentially redundant highly-typical features (e.g., "yellow banana"). 
 
-We next asked if the kind of information in CDS changes as children develop. We find evidence that description changes across development, with young children hearing relatively more talk about highly-typical features compared with older children.
+CDS also changes across development, with parents modulating the way they talk as a function of child's age (Snow, 1972). It is plausible that caregivers, especially of young children, would provide more description of typical features, whether simply to communicate effectively with a child who has less world knowledge or to explicitly teach their child about the world. This would suggest children with the least developed world knowledge actually get more information about aspects of the world that are typically true.
 
-We lastly discuss what these data may imply for the developing learner. Children rapidly develop sophisticated conceptual repetoires, yet the language children hear seems biased to overrepresent certain features. We consider a few potential cues that could allow children to extract better typicality information from language, such as tracking second-order co-occurence or possible syntactic cues. 
+To address this possibility, we next asked if the kind of information in CDS changes as children develop. We find evidence that description changes across development, with young children hearing relatively more talk about highly-typical features compared with older children.
+
+We lastly discuss what these data may imply for the developing learner. Children rapidly develop rich conceptual repetoires, yet the language children hear seems biased to overrepresent certain features. We consider a few potential cues that could allow children to extract better typicality information from language, such as tracking second-order co-occurence or possible syntactic cues. 
 
 
 # Corpus Analysis
@@ -82,12 +84,17 @@ Thus, our final sample included 2,220 unique adjective-noun pairs drawn from ove
 
 To evaluate the typicality of the adjective–noun pairs pulled from the corpus, we asked participants on Amazon Mechanical Turk to rate each pair. Participants were presented with a question of the form “How common is it for a cow to be a brown cow?” and asked to provide a rating on a seven-point scale: (1) never, (2) rarely, (3) sometimes, (4) about half the time, (5) often, (6) almost always, (7) always. Each participant rated 20 pairs, and each pair was rated by four participants; we used Dallinger [CITE], a tool for automating complex recruitment on Amazon Mechanical Turk, to balance recruitment. Overall, we recruited 444 participants to rate 2200 adjective–noun pairs. After exclusions using an attention check, we retained 8580 judgments, with each adjective–noun pair retaining at least two judgments.
 
-```{r utt_table, results="asis", tab.env = "table"}
-tab <- tibble(utterance = c("especially with wooden shoes",
+```{r utt_table, results="asis", tab.env = "table", tab.align="center", tab.cap = "Table containing example utterances and typicality ratings from 4 independent human raters."}
+tab <- tibble(Utterance = c("especially with wooden shoes",
                             "some of our green bananas too", 
                             "are bananas yellow?"),
-              pair = c("wooden shoe", "green banana", "yellow banana"),
-              typicality = c(2.75, 3.75, 5.75))
+              Pair = c("wooden-shoe", "green-banana", "yellow-banana"),
+              Judge_1 = c(2, 4, 5),
+              Judge_2 = c(2, 3, 5),
+              Judge_3 = c(3, 5, 7),
+              Judge_4 = c(2, 3, 6),
+              Mean_Typicality = c(2.75, 3.75, 5.75))
+
 
 print(xtable(tab), type = "latex", comment = F, table.placement = "tb",
       include.rownames = FALSE)
@@ -179,17 +186,50 @@ tidy_turk_counts %>%
     select(-typicality) %>%
     spread(n, adj)
 ```
+
 ## Results
+
+<!-- set up the null better -- I think here. If we put it earlier people will forget? -->
 
 If description in child-directed speech mirrors adult-directed speech, we should see that caregiver descripiton is dominated by modifiers that are sometimes true of the noun they modify. If instead child-directed speech privledges redundant or assumed information, caregiver description would yield a distinct distribution dominated by highly typical modifiers. As can be seen in figure \ref{fig:distribution_plot}, there is remarkable developmental consistency such that caregiver description largely focuses on features that are only sometimes true of the concept.
 
 ### Developmental Consistency.
 
-Examining usage data as a function of typicality (see figure \ref{fig:distribution_plot}), we see evidence of a positive skew (0.65) such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). Data from every time point from 14-58 months seems to show a similar pattern (skews 0.23 - 0.82). These data suggest that even when talking with very young children, caregiver speech structures information similarly to adult-directed speech.
+A mixed effects model predicting typicality from usage confirms that caregiver speech is signficantly biased toward description of atypical speech (*B* XXX, *p* < YYY). The full mixed effects model included random effects of noun and rater, specified as follows `lmer(typicality ~ log(age) + (1|noun) + (1|rater)` using an offset of 4 which is the midpoint of our scale. Rather than focusing on typical information, caregiver language tends on average be about less typical features (i.e. 'sometimes', 'rarely' or 'never').
+
+Examining usage data as a function of typicality (see figure \ref{fig:distribution_plot}), we see evidence of a positive skew (0.65). Data from every time point from 14-58 months seems to show a similar pattern (skews 0.23 - 0.82). These skews provide further evidence that the the bulk of caregiver language reflects lower-typicality adjective-noun pairs.
+
+Our mixed effects model also yields some evidence of developmental change. There is a negative effect of age on typicality (*B* XXX, *p* < YYY), suggesting that children's language environments become increasingly focused on atypicial features as they get older. This result is discussed further below.
+
+
+### Adult-Directed Speech.
+
+Next, we briefly confirm that adult-directed speech shows the similar usage pattern using an identical analysis framework on usage data from the Corpus of Contemporary American English (COCA). Using the set of adjective-noun pairs for which we have judgments from our analysis of caregiver speech, we repeat our analysis of usage frequencies for a set of 1,357 distinct adjective-noun pairs. 
+
+As predicted, an identical mixed effects model predicting typicality from usage shows that adult-directed speech speech is signficantly biased toward description of atypical features (*B* XXX, *p* < YYY ). ADS also shows a similar a positive skew (0.68), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). 
+
+The usage distributions in adult-directed speech seem qualitatively similar to the distributions we found in child-directed speech. In sum, these data suggest that even when talking with very young children, caregiver speech structures information similarly to adult-directed speech. We next briefly consider how children's own productions are structured.
+
+The difference of settings makes it difficult to compare these data directly with our data from the Language Devleopment Project corpus. Four of the COCA datasets are drawn from written texts, which puts in place distinct language pressures and removes visual common ground. While there is one subset of the corpus drawn from spoken data, those utterances come from TV and radio programs. All of these settings are likely quite different environements for language than the naturalistic in-home setting that our Language Development Project corpus draws from. In light of these differences, any observed similarity in usage seems remarkable.
+
+
+
+### Child Speech.
+
+What kind of information is contained in children's own speech? By analyzing children's productions, we can determine when children come to use description in a way that looks like caregiver speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe other features of the world?
+
+The Language Development Corpus contains 442,048 child utterances. Using the set of adjective-noun pairs for which we have judgments from our analysis of caregiver speech, we repeat our analysis on usage data for a set of 533 distinct adjective-noun pairs. 
+
+While preliminary, an identical mixed effects model predicting typicality from usage shows that adult-directed speech speech is signficantly biased toward description of atypical features (*B* XXX, *p* < YYY ). As before, children's productions shows a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never').
+
+
 
 ### Talk about the Highly-Typical.
 
-Despite of the striking consistency of description in caregiver speech across development, we were interested in identifying  observable differences in description across development. One such hypothesis was that the youngest children should be most likely to hear description of highly typical features, compared to older children. This would suggest children with the least developed world knowledge actually get more information about aspects of the world that are likely to be true and easily learned via observation, compared with older children. Indeed, when we look at the proportion of all description that is about highly-typical features (i.e. features that are 'often', 'almost always', or 'always' true), we see a significant negative correlation with age (*r* = -0.8231762, p < 0.01). While children at all ages hear more talk about what is atypically true (figure \ref{fig:distribution_plot}), younger children hear relatively more talk about what is typically true than older children (figure \ref{fig:prototypical_plot}, see also figure \ref{fig:mean_change}).
+Despite of the striking consistency of description in caregiver speech across development, our mixed effects model revealed a negative effect of age. In line with our hypotheses, it seems that caregivers are more likely to provide descrpiption of typical features for their young children, compared with older children. 
+
+Indeed, when we look at the proportion of all description that is about highly-typical features (i.e. features that are 'often', 'almost always', or 'always' true), we see a significant negative correlation with age (*r* = -0.8231762, p < 0.01). While children at all ages hear more talk about what is atypically true (see figure \ref{fig:distribution_plot}), younger children hear relatively more talk about what is typically true than older children (figure \ref{fig:prototypical_plot}).
+
 
 ```{r prototypical_plot, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "This plot shows the proportion of caregiver description that is about typically-true features, as a function of age."}
 #look for prototypicals
@@ -204,7 +244,6 @@ prototypicals <- full_expanded %>%
   summarize(sum=sum(sum)) %>%
   mutate(prop=sum/sum(sum)) %>%
   filter(howTyp)
-
 
 prototypicals %>%
   ggplot(aes(x=age,y=prop, colour=age)) +
@@ -223,13 +262,20 @@ prototypicals %>%
         legend.position = "none") 
 ```
 
+## Discussion
+
+In sum, language is used to discuss atypical features of the world, more so than typical features. Description in caregiver speech seems to largely recapitulate the usage patterns that we observed in adult-directed speech, suggesting that these patterns arise from general pressures on how communication is used. Indeed even children's own productions show a similar usage pattern, with more description of atypical features of world as early as we can measure. A
+
+It should be noted that children's utterances come from naturalistic conversations with caregivers, and the pattern of description is likely highly dependent on that caregiver. That is, if a parent chooses to describe the *purpleness* of a cat in book, the child may well respond by asking about that same feature. Thus, it is possible that some of the children's productions captured take place within a parent-led discourse. Future analyses would need to better disentangle the extent to which children's productions are imitatitve of caregivers. 
+
+While children's own descriptions largely mirror adults', we do see some evidence that children's linguistic environment changes across development, becoming increasingly focused on atypical features. The higher prevalance of typical descriptors in early development may help young learners; however, even at the earliest point we measured, the vast majority of language input describes atypical features. 
+
+Across adult, parent, and child language corpora, we find robust evidence that language use systematically overerpresents atypical features. This usage aligns with the idea that language is used informatively in relation to background knowledge about the world. It may pose a problem, however, for young language learners with still-developing world knowledge. If language does not transparently convey the typical features of objects, and instead (perhaps misleadingly) notes the atypical ones, how might children come to learn what objects are typically like? One possibility is that information about typical features is captured in regularities across many utterances. If this is true, language may still be an important source of information about typicality as children may be able to extract more accurate typicality information by tracking second-order co-occurence.
 
 
 # Other Ways of Extracting Structure from Language?
 
 ## Second-order Co-occurence 
-
-In our analyses of the concrete adjectives parents use to describe concrete nouns to their children, we find that parents tend to describe atypical rather than typical features of objects. This usage aligns with the idea that language is used informatively in relation to background knowledge about the world. It may pose a problem, however, for young language learners with still-developing world knowledge. If language does not transparently convey the typical features of objects, and instead (perhaps misleadingly) notes the atypical ones, how might one use language to learn what objects are typically like? One possibility is that information about typical features is captured in regularities across many utterances.
 
 Kim et al. (2019) demonstrate blind people's striking convergence with sighted people's feature judgments about animals, and posit that blind people may use animal taxonomy knowledge to selectively generalize features between species. In a response, Lewis et al. (2019) note that complex inferential machinery is not necessary to make these nuanced generalizations, and in fact much of this feature information is captured by simpler associations between words in the language one hears. We take a similar approach to ask whether typical feature information is expressed in the structure of the language children hear.
 
@@ -249,30 +295,17 @@ img <- png::readPNG(here("writing/cogsci2020/figs/word2vec.png"))
 grid::grid.raster(img)
 ```
 
-## Age of Aquisition
+<!-- ## Age of Aquisition -->
 
-Given our finding that young children hear relatively more description of typical features, it could be that linguistic input is more helpfully structured for the developing learner if we have a more nuanced measure linguistic experience. For example, one possibility is that caregivers are selectively overdescribing (or at least describing typical features) of concepts unfamiliar to their child. This possibility makes a clear prediction: namely, that information in CDS to children at a given age may differ as a function of whether the child knows the word being described, or not. 
+<!-- Given our finding that young children hear relatively more description of typical features, it could be that linguistic input is more helpfully structured for the developing learner if we have a more nuanced measure linguistic experience. For example, one possibility is that caregivers are selectively overdescribing (or at least describing typical features) of concepts unfamiliar to their child. This possibility makes a clear prediction: namely, that information in CDS to children at a given age may differ as a function of whether the child knows the word being described, or not.  -->
 
-To address this question we combined age of aquisition data from Wordbank and from adult-generated recollections (Kuperman et al., 2012). 
+<!-- To address this question we combined age of aquisition data from Wordbank and from adult-generated recollections (Kuperman et al., 2012).  -->
 
 ## Syntax
 
-# Other pieces to include?
-# Child Productions
 
-What kind of information is contained in children's own speech? By analyzing at children's productions, we can determine when children come to use description in a way that looks like caregiver speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe other features of the world?
 
-### Method. 
-
-The Language Development Corpus contains 442,048 child utterances. Using the same data-processing pipeline described for the caregiver speech, we filter to utterances which contain both at least one adjective and at least one noun and filter to include only concrete concepts (Brysbaert et al., 2014). Using the set of adjective-noun pairs for which we have judgments from our analysis of caregiver speech, we end up with a set of 533 distinct adjective-noun pairs. Note that at our earliest timepoints (14 and 18 months), children were not reliably producing enough utterances with adjectives and nouns to be included.
-
-### Results. 
-
-Examining usage data as a function of typicality (see figure \ref{fig:kid_plot}), we again see evidence of a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). A t-test confirms that children's description focuses on the atypical (mean typicality = 3.2) rather than the typical (compared with a null-value of 4 or "about half") (*t* = -25.44, p<0.001). 
-
-These data suggest that children's productions, like adults, focus on describing less typical features of world. Of course, these utterances come from naturalistic conversations with caregivers, and the pattern of description is likely highly dependent on the interlocutor. That is, if a parent chooses to describe the *purpleness* of a cat in book, the child may well respond by asking about that same feature. Thus it is perhaps unsurpising that their usage patterns would be well-aligned.
-
-```{r kid_plot, fig.height = 5.5, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "Analyzing child productions, these denisity plots show the usage amount at each timepoint based on the typicality of the adj-noun pair. Note that at our earliest timepoints (14 and 18 months), children were not reliably producing enough utterances with adjectives and nouns to be included here."}
+```{r kid_plot, include=FALSE, fig.height = 5.5, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "Analyzing child productions, these denisity plots show the usage amount at each timepoint based on the typicality of the adj-noun pair. Note that at our earliest timepoints (14 and 18 months), children were not reliably producing enough utterances with adjectives and nouns to be included here."}
 kid_production <- read.csv("../../data/kid_production.csv")
 
 kid_production %>%
@@ -296,21 +329,9 @@ kid_production %>%
   geom_vline(xintercept=4)
 ```
 
-# Adult Comparison
 
-To understand a reasonable hile some recent work has established a general pattern of 
 
-### Method. 
-
-Examining data from the Corpus of Contemporary American English, we can look at adult-directed speech across a range of settings. Using the same data-processing pipeline described for the caregiver speech, we filter to utterances which contain both at least one adjective and at least one noun and filter to include only concrete concepts (Brysbaert et al., 2014). Using the set of adjective-noun pairs for which we have judgments from our analysis of caregiver speech, we end up with a set of 1,357 distinct adjective-noun pairs. 
-
-### Results. 
-
-Examining usage data as a function of typicality (see figure \ref{fig:adult_directed}), we again see evidence of a positive skew (0.68), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). A t-test confirms that  description in adult-directed speech focuses on the atypical (mean typicality = 3.48) rather than the typical (compared with a null-value of 4 or "about half") (*t* = -211.44, p<0.001). 
-
-Overall, the usage distributions in adult-directed speech seem qualitatively similar to the distributions we found in child-directed speech. The difference of settings makes it difficult to compare these data directly with our data from the Language Devleopment Project corpus. Four of the COCA datasets are drawn from written texts, which puts in place distinct language pressures and removes visual common ground. While there is one subset of the corpus drawn from spoken data, those utterances come from TV and radio programs. All of these settings are likely quite different environements for language than the naturalistic in-home setting that our Language Development Project corpus draws from. In light of these differences, any observed similarity in usage seems remarkable.
-
-```{r adult_directed, fig.height=4, fig.width=3.8, fig.align = "left", num.cols.cap=1, fig.cap = "Looking at COCA data, these denisity plots show the usage amount based on the typicality of the adj-noun pair, seperated by the type of language (e.g., written)."}
+```{r adult_directed, include = FALSE, fig.height=4, fig.width=3.8, fig.align = "left", num.cols.cap=1, fig.cap = "Looking at COCA data, these denisity plots show the usage amount based on the typicality of the adj-noun pair, seperated by the type of language (e.g., written)."}
 adult_tokens <- read_csv("../../data/adult_tokens.csv")
 
 adult_tokens$type <- factor(adult_tokens$type, levels=c("acad", "fic", "mag", "news", "spok"), labels=c("Academic \n Journals", "Fiction", "Magazines", "Newspapers", "Spoken \n(TV + radio)"))
@@ -333,7 +354,7 @@ adult_tokens %>%
 ```
 
 
-# Discussion
+# General Discussion
 
 importance of conversational pressures in determining information in language
 
