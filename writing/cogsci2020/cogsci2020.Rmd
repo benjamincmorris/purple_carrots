@@ -130,6 +130,8 @@ full_expanded %>%
 ```
 
 ```{r models}
+model_judgments <- read_csv(here("data/all_judgments.csv"))
+
 tidy_turk_counts <- full_turk_counts %>%
     select(-range, -mean_typ, -noun_stem, -adj_stem, -attncheckscore) %>%
     pivot_longer(cols = x1:x5, names_to = "rater", values_to = "score") %>%
@@ -138,6 +140,28 @@ tidy_turk_counts <- full_turk_counts %>%
            article = case_when(is.na(article) ~ "",
                                article %in% c("a","an") ~ "a/an",
                                T ~ "the"))
+
+tidy_turk_counts <- tidy_turk_counts %>%
+  left_join(model_judgments, by = c("adj","noun"))
+
+tidy_turk_counts_for_plots <- tidy_turk_counts %>%
+  distinct(noun,adj,turker_judgment,ldp_similarity,wiki_similarity)
+
+tidy_turk_counts_for_plots %>%
+  ggplot() +
+  geom_jitter(aes(turker_judgment, ldp_similarity), width = 0.4, height = 0.4, size = 0.1) 
+
+tidy_turk_counts_for_plots %>%
+  group_by(noun,adj) %>%
+  ggplot() +
+  geom_jitter(aes(ldp_similarity, wiki_similarity), width = 0.4, height = 0.4, size = 0.1) 
+
+tidy_turk_counts_for_plots %>%
+  group_by(noun,adj) %>%
+  ggplot() +
+  geom_jitter(aes(turker_judgment, wiki_similarity), width = 0.4, height = 0.4, size = 0.1) 
+
+
 
 token_weight <- lmer(score ~ log(age) + (1|noun) + (1|network_id),
                      offset = offset, 
@@ -166,18 +190,28 @@ pairs <- tidy_turk_counts %>%
     distinct(noun, min_typ, max_typ) %>%
     filter(min_typ != max_typ, max_typ >= 5, min_typ <= 3)
 
+high_low_pairs <- tidy_turk_counts_for_plots %>%
+  filter(noun %in% pairs$noun) %>%
+  filter(turker_judgment <= 3 | turker_judgment >= 5) %>%
+  group_by(noun) %>%
+  arrange(desc(turker_judgment))
+
+
+
+
 # filter to prenominals?
-tidy_turk_counts %>%
-    filter(noun %in% pairs$noun) %>%
-    group_by(noun, adj) %>%
-    summarise(typicality = mean(score, na.rm = TRUE)) %>%
-    filter(typicality <= 3 | typicality >= 5) %>%
-    group_by(noun) %>%
-    arrange(desc(typicality)) %>%
-    slice(c(1, n())) %>%
-    mutate(n = 1:n()) %>%
-    select(-typicality) %>%
-    spread(n, adj)
+
+# tidy_turk_pairs <- tidy_turk_counts %>%
+#     filter(noun %in% pairs$noun) %>%
+#     group_by(noun, adj) %>%
+#     filter(typicality <= 3 | typicality >= 5) %>%
+#     group_by(noun) %>%
+#     arrange(desc(typicality)) 
+    #slice(c(1, n())) %>%
+    #mutate(n = 1:n()) %>%
+    #spread(n, adj)
+
+
 ```
 ## Results
 
