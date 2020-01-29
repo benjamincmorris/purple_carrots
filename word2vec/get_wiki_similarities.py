@@ -68,7 +68,3 @@ with open('all_judgments.csv', 'w') as csvfile:
     for (words, human, wiki, ldp) in all_judgments:
         writer.writerow([words[1],words[0],str(human),str(wiki),str(ldp)])
 
-
-wiki_model.wv.evaluate_word_pairs(datapath('simlex999.txt'))
-
-
