@@ -21,8 +21,8 @@ output: cogsci2016::cogsci_paper
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.width=3, fig.height=3, fig.crop = F, 
                       fig.pos = "tb", fig.path='figs/',
-                      echo=F, warning=F, cache=F, 
-                      message=F, sanitize = T)
+                      echo = F, warning = F, cache = T, 
+                      message = F, sanitize = T)
 # Note: to build, 
 ```
 
@@ -72,42 +72,53 @@ Should we expect children's categories to be biased in this way, with typical fe
 <!-- We lastly discuss what these data may imply for the developing learner. Children rapidly develop rich conceptual repetoires, yet the language children hear seems biased to overrepresent certain features. We consider a few potential cues that could allow children to extract better typicality information from language, such as tracking second-order co-occurence or syntactic cues.  -->
 
 
-# Corpus Analysis
+# Adjective typicality
 
-We first analyze caregiver speech to extract the usage statistics for all co-occuring adjective-noun pairs within an utterance. After subsetting the data to the concrete concepts (Brysbaert et al., 2014), human raters judged the typicality of each adjective-noun pair. Combining our usage data across the developmental range (ages 14-58 months) with the typicality judgements, we can examine how information is distributed in caregiver descriptions.
-
-### Corpus Method
-
-We used data from the Language Development Project– a large-scale, longitudinal corpus of parent child-interaction in the home with families who are representative of the Chicago community in socio-economic and racial diversity (Goldin-Meadow et al., 2014). Recordings were taken in the home every 4-months from when the child was 14-months-old until they were 58-months-old, resulting in 12 timepoints. Recordings were 90 minute sessions, and participants were given no instructions. The Language Development Project corpus contains transcription of all speech and communicative gestures produced by children and their caregivers over the course of the 90-minute home recordings. 
-
-To determine the extant information structure in children's language input, we subset the corpus to only caregiver speech, yielding a set of 828,392 distinct utterances. While it is important to consider children's own productions as an integral part their language environments (CITATION), description of a concept relies heavily on  linguisitic and world knowledge, and so it is necessary to analyze caregiver speech separately. For example, at our earliest timepoint (14-months), children are not producing multiword utterances with adjectives and nouns, or even reliably producing many adjectives at all.  
-
-Based on part-of-speech tags, we extracted usage rates for all nouns in the corpus. To ensure that the set of nouns we examined were relatively constant across our developmental samples, we subset all nouns that caregivers produced to only include nouns that were produced at least once every 3 sessions (i.e. per developmental year). This yielded a set of some 2,000 potential target nouns.
-
-We next tagged every utterance that included both one of the target nouns and an adjecitve. Any possible resulting pairs was counted seperately (i.e. utterances with one noun and multiple adjectives were coded as multiple pairs ) Many resulting high-frequency pairs proved difficult to classify on our typicality schema (e.g., "good"-- "job"; "little" -- "bit"). To identify potentially problematic pairs, we joined human judgments of concreteness for both the noun and the adjective (Brysbaert). We set our threshold at the top 25% of the concreteness ratings, and excluded any pair where either the adjective or noun was not rated above that threshold. Finally, all pairs were given to 7 human coders to judge whether the pair was "incoherent or unrelated" and we thus excluded a further XXX pairs from the sample (e.g., incoherent pairs such as "wet" -- "brown", and presumably errorfully coded pairs such as "orange" -- "orange").
-
-Thus, our final sample included 2,220 unique adjective-noun pairs drawn from over 6,000 utterances. The pairs were combinations of 684 distinct concrete nouns and 118 distinct concrete adjectives. We compiled these pairs and collected human judgments on Amazon Mechanical Turk for each pair, as described below. Table 1 contains example utterances from the final set and typicality judgments from our human raters.
+In order to determine whether parents typically use adjectives to mark atypical features of categories, we analyzed caregiver speech from a large corpus of parent-child interactions recorded in the home. We extracted all adjective-noun combinations for concrete nouns, and asked a sample of Amazon Mechanical Turkers to judge how typical the property described by each adjective was for the noun it modified. We then examined both the broad features of this typicality distribution and how it changed over development
 
 
-## Ratings Method
+## Corpus
 
-To evaluate the typicality of the adjective–noun pairs pulled from the corpus, we asked participants on Amazon Mechanical Turk to rate each pair. Participants were presented with a question of the form “How common is it for a cow to be a brown cow?” and asked to provide a rating on a seven-point scale: (1) never, (2) rarely, (3) sometimes, (4) about half the time, (5) often, (6) almost always, (7) always. Each participant rated 20 pairs, and each pair was rated by four participants; we used Dallinger [CITE], a tool for automating complex recruitment on Amazon Mechanical Turk, to balance recruitment. Overall, we recruited 444 participants to rate 2200 adjective–noun pairs. After exclusions using an attention check, we retained 8580 judgments, with each adjective–noun pair retaining at least two judgments.
+We used data from the Language Development Project--a large-scale, longitudinal corpus of parent child-interactions recorded in children's homes. Families were recruited to be representative of the Chicagoland area in both socio-economic and racial composition (Goldin-Meadow et al., 2014). Recordings were taken in the home every 4-months from when the child was 14-months-old until they were 58-months-old, resulting in 12 timepoints. Each recording was of a 90-minute session in which parents and children were free to behave as they liked and interact as much or as little as they liked.
+
+Our sample consistend of all N typically-developing children and their parents, who were recorded for at least M timepoints. Together, this resulted in a total of 828,392 distinct parent utterances. **SHOULD DO THIS IN CODE** 
+
+## Stimulus Selection
+
+From these utterances, we extract all of the nouns (using part of speech tags--**MANUAL? AUTOMATIC**). Because of our interest in the change in speech of development, we considered only nouns that appeared at least once every 3 sessions (i.e. per developmental year). This yielded a set of some 2,000 potential target nouns (**how many did we lose?**).
+
+<!-- To determine the extant information structure in children's language input, we subset the corpus to only caregiver speech, yielding a set of 828,392 distinct utterances. While it is important to consider children's own productions as an integral part their language environments (CITATION), description of a concept relies heavily on  linguisitic and world knowledge, and so it is necessary to analyze caregiver speech separately. For example, at our earliest timepoint (14-months), children are not producing multiword utterances with adjectives and nouns, or even reliably producing many adjectives at all.   -->
+
+We selected from the corpus all N utterances containing any of these nouns and any word tagged as an adjective. We considered for analysis all adjective-noun pairs that occurred in any utterance (i.e. utterances with one noun and three adjectives were coded as three pairs ). This set contained a number of high-frequency idiomatic pairs whose typicality was e difficult to classify (e.g., "good"--"job"; "little"--"bit"). To resolve this issue, we used human judgments of words' concreteness to identify and exclude candidate idioms [@brysbaert2014]. We retained for analysis only pairs where both the adjective and noun were in the top 25% of the concreteness ratings. **GIVE EXAMPLES, SAY HOW MANY**.  Finally, all pairs were given to 7 human coders to judge whether the pair was "incoherent or unrelated" and we thus excluded a further XXX pairs from the sample (e.g., incoherent pairs such as "wet" -- "brown", and presumably errorfully coded pairs such as "orange" -- "orange").
+
+Thus, our final sample included 2,220 unique adjective-noun pairs drawn from over 6,000 utterances. The pairs were combinations of 684 distinct concrete nouns and 118 distinct concrete adjectives. We compiled these pairs and collected human judgments on Amazon Mechanical Turk for each pair, as described below. Table  \ref{tab:utt_table} contains example utterances from the final set and typicality judgments from our human raters.
+
 
 ```{r utt_table, results="asis", tab.env = "table", tab.align="center", tab.cap = "Table containing example utterances and typicality ratings from 4 independent human raters."}
 tab <- tibble(Utterance = c("especially with wooden shoes",
                             "some of our green bananas too", 
                             "are bananas yellow?"),
               Pair = c("wooden-shoe", "green-banana", "yellow-banana"),
-              Judge_1 = c(2, 4, 5),
-              Judge_2 = c(2, 3, 5),
-              Judge_3 = c(3, 5, 7),
-              Judge_4 = c(2, 3, 6),
-              Mean_Typicality = c(2.75, 3.75, 5.75))
+              `1` = c(2, 4, 5),
+              `2` = c(2, 3, 5),
+              `3` = c(3, 5, 7),
+              `4` = c(2, 3, 6),
+              M = c(2.75, 3.75, 5.75))
 
 
-print(xtable(tab), type = "latex", comment = F, table.placement = "tb",
-      include.rownames = FALSE)
+print(xtable(tab, display = c("s", "s", "s", "d", "d", "d", "d", "f")), 
+      type = "latex", comment = F, table.placement = "tb",
+      include.rownames = FALSE, size="\\fontsize{9pt}{9pt}\\selectfont")
 ```
+
+
+## Participants
+
+Each participant rated 20 pairs, and each pair was rated by four participants; we used Dallinger [CITE], a tool for automating complex recruitment on Amazon Mechanical Turk, to balance recruitment. Overall, we recruited 444 participants to rate 2200 adjective–noun pairs. After exclusions using an attention check, we retained 8580 judgments, with each adjective–noun pair retaining at least two judgments.
+
+## Design and Procedure
+
+To evaluate the typicality of the adjective–noun pairs pulled from the corpus, we asked participants on Amazon Mechanical Turk to rate each pair. Participants were presented with a question of the form “How common is it for a cow to be a brown cow?” and asked to provide a rating on a seven-point scale: (1) never, (2) rarely, (3) sometimes, (4) about half the time, (5) often, (6) almost always, (7) always. 
 
 
 ```{r distribution_plot, fig.height = 6, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "Denisity plots showing the usage amount at each timepoint based on the typicality of the adj-noun pair."}
