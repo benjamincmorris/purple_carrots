@@ -180,6 +180,8 @@ is represented. Thus, children must either have distorted
 representations of categories learned only through language or else
 learn typicality through other means.
 
+\textbf{notes for intro word2vec more}
+
 If caregivers use language to mirror the world or to teach their
 children about the typical features of things, they should often use
 highly typical adjectives to describe nouns. If, on the other hand, they
@@ -187,7 +189,17 @@ speak informatively to convey what is atypical or surprising in relation
 to their own sophisticated world knowledge, they should more often
 mention the atypical features of things.
 
-\textbf{intro word2vec more}
+Information in language goes beyond what can be learned from any one
+utterance. Though one might never hear the words /kumquat/ and
+/grapefruit/ in the same sentence, their common contexts---other words
+like /eat/, /rind/, /tree/, /tart/, and /seeds/---are clues that they
+have some similarities. Models of distributional semantics capitalize on
+these patterns by representing words using their contexts, and judging
+two words to be similar if they are surrounded by similar sets of words.
+Though we found that children get more information about atypical than
+typical features of objects on the utterance level, perhaps patterns of
+language use across many utterances could be used to extract typical
+feature information.
 
 \hypertarget{adjective-typicality}{%
 \section{Adjective typicality}\label{adjective-typicality}}
@@ -253,20 +265,19 @@ pair, as described below. Table \ref{tab:utt_table} contains example
 utterances from the final set and typicality judgments from our human
 raters.
 
-\begin{table}[tb]
+\begin{table*}[tb]
 \centering
-\begingroup\fontsize{9pt}{9pt}\selectfont
 \begin{tabular}{llrrrrr}
   \hline
-Utterance & Pair & 1 & 2 & 3 & 4 & M \\ 
+utterance & pair & rating 1 & rating 2 & rating 3 & rating 4 & mean typicality \\ 
   \hline
 especially with wooden shoes & wooden-shoe &   2 &   2 &   3 &   2 & 2.75 \\ 
   some of our green bananas too & green-banana &   4 &   3 &   5 &   3 & 3.75 \\ 
   are bananas yellow? & yellow-banana &   5 &   5 &   7 &   6 & 5.75 \\ 
    \hline
 \end{tabular}
-\endgroup
-\end{table}
+\caption{Sample typicality ratings from 4 human coders for three adjective-noun pairs drawn from the corpus.} 
+\end{table*}
 
 \hypertarget{participants}{%
 \subsection{Participants}\label{participants}}
@@ -481,29 +492,6 @@ without any complex inferential machinery. We take a similar approach to
 ask whether a distributional semantics model trained on the language
 children hear can capture typical feature information.
 
-Information in language goes beyond what can be learned from any one
-utterance. Though one might never hear the words /kumquat/ and
-/grapefruit/ in the same sentence, their common contexts---other words
-like /eat/, /rind/, /tree/, /tart/, and /seeds/---are clues that they
-have some similarities. Models of distributional semantics capitalize on
-these patterns by representing words using their contexts, and judging
-two words to be similar if they are surrounded by similar sets of words.
-Though we found that children get more information about atypical than
-typical features of objects on the utterance level, perhaps patterns of
-language use across many utterances could be used to extract typical
-feature information.
-
-\begin{CodeChunk}
-\begin{figure}[tb]
-
-{\centering \includegraphics{figs/word2vec1-1} 
-
-}
-
-\caption[Correlation between vector similarities in word2vec (trained on the LDP corpus) and human-rated typicality judgments for our noun-adjective pairs]{Correlation between vector similarities in word2vec (trained on the LDP corpus) and human-rated typicality judgments for our noun-adjective pairs.}\label{fig:word2vec1}
-\end{figure}
-\end{CodeChunk}
-
 \hypertarget{word2vec}{%
 \subsubsection{Word2Vec}\label{word2vec}}
 
@@ -541,6 +529,17 @@ systematic associations between nouns and adjectives, but not typical
 ones. Overall, these results suggest that models of distributional
 semantics fail to extract typical feature information from language in
 which atypical features are more often described.
+
+\begin{CodeChunk}
+\begin{figure}[tb]
+
+{\centering \includegraphics{figs/word2vec1-1} 
+
+}
+
+\caption[Correlation between vector similarities in word2vec (trained on the LDP corpus) and human-rated typicality judgments for our noun-adjective pairs]{Correlation between vector similarities in word2vec (trained on the LDP corpus) and human-rated typicality judgments for our noun-adjective pairs.}\label{fig:word2vec1}
+\end{figure}
+\end{CodeChunk}
 
 \begin{CodeChunk}
 \begin{figure}[tb]

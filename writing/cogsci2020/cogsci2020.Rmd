@@ -55,9 +55,14 @@ For things like carrots--that children learn about both from perception and from
 Should we expect children's categories to be biased in this way, with typical features underrepresented and atypical features overrepresented? We examine the typicality of adjectives in a large, diverse corpus of parent-child ineractions recorded in children's homes to ask whether parents talking to their children--just like adults speaking and writing--tend to use adjectives predominantly to mark atypical features. We find that they do: parents and children overwhelmingly choose to mention atypical rather than typical features. However, we also find that parents use adjectives differently over the course of children's development, noting typical features more often to younger children. We then ask whether the co-occurrence structure of language nonetheless captures typicality information, and find that relatively little of it is represented. Thus, children must either have distorted representations of categories learned only through language or else learn typicality through other means.
 
 
+
+**notes for intro word2vec more**
+
 If caregivers use language to mirror the world or to teach their children about the typical features of things, they should often use highly typical adjectives to describe nouns. If, on the other hand, they speak informatively to convey what is atypical or surprising in relation to their own sophisticated world knowledge, they should more often mention the atypical features of things. 
 
-**intro word2vec more**
+Information in language goes beyond what can be learned from any one utterance. Though one might never hear the words /kumquat/ and /grapefruit/ in the same sentence, their common contexts—other words like /eat/, /rind/, /tree/, /tart/, and /seeds/—are clues that they have some similarities. Models of distributional semantics capitalize on these patterns by representing words using their contexts, and judging two words to be similar if they are surrounded by similar sets of words. Though we found that children get more information about atypical than typical features of objects on the utterance level, perhaps patterns of language use across many utterances could be used to extract typical feature information. 
+
+
 
 
 <!-- While such effects have been demonstrated in the lab, the extent to which these language pressures structure naturalistic language remains unclear. A recent analysis of co-occuring adjective-noun pairs in the Wikipedia corpus asked human raters to judge the whether a given adjective was 'always true', 'sometimes true', or 'never true/unrelated' to a co-occuring noun (Willits,// *personal communication * // ? ). The analysis revealed that language usage is dominated by descriptions that are only 'sometimes true' of the described category, and thus suggests that naturalistic language usage reflects pressures to comment on the atypical (Willits,// *personal communication * // ? ). -->
@@ -99,21 +104,23 @@ We selected from the corpus all N utterances containing any of these nouns and a
 Thus, our final sample included 2,220 unique adjective-noun pairs drawn from over 6,000 utterances. The pairs were combinations of 684 distinct concrete nouns and 118 distinct concrete adjectives. We compiled these pairs and collected human judgments on Amazon Mechanical Turk for each pair, as described below. Table  \ref{tab:utt_table} contains example utterances from the final set and typicality judgments from our human raters.
 
 
-```{r utt_table, results="asis", tab.env = "table", tab.align="center", tab.cap = "Table containing example utterances and typicality ratings from 4 independent human raters."}
-tab <- tibble(Utterance = c("especially with wooden shoes",
+```{r utt_table, results="asis"}
+tab <- tibble(utterance = c("especially with wooden shoes",
                             "some of our green bananas too", 
                             "are bananas yellow?"),
-              Pair = c("wooden-shoe", "green-banana", "yellow-banana"),
-              `1` = c(2, 4, 5),
-              `2` = c(2, 3, 5),
-              `3` = c(3, 5, 7),
-              `4` = c(2, 3, 6),
-              M = c(2.75, 3.75, 5.75))
+              pair = c("wooden-shoe", "green-banana", "yellow-banana"),
+              `rating 1` = c(2, 4, 5),
+              `rating 2` = c(2, 3, 5),
+              `rating 3` = c(3, 5, 7),
+              `rating 4` = c(2, 3, 6),
+              `mean typicality` = c(2.75, 3.75, 5.75))
 
 
-print(xtable(tab, display = c("s", "s", "s", "d", "d", "d", "d", "f")), 
-      type = "latex", comment = F, table.placement = "tb",
-      include.rownames = FALSE, size="\\fontsize{9pt}{9pt}\\selectfont")
+print(xtable(tab, display = c("s", "s", "s", "d", "d", "d", "d", "f"),
+             caption = "Sample typicality ratings from 4 human coders for three adjective-noun pairs drawn from the corpus."), 
+      type = "latex", comment = F, table.placement = "tb", floating = TRUE,
+      floating.environment = "table*",
+      include.rownames = FALSE)
 ```
 
 
@@ -324,7 +331,14 @@ Across adult, parent, and child language corpora, we find robust evidence that l
 
 Much information can be gleaned from language that does not seem available at first glance. From language alone, simple distributional learning models can recover enough information to perform comparably to non-native college applicants on the TOEFL (Landauer & Dumais, 1997). Recently, Lewis et al. (2019) demonstrated that even nuanced feature information may be learnable through distributional semantics alone, without any complex inferential machinery. We take a similar approach to ask whether a distributional semantics model trained on the language children hear can capture typical feature information.
 
-Information in language goes beyond what can be learned from any one utterance. Though one might never hear the words /kumquat/ and /grapefruit/ in the same sentence, their common contexts—other words like /eat/, /rind/, /tree/, /tart/, and /seeds/—are clues that they have some similarities. Models of distributional semantics capitalize on these patterns by representing words using their contexts, and judging two words to be similar if they are surrounded by similar sets of words. Though we found that children get more information about atypical than typical features of objects on the utterance level, perhaps patterns of language use across many utterances could be used to extract typical feature information. 
+
+### Word2Vec
+
+To test this possibility, we trained word2vec, a model that predicts words using their contexts, on the same corpus of child-directed speech used in our first set of analyses. Our model is a continuous-bag-of-words word2vec model trained using the package gensim [CITE]. If the model captures information about the typical features of objects, we should see that the model's word pair similarities are correlated with the typicality ratings we elicited from human raters.  
+
+### Results
+
+We find that similarities in the model have near zero correlation with human adjective–noun typicality ratings (r = 0.018). This is in spite of better correlations with large sets of human similarity judgments between different kinds of word pairs (correlation with  wordsim353, 0.37; correlation with simlex, 0.15). This suggests that statistical patterns in child-directed speech are likely insufficient to encode information about the typical features of objects, despite encoding at least some information about word meaning more broadly. However, the corpus on which we trained this model was small; perhaps our model did not get enough language to draw out the patterns that would reflect the typical features of objects. To test this possibility, we asked whether word vectors trained on a much larger corpus—English Wikipedia—strongly correlate with typicality ratings. We find that while the correlation between similarities in the Wikipedia–trained model and human noun–adjective typicality ratings is stronger, it is still fairly weak at r = 0.24. Strikingly, the correlation between similarities in our model and similarities in the Wikipedia-trained models is stronger (r = 0.33) than either model's correlations with human judgments. This suggests that these models are picking up on some systematic associations between nouns and adjectives, but not typical ones. Overall, these results suggest that models of distributional semantics fail to extract typical feature information from language in which atypical features are more often described.
 
 ```{r word2vec1, fig.align='center', fig.width = 4, set.cap.width=T, num.cols.cap=1, fig.cap = "Correlation between vector similarities in word2vec (trained on the LDP corpus) and human-rated typicality judgments for our noun-adjective pairs."}
 #img <- png::readPNG(here("writing/cogsci2020/figs/word2vec.png"))
@@ -341,15 +355,6 @@ tidy_turk_counts_for_plots %>%
   #geom_jitter(aes(turker_judgment, wiki_similarity), width = 0.4, height = 0.4, size = 0.1) 
 #grid::grid.raster(img)
 ```
-
-### Word2Vec
-
-To test this possibility, we trained word2vec, a model that predicts words using their contexts, on the same corpus of child-directed speech used in our first set of analyses. Our model is a continuous-bag-of-words word2vec model trained using the package gensim [CITE]. If the model captures information about the typical features of objects, we should see that the model's word pair similarities are correlated with the typicality ratings we elicited from human raters.  
-
-### Results
-
-We find that similarities in the model have near zero correlation with human adjective–noun typicality ratings (r = 0.018). This is in spite of better correlations with large sets of human similarity judgments between different kinds of word pairs (correlation with  wordsim353, 0.37; correlation with simlex, 0.15). This suggests that statistical patterns in child-directed speech are likely insufficient to encode information about the typical features of objects, despite encoding at least some information about word meaning more broadly. However, the corpus on which we trained this model was small; perhaps our model did not get enough language to draw out the patterns that would reflect the typical features of objects. To test this possibility, we asked whether word vectors trained on a much larger corpus—English Wikipedia—strongly correlate with typicality ratings. We find that while the correlation between similarities in the Wikipedia–trained model and human noun–adjective typicality ratings is stronger, it is still fairly weak at r = 0.24. Strikingly, the correlation between similarities in our model and similarities in the Wikipedia-trained models is stronger (r = 0.33) than either model's correlations with human judgments. This suggests that these models are picking up on some systematic associations between nouns and adjectives, but not typical ones. Overall, these results suggest that models of distributional semantics fail to extract typical feature information from language in which atypical features are more often described.
-
 
 
 ```{r word2vec2, fig.align='center', fig.width = 4, set.cap.width=T, num.cols.cap=1, fig.cap = "Correlation between vector similarities in word2vec trained on the LDP corpus and vector similarities in word2vec trained on English Wikipedia for our noun-adjective pairs."}
