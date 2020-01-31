@@ -206,25 +206,81 @@ type_weight <- lmer(score ~ log(age) + (1|noun) + (1|network_id),
 
 ```
 
+```{r}
+split_half <- tidy_turk_counts %>%
+  mutate(rater = as.numeric(gsub("x", "", rater))) %>%
+  filter(rater %in% c(1, 2)) %>%
+  group_by(rater, noun, adj) %>%
+  summarise(score = mean(score, na.rm = T)) %>%
+  pivot_wider(names_from = rater, values_from = score)
+
+half_model <- lmer(`1` ~ `2` + (1|adj) + (1|noun), data = split_half)
+
+split_half %>%
+  ungroup() %>%
+  mutate(prediction = predict(half_model)) %>%
+  summarise(cor = cor(`1`, prediction))
+
+data <- tidy_turk_counts_for_plots %>% 
+       left_join(tidy_turk_counts %>% filter(rater == "x1"))
+
+cor(data$turker_judgment, data$wiki_similarity, use = "pairwise")
+
+wiki_model <- lm(score ~ wiki_similarity ,
+     data = data) 
+
+tidy_turk_counts_for_plots %>%
+  filter(!is.na(wiki_similarity)) %>%
+  mutate(prediction = predict(wiki_model)) %>%
+  summarise(cor = cor(prediction, turker_judgment))
+
+```
 
 ```{r word2vec-pairs, include = FALSE, eval = FALSE}
 pairs <- tidy_turk_counts %>%
-    group_by(noun, adj) %>%
-    summarise(typicality = mean(score, na.rm = TRUE)) %>%
-    group_by(noun) %>%
-    mutate(max_typ = max(typicality),
-           min_typ = min(typicality)) %>%
-    distinct(noun, min_typ, max_typ) %>%
-    filter(min_typ != max_typ, max_typ >= 5, min_typ <= 3)
+  group_by(noun, adj) %>%
+  summarise(typicality = mean(score, na.rm = TRUE)) %>%
+  group_by(noun) %>%
+  mutate(max_typ = max(typicality),
+         min_typ = min(typicality)) %>%
+  distinct(noun, min_typ, max_typ) %>%
+  filter(min_typ != max_typ, max_typ >= 5, min_typ <= 3) 
 
 high_low_pairs <- tidy_turk_counts_for_plots %>%
   filter(noun %in% pairs$noun) %>%
-  filter(turker_judgment <= 3 | turker_judgment >= 5) %>%
+  left_join(pairs, by = c("noun")) %>%
+  filter(turker_judgment == min_typ | turker_judgment == max_typ) %>%
+  select(adj, noun, turker_judgment) %>%
   group_by(noun) %>%
-  arrange(desc(turker_judgment))
+  arrange(noun, desc(turker_judgment)) %>%
+  slice(1, n()) %>%
+  mutate(typicality = c("high", "low"),
+         typicality = factor(typicality, levels = c("low", "high"))) %>%
+  left_join(tidy_turk_counts_for_plots) 
+
+lmer(ldp_similarity ~ typicality + (1|noun) + (1|adj), data = high_low_pairs) %>%
+  summary()
+
+high_low_pairs %>%
+  pivot_longer(cols = c(turker_judgment, wiki_similarity, ldp_similarity),
+              names_to = "measure", values_to = "score") %>%
+  ggplot(aes(x = typicality, y = score, group = noun)) +
+  facet_grid(measure ~ ., scale = "free") +
+  geom_point(alpha = .5) +
+  geom_line(color = "light gray") +
+  theme_few()
 
 
-
+high_low_pairs %>%
+  group_by(noun) %>%
+  summarise(diff = first(ldp_similarity) - last(ldp_similarity)) %>%
+  filter(diff < 0) %>%
+  left_join(high_low_pairs %>% select(noun, adj)) %>%
+  group_by(noun) %>%
+  mutate(typicality = c("high", "low")) %>%
+  pivot_wider(names_from = "typicality", values_from = "adj") %>%
+  select(diff, noun, high, low) %>%
+  View()
 
 # filter to prenominals?
 
