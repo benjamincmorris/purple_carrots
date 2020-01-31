@@ -93,21 +93,23 @@ We selected from the corpus all N utterances containing any of these nouns and a
 Thus, our final sample included 2,220 unique adjective-noun pairs drawn from over 6,000 utterances. The pairs were combinations of 684 distinct concrete nouns and 118 distinct concrete adjectives. We compiled these pairs and collected human judgments on Amazon Mechanical Turk for each pair, as described below. Table  \ref{tab:utt_table} contains example utterances from the final set and typicality judgments from our human raters.
 
 
-```{r utt_table, results="asis", tab.env = "table", tab.align="center", tab.cap = "Table containing example utterances and typicality ratings from 4 independent human raters."}
-tab <- tibble(Utterance = c("especially with wooden shoes",
+```{r utt_table, results="asis"}
+tab <- tibble(utterance = c("especially with wooden shoes",
                             "some of our green bananas too", 
                             "are bananas yellow?"),
-              Pair = c("wooden-shoe", "green-banana", "yellow-banana"),
-              `1` = c(2, 4, 5),
-              `2` = c(2, 3, 5),
-              `3` = c(3, 5, 7),
-              `4` = c(2, 3, 6),
-              M = c(2.75, 3.75, 5.75))
+              pair = c("wooden-shoe", "green-banana", "yellow-banana"),
+              `rating 1` = c(2, 4, 5),
+              `rating 2` = c(2, 3, 5),
+              `rating 3` = c(3, 5, 7),
+              `rating 4` = c(2, 3, 6),
+              `mean typicality` = c(2.75, 3.75, 5.75))
 
 
-print(xtable(tab, display = c("s", "s", "s", "d", "d", "d", "d", "f")), 
-      type = "latex", comment = F, table.placement = "tb",
-      include.rownames = FALSE, size="\\fontsize{9pt}{9pt}\\selectfont")
+print(xtable(tab, display = c("s", "s", "s", "d", "d", "d", "d", "f"),
+             caption = "Sample typicality ratings from 4 human coders for three adjective-noun pairs drawn from the corpus."), 
+      type = "latex", comment = F, table.placement = "tb", floating = TRUE,
+      floating.environment = "table*",
+      include.rownames = FALSE)
 ```
 
 
