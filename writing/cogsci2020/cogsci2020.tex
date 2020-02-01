@@ -64,26 +64,23 @@ atypical feature description across development}
 
 \begin{abstract}
 Language provides children a powerful source of information about the
-world. Blind children learn the same kinds of relationships among visual
-categories as sighted children, without any of the relevant visual input
-(Landau \& Gleitman, 1985). However, language does not perfectly reflect
-the world: the most typical features of natural kinds may often go
-unremarked. For instance, adults rarely describe the color of an orange
-carrot, as world knowledge makes this description redundant. Given
-children's nascent world knowledge, does parents' speech to children
-follow this pattern? From longitudinal corpus data of parent-child
-communication (Goldin-Meadow et al., 2014) between 14--58 months, we
-extracted usage data for 684 high-frequency concrete nouns and
-co-occurring adjectives. Independent raters coded the typicality of over
-2,000 unique adjective--noun pairs on a 7-point Likert scale. If
-language statistics reflect world statistics, description should be
-dominated by the typical (strong negative skew); however, across all
-ages, we see descriptors concentrated in the atypical range (positive
-skewness = 0.65). However, parents were reliably more likely to use
-typical descriptors when talking to younger copmared with older
-children. Overall, child language input reflects notable more than
-typical features, but increased description of typical features early in
-development may provide a foothold for young learners.
+world. However, language does not perfectly reflect the world: the most
+typical features of natural kinds may often go unremarked. For instance,
+adults rarely describe the color of an orange carrot, as world knowledge
+makes this description redundant. Given children's nascent world
+knowledge, does parents' speech to children follow this pattern? From
+longitudinal corpus data of parent-child communication (Goldin-Meadow et
+al., 2014) between 14--58 months, we extracted usage data for 637
+high-frequency concrete nouns and co-occurring adjectives. Independent
+raters coded the typicality of 1,901 unique adjective--noun pairs on a
+7-point Likert scale. If language statistics reflect world statistics,
+description should be dominated by the typical (strong negative skew);
+instead, across all ages, we see descriptors concentrated in the
+atypical range (positive skewness = 0.65). However, parents were
+reliably more likely to use typical descriptors when talking to younger
+compared with older children. Overall, child language input reflects
+notable more than typical features, but increased description of typical
+features early in development may provide a foothold for young learners.
 
 \textbf{Keywords:}
 language input, language acquisition, child-directed speech
@@ -182,13 +179,6 @@ learn typicality through other means.
 
 \textbf{notes for intro word2vec more}
 
-If caregivers use language to mirror the world or to teach their
-children about the typical features of things, they should often use
-highly typical adjectives to describe nouns. If, on the other hand, they
-speak informatively to convey what is atypical or surprising in relation
-to their own sophisticated world knowledge, they should more often
-mention the atypical features of things.
-
 Information in language goes beyond what can be learned from any one
 utterance. Though one might never hear the words /kumquat/ and
 /grapefruit/ in the same sentence, their common contexts---other words
@@ -207,17 +197,17 @@ feature information.
 In order to determine whether parents use adjectives mostly to mark
 atypical features of categories, we analyzed caregiver speech from a
 large corpus of parent-child interactions recorded in the home. We
-extracted all adjective-noun combinations for concrete nouns, and asked
-a sample of Amazon Mechanical Turkers to judge how typical the property
-described by each adjective was for the noun it modified. We then
-examined both the broad features of this typicality distribution and how
-it changed over development.
+extracted a subset of adjective-noun combinations that co-occured, and
+asked a sample of Amazon Mechanical Turkers to judge how typical the
+property described by each adjective was for the noun it modified. We
+then examined both the broad features of this typicality distribution
+and how it changed over development.
 
 \hypertarget{corpus}{%
 \subsection{Corpus}\label{corpus}}
 
-We used data from the Language Development Project--a large-scale,
-longitudinal corpus of parent child-interactions recorded in children's
+We used data from the Language Development Project-- a large-scale,
+longitudinal corpus of parent-child interactions recorded in children's
 homes. Families were recruited to be representative of the Chicagoland
 area in both socio-economic and racial composition (Goldin-Meadow et
 al., 2014). Recordings were taken in the home every 4-months from when
@@ -226,44 +216,20 @@ the child was 14-months-old until they were 58-months-old, resulting in
 parents and children were free to behave as they liked and interact as
 much or as little as they liked.
 
-Our sample consistend of all N typically-developing children and their
-parents, who were recorded for at least M timepoints. Together, this
-resulted in a total of 828,392 distinct parent utterances.
-\textbf{SHOULD DO THIS IN CODE}
+Our sample consisted of 64 typically-developing children and their
+caregivers, with data from at least 4 timepoints (\emph{mean} = 11.3
+timepoints). Together, this resulted in a total of 641,402 distinct
+parent utterances.
 
 \hypertarget{stimulus-selection}{%
 \subsection{Stimulus Selection}\label{stimulus-selection}}
 
-From these utterances, we extract all of the nouns (using part of speech
-tags--\textbf{MANUAL? AUTOMATIC}). Because of our interest in the change
-in speech of development, we considered only nouns that appeared at
-least once every 3 sessions (i.e.~per developmental year). This yielded
-a set of some 2,000 potential target nouns (\textbf{how many did we
-lose?}).
-
-We selected from the corpus all N utterances containing any of these
-nouns and any word tagged as an adjective. We considered for analysis
-all adjective-noun pairs that occurred in any utterance (i.e.~utterances
-with one noun and three adjectives were coded as three pairs ). This set
-contained a number of high-frequency idiomatic pairs whose typicality
-was difficult to classify (e.g., ``good''--``job'';
-``little''--``bit''). To resolve this issue, we used human judgments of
-words' concreteness to identify and exclude candidate idioms (Brysbaert,
-Warriner, \& Kuperman, 2014). We retained for analysis only pairs where
-both the adjective and noun were in the top 25\% of the concreteness
-ratings. \textbf{GIVE EXAMPLES, SAY HOW MANY}. Finally, all pairs were
-given to 7 human coders to judge whether the pair was ``incoherent or
-unrelated'' and we thus excluded a further XXX pairs from the sample
-(e.g., incoherent pairs such as ``wet'' -- ``brown'', and presumably
-errorfully coded pairs such as ``orange'' -- ``orange'').
-
-Thus, our final sample included 2,220 unique adjective-noun pairs drawn
-from over 6,000 utterances. The pairs were combinations of 684 distinct
-concrete nouns and 118 distinct concrete adjectives. We compiled these
-pairs and collected human judgments on Amazon Mechanical Turk for each
-pair, as described below. Table \ref{tab:utt_table} contains example
-utterances from the final set and typicality judgments from our human
-raters.
+From these utterances, we extracted all of the nouns (using part of
+speech tags--\textbf{MANUAL? AUTOMATIC}) resulting in a set of 8,150
+total nouns. Because of our interest in change over development, we
+considered only nouns that appeared at least once every 3 sessions
+(i.e.~per developmental year). This yielded a set of some 1,829
+potential target nouns used over 198,014 distinct utterances.
 
 \begin{table*}[tb]
 \centering
@@ -279,6 +245,30 @@ especially with wooden shoes & wooden-shoe &   2 &   2 &   3 &   2 & 2.75 \\
 \caption{Sample typicality ratings from 4 human coders for three adjective-noun pairs drawn from the corpus.} 
 \label{tab:utt_table}
 \end{table*}
+
+We selected from the corpus all 35,761 distinct utterances containing
+any of these nouns and any word tagged as an adjective. We considered
+for analysis all adjective-noun pairs that occurred in any utterance
+(i.e.~utterances with one noun and three adjectives were coded as three
+pairs) for a total of 18,050 distinct pairs. This set contained a number
+of high-frequency idiomatic pairs whose typicality was difficult to
+classify (e.g., ``good''--``job''; ``little''--``bit''). To resolve this
+issue, we used human judgments of words' concreteness to identify and
+exclude candidate idioms (Brysbaert, Warriner, \& Kuperman, 2014). We
+retained for analysis only pairs where both the adjective and noun were
+in the top 25\% of the concreteness ratings (e.g., ``dirty'' --
+``dish''; ``green'' -- ``fish'') restricting our set to 2,477. Finally,
+all pairs were given to 7 human coders to judge whether the pair was
+``incoherent or unrelated'' and we thus excluded a final 576 pairs from
+the sample (e.g., incoherent pairs such as ``flat'' -- ``honey'').
+
+Thus, our final sample included 1,901 unique adjective-noun pairs drawn
+from 3,749 distinct utterances. The pairs were combinations of 637
+distinct concrete nouns and 111 distinct concrete adjectives. We
+compiled these pairs and collected human judgments on Amazon Mechanical
+Turk for each pair, as described below. Table \ref{tab:utt_table}
+contains example utterances from the final set and typicality judgments
+from our human raters.
 
 \hypertarget{participants}{%
 \subsection{Participants}\label{participants}}
@@ -299,7 +289,10 @@ parents' speech, we asked participants on Amazon Mechanical Turk to rate
 each pair. Participants were presented with a question of the form ``How
 common is it for a cow to be a brown cow?'' and asked to provide a
 rating on a seven-point scale: (1) never, (2) rarely, (3) sometimes, (4)
-about half the time, (5) often, (6) almost always, (7) always.
+about half the time, (5) often, (6) almost always, (7) always. These
+ratings were combined with usage data from our corpus analysis to let us
+determine the extent to which parents use language to describe typical
+and atypical features.
 
 \begin{CodeChunk}
 \begin{figure}[tb]
@@ -315,14 +308,15 @@ about half the time, (5) often, (6) almost always, (7) always.
 \hypertarget{results}{%
 \subsection{Results}\label{results}}
 
-If description in child-directed speech mirrors adult-directed speech,
-we should see that caregiver description is dominated by modifiers that
-are sometimes true of the noun they modify. If instead child-directed
-speech privledges redundant or assumed information, caregiver
-description should yield a distinct distribution dominated by highly
-typical modifiers. As can be seen in Figure \ref{fig:distribution_plot}
-parents' description largely focuses on features that are only sometimes
-true of the concept.
+If caregivers speak informatively to convey what is atypical or
+surprising in relation to their own sophisticated world knowledge, we
+should see that caregiver description is dominated by modifiers that are
+sometimes true of the noun they modify. If instead child-directed speech
+privledges redundant information perhaps to align to young children's
+limited world knowledge, caregiver description should yield a distinct
+distribution dominated by highly typical modifiers. As can be seen in
+Figure \ref{fig:distribution_plot} parents' description largely focuses
+on features that are only sometimes true of the concept.
 
 To confirm this effect statistically, we first centered the ratings
 (i.e. ``about half'' was coded 0), and then predicted the rating on each
@@ -330,13 +324,26 @@ trial with a mixed effect model with only an intercept and a random
 effect of noun
 (\texttt{typicality\ \textasciitilde{}\ 1\ +\ (1\textbar{}noun)}). The
 intercept was reliably negative, indicating that adjective tends to
-refer to atypical features of objects (\(\beta =\) -0.81, \(t =\) -23.4,
-\(p\) \textless{} .001). This effect remained significant when each
-adjective-noun pair was weighted by it's frequency in the corpus
-(\(\beta =\) -0.8, \(t =\) -21.73, \(p\) \textless{} .001). We then
+refer to atypical features of objects (\(\beta =\) -0.78, \(t =\)
+-20.85, \(p\) \textless{} .001). This effect remained significant when
+each adjective-noun pair was weighted by it's frequency in the corpus
+(\(\beta =\) -0.77, \(t =\) -19.72, \(p\) \textless{} .001). We then
 re-estimated these models seperately for each age in the corpus, and
 found a reliablly negative intercept for every age group (smallest
-effect \(\beta_{14} =\) -0.56, \(t =\) -5.72, \(p\) \textless{} .001).
+effect \(\beta_{14} =\) -0.49, \(t =\) -4.35, \(p\) \textless{} .001).
+These data suggest that even when talking with very young children,
+caregiver speech is structured according to communicative pressures
+observed in the lab, and largely analogous to adult-to-adult language
+use.\footnote{As a sanity check, we confirm that adult-to-adult speech
+  shows a similar usage pattern using an identical analysis framework on
+  usage data from the Corpus of Contemporary American English (COCA).
+  Using the set of adjective-noun pairs for which we have judgments from
+  our analysis of caregiver speech, we repeat our analysis of usage
+  frequencies for a set of 1,357 distinct adjective-noun pairs. As
+  predicted, the our mixed effects model predicting typicality from
+  usage shows that adult-directed speech speech is significantly biased
+  toward description of atypical features (\emph{B} XXX, \emph{p}
+  \textless{} YYY ).}
 
 Examining usage data as a function of typicality (see Figure
 \ref{fig:distribution_plot}), we see evidence of a positive skew (0.65).
@@ -349,53 +356,46 @@ However, while descriptions at every age tended to point out atypical
 features, this effect changed in strength over development. An age
 effect added to the previous model was reliably negative, indicating
 that parents of older children are relatively more likely to focus on
-atypical features (\(\beta =\) -0.06, \(t =\) -2.09, \(p =\) .036). This
+atypical features (\(\beta =\) -0.1, \(t =\) -3.22, \(p =\) .001). This
 effect also remained significant when pairs were weighted according the
-their frequency (\(\beta =\) -0.14, \(t =\) -4.76, \(p\) \textless{}
-.001).
+their frequency (\(\beta =\) -0.11, \(t =\) -3.47, \(p =\) .001).
 
-\hypertarget{adult-to-adult-speech.}{%
-\subsubsection{Adult to adult Speech.}\label{adult-to-adult-speech.}}
+Though there is striking consistency of description in caregiver speech
+across development, we found parents of older children were more likely
+to refer to atypical features. In line with our hypotheses, it seems
+that caregivers are more likely to provide description of typical
+features for their young children, compared with older children. To
+confirm this intuition, we defined adjectives as highly-typical if
+Turkers judged them to be `often', `almost always', or `always' true. We
+predicted whether each judgment was highly typical from a mixed-effects
+logistic regression with a fixed effect of age (log-scaled) and a random
+effect of noun. Age was a highly-reliable predictor (\(\beta =\) -0.65,
+\(t =\) -2.98, \(p =\) .003). While children at all ages hear more talk
+about what is atypically true (Figure \ref{fig:distribution_plot}),
+younger children hear relatively more talk about what is typically true
+than older children do (Figure \ref{fig:prototypical_plot}).
 
-Next, we briefly confirm that adult to adult speech shows the similar
-usage pattern using an identical analysis framework on usage data from
-the Corpus of Contemporary American English (COCA). Using the set of
-adjective-noun pairs for which we have judgments from our analysis of
-caregiver speech, we repeat our analysis of usage frequencies for a set
-of 1,357 distinct adjective-noun pairs.
+\begin{CodeChunk}
+\begin{figure}[tb]
 
-As predicted, an identical mixed effects model predicting typicality
-from usage shows that adult-directed speech speech is significantly
-biased toward description of atypical features (\emph{B} XXX, \emph{p}
-\textless{} YYY ). ADS also shows a similar a positive skew (0.68), such
-that the bulk of language reflects adjective-noun pairs rated
-\textless{} 4 on typicality (i.e. `sometimes', `rarely' or `never').
+{\centering \includegraphics{figs/prototypical_plot-1} 
 
-The usage distributions in adult-directed speech seem qualitatively
-similar to the distributions we found in child-directed speech. In sum,
-these data suggest that even when talking with very young children,
-caregiver speech structures information similarly to adult-directed
-speech.
+}
 
-The difference of settings makes it difficult to compare these data
-directly with our data from the Language Development Project corpus.
-Four of the COCA datasets are drawn from written texts, which puts in
-place distinct language pressures and removes visual common ground.
-While there is one subset of the corpus drawn from spoken data, those
-utterances come from TV and radio programs. All of these settings are
-likely quite different environements for language than the naturalistic
-in-home setting that our Language Development Project corpus draws from.
-In light of these differences, any observed similarity in usage seems
-remarkable.
+\caption[Proportion of caregiver description that is about typically-true features, as a function of age]{Proportion of caregiver description that is about typically-true features, as a function of age.}\label{fig:prototypical_plot}
+\end{figure}
+\end{CodeChunk}
 
 \hypertarget{child-speech.}{%
 \subsubsection{Child Speech.}\label{child-speech.}}
 
-What kind of information is contained in children's own speech? By
-analyzing children's own utterances, we can determine when children come
-to use description in a way that looks like caregiver speech. Are
-children mirroring adult-like uses of description even from a young age,
-or are they choosing to describe more typical features of the world?
+Given the striking consistency in adult-to-adult speech and caregiver
+speech across ages, we next briefly consider what kind of information is
+contained in children's speech. By analyzing children's own utterances,
+we can determine when children come to use description in a way that
+looks like caregiver speech. Are children mirroring adult-like uses of
+description even from a young age, or are they choosing to describe more
+typical features of the world?
 
 The Language Development Corpus contains 442,048 child utterances. Using
 the set of adjective-noun pairs for which we have judgments from our
@@ -411,62 +411,33 @@ children's productions show a positive skew (0.61, comapre with skewness
 adjective-noun pairs rated \textless{} 4 on typicality (i.e.
 `sometimes', `rarely' or `never').
 
-\hypertarget{talk-about-the-highly-typical.}{%
-\subsubsection{Talk about the
-Highly-Typical.}\label{talk-about-the-highly-typical.}}
-
-Though there is striking consistency of description in caregiver speech
-across development, we found parents of older children were more likely
-to refer to atypical features. In line with our hypotheses, it seems
-that caregivers are more likely to provide description of typical
-features for their young children, compared with older children. To
-confirm this intuition, we defined adjectives as highly-typical if
-Turkers judged them to be `often', `almost always', or `always' true. We
-predicted whether each judgment was highly typical from a mixed-effects
-logistic regression with a fixed effect of age (log-scaled) and a random
-effect of noun. Age was a highly-reliable predictor (\(\beta =\) -0.97,
-\(t =\) -6.11, \(p\) \textless{} .001). While children at all ages hear
-more talk about what is atypically true (Figure
-\ref{fig:distribution_plot}), younger children hear relatively more talk
-about what is typically true than older children do (Figure
-\ref{fig:prototypical_plot}).
-
-\begin{CodeChunk}
-\begin{figure}[tb]
-
-{\centering \includegraphics{figs/prototypical_plot-1} 
-
-}
-
-\caption[Proportion of caregiver description that is about typically-true features, as a function of age]{Proportion of caregiver description that is about typically-true features, as a function of age.}\label{fig:prototypical_plot}
-\end{figure}
-\end{CodeChunk}
-
 \hypertarget{discussion}{%
 \subsection{Discussion}\label{discussion}}
 
 In sum, language is used to discuss atypical, rather than typical,
-features of the world. Description in caregiver speech largely mirrors
-the usage patterns that we observed in adult-adult speech, suggesting
-that these patterns arise from general communication pressures. Indeed,
-even children's own productions show a similar usage pattern, with more
-description of atypical features of the world as early as we can
-measure.
+features of the world. Description in caregiver speech seems to largely
+mirror the usage patterns that we observed in adult-adult speech,
+suggesting that these patterns arise from general communicative
+pressures. Indeed, even children's own productions show a similar usage
+pattern, with more description of atypical features of the world as
+early as we can measure.
 
 It should be noted that children's utterances come from naturalistic
 conversations with caregivers, and their pattern of description is
-likely highly dependent on that caregiver's utterances. That is, if a
-parent chooses to describe the \emph{purpleness} of a cat in book, the
-child may well respond by asking about that same feature. Thus, some of
-the children's use of atypical description may be prompted by a
-parent-led discourse. Future analyses would need to better disentangle
-the extent to which children's productions are imitative of caregivers.
+likely highly dependent on their caregiver's utterances. That is, if a
+caregiver chooses to describe the \emph{purpleness} of a cat in book,
+the child may well respond by asking about that same feature. Thus, it
+is possible that some of the children's use of atypical description is
+prompted by a parent-led discourse. Future analyses would need to better
+disentangle the extent to which children's productions are imitative of
+caregivers.
 
 While children's own descriptions largely mirror adults', the
-descriptions children hear change over, becoming increasingly focused on
-atypical features. The higher prevalance of typical descriptors in early
-development may help young learners; however, even at the earliest point
-we measured, the bulk of language input describes atypical features.
+descriptions children hear change over development, becoming
+increasingly focused on atypical features. The higher prevalance of
+typical descriptors in early development may help young learners;
+however, even at the earliest point we measured, the bulk of language
+input describes atypical features.
 
 Across adult, parent, and child language corpora, we find robust
 evidence that language use systematically overerpresents atypical
@@ -482,9 +453,9 @@ utterances. If this is true, language may still be an important source
 of information about typicality as children may be able to extract more
 accurate typicality information by tracking second-order co-occurence.
 
-\hypertarget{other-ways-of-extracting-structure-from-language}{%
-\section{Other Ways of Extracting Structure from
-Language}\label{other-ways-of-extracting-structure-from-language}}
+\hypertarget{extracting-structure-from-language}{%
+\section{Extracting Structure from
+Language}\label{extracting-structure-from-language}}
 
 Much information can be gleaned from language that does not seem
 available at first glance. From language alone, simple distributional
