@@ -231,21 +231,6 @@ considered only nouns that appeared at least once every 3 sessions
 (i.e.~per developmental year). This yielded a set of some 1,829
 potential target nouns used over 198,014 distinct utterances.
 
-\begin{table*}[tb]
-\centering
-\begin{tabular}{llrrrrr}
-  \hline
-utterance & pair & rating 1 & rating 2 & rating 3 & rating 4 & mean typicality \\ 
-  \hline
-especially with wooden shoes & wooden-shoe &   2 &   2 &   3 &   2 & 2.75 \\ 
-  some of our green bananas too & green-banana &   4 &   3 &   5 &   3 & 3.75 \\ 
-  are bananas yellow? & yellow-banana &   5 &   5 &   7 &   6 & 5.75 \\ 
-   \hline
-\end{tabular}
-\caption{Sample typicality ratings from 4 human coders for three adjective-noun pairs drawn from the corpus.} 
-\label{tab:utt_table}
-\end{table*}
-
 We selected from the corpus all 35,761 distinct utterances containing
 any of these nouns and any word tagged as an adjective. We considered
 for analysis all adjective-noun pairs that occurred in any utterance
@@ -270,16 +255,32 @@ Turk for each pair, as described below. Table \ref{tab:utt_table}
 contains example utterances from the final set and typicality judgments
 from our human raters.
 
+\begin{table*}[tb]
+\centering
+\begin{tabular}{llrrrrr}
+  \hline
+utterance & pair & rating 1 & rating 2 & rating 3 & rating 4 & mean typicality \\ 
+  \hline
+especially with wooden shoes & wooden-shoe &   2 &   2 &   3 &   2 & 2.75 \\ 
+  some of our green bananas too & green-banana &   4 &   3 &   5 &   3 & 3.75 \\ 
+  are bananas yellow? & yellow-banana &   5 &   5 &   7 &   6 & 5.75 \\ 
+   \hline
+\end{tabular}
+\caption{Sample typicality ratings from 4 human coders for three adjective-noun pairs drawn from the corpus.} 
+\label{tab:utt_table}
+\end{table*}
+
 \hypertarget{participants}{%
 \subsection{Participants}\label{participants}}
 
 Each participant rated 20 pairs, and each pair was rated by four
-participants; we used Dallinger {[}CITE{]}, a tool for automating
-complex recruitment on Amazon Mechanical Turk, to balance recruitment.
-Overall, we recruited 444 participants to rate 2200 adjective--noun
-pairs. After exclusions using an attention check \textbf{what was the
-check?}, we retained 8580 judgments, with each adjective--noun pair
-retaining at least two judgments.
+participants; we used
+\href{http://docs.dallinger.io/en/latest/}{Dallinger}, a tool for
+automating complex recruitment on Amazon Mechanical Turk, to balance
+recruitment. Overall, we recruited 444 participants to rate 2200
+adjective--noun pairs. After exclusions using an attention check
+\textbf{what was the check?}, we retained 8580 judgments, with each
+adjective--noun pair retaining at least two judgments.
 
 \hypertarget{design-and-procedure}{%
 \subsection{Design and Procedure}\label{design-and-procedure}}
@@ -308,6 +309,14 @@ and atypical features.
 \hypertarget{results}{%
 \subsection{Results}\label{results}}
 
+To estimate the relative frequency with which caregivers refer to
+typical vs.~atypical referents, we used Turker's judgments about the
+atypicality of each adjective-noun pair in the data. In our analyses, we
+token-weighted these judgments--giving higher weight to pairs that
+occurred more frequently in children's inputs. However, results are
+qualitatively identical and all signiifcant effects remain significant
+without these re-weightings.
+
 If caregivers speak informatively to convey what is atypical or
 surprising in relation to their own sophisticated world knowledge, we
 should see that caregiver description is dominated by modifiers that are
@@ -321,36 +330,28 @@ on features that are only sometimes true of the concept.
 To confirm this effect statistically, we first centered the ratings
 (i.e. ``about half'' was coded 0), and then predicted the rating on each
 trial with a mixed effect model with only an intercept and a random
-effect of noun
-(\texttt{typicality\ \textasciitilde{}\ 1\ +\ (1\textbar{}noun)}). The
-intercept was reliably negative, indicating that adjective tends to
-refer to atypical features of objects (\(\beta =\) -0.78, \(t =\)
--20.85, \(p\) \textless{} .001). This effect remained significant when
-each adjective-noun pair was weighted by it's frequency in the corpus
-(\(\beta =\) -0.77, \(t =\) -19.72, \(p\) \textless{} .001). We then
-re-estimated these models seperately for each age in the corpus, and
-found a reliablly negative intercept for every age group (smallest
-effect \(\beta_{14} =\) -0.49, \(t =\) -4.35, \(p\) \textless{} .001).
-These data suggest that even when talking with very young children,
-caregiver speech is structured according to communicative pressures
-observed in the lab, and largely analogous to adult-to-adult language
-use.\footnote{As a sanity check, we confirm that adult-to-adult speech
-  shows a similar usage pattern using an identical analysis framework on
-  usage data from the Corpus of Contemporary American English (COCA).
-  Using the set of adjective-noun pairs for which we have judgments from
-  our analysis of caregiver speech, we repeat our analysis of usage
-  frequencies for a set of 1,357 distinct adjective-noun pairs. As
-  predicted, the our mixed effects model predicting typicality from
-  usage shows that adult-directed speech speech is significantly biased
-  toward description of atypical features (\emph{B} XXX, \emph{p}
-  \textless{} YYY ).}
+effect of noun (\texttt{typicality $\sim$ 1 + (1|noun)}). The intercept
+was reliably negative, indicating that adjective tends to refer to
+atypical features of objects (\(\beta =\) -0.77, \(t =\) -19.72, \(p\)
+\textless{} .001). We then re-estimated these models seperately for each
+age in the corpus, and found a reliablly negative intercept for every
+age group (smallest effect \(\beta_{14} =\) -0.5, \(t =\) -4.45, \(p =\)
+\textless{} .001). These data suggest that even when talking with very
+young children, caregiver speech is structured according to
+communicative pressures observed in the lab.
 
-Examining usage data as a function of typicality (see Figure
-\ref{fig:distribution_plot}), we see evidence of a positive skew (0.65).
-Data from every time point from 14-58 months seems to show a similar
-pattern (skews 0.23 - 0.82). These skews provide further evidence that
-the the bulk of caregiver language reflects lower-typicality
-adjective-noun pairs.
+For comparison, we performed the same analyses but with typicality
+judgments weighted not by the frquency of each adjective-noun pair's
+occurrence in the Language Development Project, but instead by their
+frequency of occurrence in the Corpus of Contemporary American English
+(COCA; Davies, 2008). While this estimate of adult usage is
+imperfect--as the adjective-nouns pairs produced by parents in our
+corpus may not be a representative sample of adjectives and nouns spoken
+by the adults in COCA, it provides a first approximation to adult usage.
+When we fit the same mixed-effects model to the data, we found that the
+intercept was reliably negative, indicating that adult-directed peech is
+likely also biased toward description of atypical features (\(\beta =\)
+-0.3, \(t =\) -3.22, \(p\) .002)
 
 However, while descriptions at every age tended to point out atypical
 features, this effect changed in strength over development. An age
@@ -400,16 +401,13 @@ typical features of the world?
 The Language Development Corpus contains 442,048 child utterances. Using
 the set of adjective-noun pairs for which we have judgments from our
 analysis of caregiver speech, we repeat our analysis on usage data for a
-set of 533 distinct adjective-noun pairs.
-
-While preliminary, an identical mixed effects model predicting
-typicality from usage shows that children's speech is signficantly
-biased toward description of atypical features (\emph{B} XXX, \emph{p}
-\textless{} YYY ). Mirroring caregiver and adult-adult speech,
-children's productions show a positive skew (0.61, comapre with skewness
-= 0.65 seen in the adults), such that the bulk of language reflects
-adjective-noun pairs rated \textless{} 4 on typicality (i.e.
-`sometimes', `rarely' or `never').
+set of 543 distinct adjective-noun pairs, 494 of which appeared in
+children's productions. While preliminary, a mixed effects model
+predicting typicality had a highly-reliable negative intercept
+(\(\beta =\) -0.71, \(t =\) -10.3, \(p =\) \textless{} .001), but adding
+an age term did not improve model fit. Thus, children's speech is also
+biased towards atypical descriptions, and this bias does not change
+reliably over the first 5 years.
 
 \hypertarget{discussion}{%
 \subsection{Discussion}\label{discussion}}
@@ -632,6 +630,10 @@ light verbs among congenitally blind and sighted individuals.
 Brysbaert, M., Warriner, A. B., \& Kuperman, V. (2014). Concreteness
 ratings for 40 thousand generally known english word lemmas.
 \emph{Behavior Research Methods}, \emph{46}(3), 904--911.
+
+\leavevmode\hypertarget{ref-davies2008}{}%
+Davies, M. (2008). The corpus of contemporary american english (coca):
+520 million words, 1990-present.
 
 \leavevmode\hypertarget{ref-devlin2018}{}%
 Devlin, J., Chang, M.-W., Lee, K., \& Toutanova, K. (2018). Bert:

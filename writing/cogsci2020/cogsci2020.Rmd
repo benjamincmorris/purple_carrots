@@ -21,7 +21,7 @@ output: cogsci2016::cogsci_paper
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.width=3, fig.height=3, fig.crop = F, 
                       fig.pos = "tb", fig.path='figs/',
-                      echo = F, warning = F, cache = F, 
+                      echo = F, warning = F, cache = T, 
                       message = F, sanitize = T)
 # Note: to build, 
 options(digits=2)
@@ -126,11 +126,43 @@ print(tab, type = "latex", comment = F, table.placement = "tb", floating = TRUE,
 
 ## Participants
 
-Each participant rated 20 pairs, and each pair was rated by four participants; we used Dallinger [CITE], a tool for automating complex recruitment on Amazon Mechanical Turk, to balance recruitment. Overall, we recruited 444 participants to rate 2200 adjective–noun pairs. After exclusions using an attention check **what was the check?**, we retained 8580 judgments, with each adjective–noun pair retaining at least two judgments.
+Each participant rated 20 pairs, and each pair was rated by four participants; we used [Dallinger](http://docs.dallinger.io/en/latest/), a tool for automating complex recruitment on Amazon Mechanical Turk, to balance recruitment. Overall, we recruited 444 participants to rate 2200 adjective–noun pairs. After exclusions using an attention check **what was the check?**, we retained 8580 judgments, with each adjective–noun pair retaining at least two judgments.
 
 ## Design and Procedure
 
 To evaluate the typicality of the adjective–noun pairs that appeared in parents' speech, we asked participants on Amazon Mechanical Turk to rate each pair. Participants were presented with a question of the form “How common is it for a cow to be a brown cow?” and asked to provide a rating on a seven-point scale: (1) never, (2) rarely, (3) sometimes, (4) about half the time, (5) often, (6) almost always, (7) always. These ratings were combined with usage data from our corpus analysis to let us determine the extent to which parents use language to describe typical and atypical features.
+
+```{r read_tokens}
+token_data <- read_csv(here("data/clean_token_data.csv"))
+
+coca_data <- read_csv(here("data/adult_tokens_withn.csv")) %>%
+  filter(!is.na(n))
+
+kid_production <- read_csv(here("data/kid_production.csv")) %>%
+  mutate(age = 10 + 4 * session) %>%
+  select(adj, noun, n, age) %>%
+  distinct() %>%
+  left_join(select(token_data, adj, noun, x1:x5) %>% distinct(), by = c("adj", "noun")) %>%
+  pivot_longer(x1:x5, names_to = "rater", values_to = "score")
+
+kid_total <- kid_production %>%
+  distinct(adj, noun) %>%
+  count() %>%
+  pull()
+
+kid_frac <- kid_production %>%
+  group_by(adj, noun) %>%
+  summarise(score = mean(score, na.rm = TRUE)) %>%
+  filter(!is.na(score)) %>%
+  ungroup() %>%
+  count() %>%
+  pull()
+
+type_data_by_session <- token_data %>%
+  group_by(adj, noun, session, age, noun_conc, noun_freq, 
+           article, x1, x2, x3, x4, x5, mean_typ) %>%
+  summarize(n=n())
+```
 
 
 ```{r distribution_plot, fig.height = 6, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "Denisity plots showing the usage amount at each timepoint based on the typicality of the adj-noun pair."}
@@ -144,23 +176,17 @@ To evaluate the typicality of the adjective–noun pairs that appeared in parent
 #                    # breaks=c(0, 3, 6, 9, 12, 10, 12))
 
 # full_expanded <- full_turk_counts[rep(row.names(full_turk_counts), full_turk_counts$n), 1:17]
-token_data <- read_csv(here("data/clean_token_data.csv"))
-type_data_by_session <- token_data %>%
-  group_by(adj, noun, session, age, noun_conc, noun_freq, article, x1, x2, x3, x4, x5, mean_typ) %>%
-  summarize(n=n())
 
 token_data %>%
   mutate(typicality=mean_typ) %>%
   mutate(age = (4*session + 10)) %>%
-  # filter(age <= 38) %>%
   group_by(session) %>%
-  mutate(age=min(age)) %>% 
-  ggplot(aes(x=as.numeric(typicality), y=age, group=age, fill=age)) +
+  mutate(age = min(age)) %>%
+  ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
   geom_density_ridges2() +
   ylab("Child Age (months)") +
   xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
   geom_vline(xintercept = 4, size=1, linetype="solid")+
-  theme_few() +
   scale_fill_gradient(low="cornsilk", high=muted("red")) +
   theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
     axis.line = element_line(colour = "black"),
@@ -204,6 +230,17 @@ mean_type_byage <- tidy_turk_counts %>%
   unnest(cols = c(effect)) %>%
   ungroup()
 
+mean_token_byage <- tidy_turk_counts %>%
+  group_by(age) %>%
+  nest() %>%
+  mutate(effect = map(data, ~lmer(centered_score ~ 1 + (1|noun),
+                                  weights = n, data = .) %>%
+                       tidy() %>%
+                       filter(effect == "fixed"))) %>%
+  select(-data) %>%
+  unnest(cols = c(effect)) %>%
+  ungroup()
+
 
 mean_token <- lmer(centered_score ~ 1 + (1|noun), weights = n,
                      data = tidy_turk_counts) %>%
@@ -223,27 +260,59 @@ type_weight <- lmer(centered_score ~ log(age) + (1|noun),
                      tidy() %>%
                      filter(effect == "fixed")
 
+
+mean_coca_token <- coca_data %>%
+  filter(type == "spok") %>%
+  pivot_longer(cols = c(x1:x5), names_to = "rater", values_to = "score") %>%
+  mutate(centered_score = score - 4) %>%
+  lmer(centered_score ~ 1 + (1|noun), weights = n, data  = .) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+mean_kid_token <- kid_production %>%
+  mutate(centered_score = score - 4) %>%
+  lmer(centered_score ~ 1 + (1|noun), weights = n, data  = .) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+
 ```
 
 ## Results
 
+To estimate the relative frequency with which caregivers refer to typical vs. atypical referents, we used Turker's judgments about the atypicality of each adjective-noun pair in the data. In our analyses, we token-weighted these judgments--giving higher weight to pairs that occurred more frequently in children's inputs. However, results are qualitatively identical and all signiifcant effects remain significant without these re-weightings.
+
 If caregivers speak informatively to convey what is atypical or surprising in relation to their own sophisticated world knowledge, we should see that caregiver description is dominated by modifiers that are sometimes true of the noun they modify. If instead child-directed speech privledges redundant information perhaps to align to young children's limited world knowledge, caregiver description should yield a distinct distribution dominated by highly typical modifiers. As can be seen in Figure \ref{fig:distribution_plot} parents' description largely focuses on features that are only sometimes true of the concept.
 
-To confirm this effect statistically, we first centered the ratings (i.e. "about half" was coded 0), and then predicted the rating on each trial with a mixed effect model with only an intercept and a random effect of noun (`typicality ~ 1 + (1|noun)`). The intercept was reliably negative, indicating that adjective tends to refer to atypical features of objects ($\beta =$ `r mean_type %>% pull(estimate)`, 
-$t =$ `r mean_type %>% pull(statistic)`, $p$ `r mean_type %>% pull(p.value) %>% printp()`). This effect remained significant when each adjective-noun pair was weighted by it's frequency in the corpus ($\beta =$ `r mean_token %>% pull(estimate)`, 
-$t =$ `r mean_token %>% pull(statistic)`, $p$ `r mean_token %>% pull(p.value) %>% printp()`). We then re-estimated these models seperately for each age in the corpus, and found a reliablly negative intercept for every age group (smallest effect $\beta_{14} =$ `r mean_type_byage %>% slice(1) %>% pull(estimate)`, 
-$t =$ `r mean_type_byage %>% slice(1) %>% pull(statistic)`, $p$ `r mean_type_byage %>% slice(1) %>% pull(p.value) %>% printp()`).  These data suggest that even when talking with very young children, caregiver speech is structured according to communicative pressures observed in the lab, and largely analogous to adult-to-adult language use. ^[As a sanity check, we confirm that adult-to-adult speech shows a similar usage pattern using an identical analysis framework on usage data from the Corpus of Contemporary American English (COCA). Using the set of adjective-noun pairs for which we have judgments from our analysis of caregiver speech, we repeat our analysis of usage frequencies for a set of 1,357 distinct adjective-noun pairs. As predicted, the our mixed effects model predicting typicality from usage shows that adult-directed speech speech is significantly biased toward description of atypical features (*B* XXX, *p* < YYY ).]
+To confirm this effect statistically, we first centered the ratings (i.e. "about half" was coded 0), and then predicted the rating on each trial with a mixed effect model with only an intercept and a random effect of noun (\texttt{typicality $\sim$ 1 + (1|noun)}). The intercept was reliably negative, indicating that adjective tends to refer to atypical features of objects ($\beta =$ `r mean_token %>% pull(estimate)`, 
+$t =$ `r mean_token %>% pull(statistic)`, $p$ `r mean_token %>% pull(p.value) %>% printp()`). We then re-estimated these models seperately for each age in the corpus, and found a reliablly negative intercept for every age group (smallest effect $\beta_{14} =$ `r mean_token_byage %>% slice(1) %>% pull(estimate)`, 
+$t =$ `r mean_token_byage %>% slice(1) %>% pull(statistic)`, $p =$ `r mean_token_byage %>% slice(1) %>% pull(p.value) %>% printp()`).  These data suggest that even when talking with very young children, caregiver speech is structured according to communicative pressures observed in the lab. 
 
-Examining usage data as a function of typicality (see Figure \ref{fig:distribution_plot}), we see evidence of a positive skew (0.65). Data from every time point from 14-58 months seems to show a similar pattern (skews 0.23 - 0.82). These skews provide further evidence that the the bulk of caregiver language reflects lower-typicality adjective-noun pairs.
+<!-- Examining usage data as a function of typicality (see Figure \ref{fig:distribution_plot}), we see evidence of a positive skew (0.65). Data from every time point from 14-58 months seems to show a similar pattern (skews 0.23 - 0.82). These skews provide further evidence that the the bulk of caregiver language reflects lower-typicality adjective-noun pairs. -->
+
+For comparison, we performed the same analyses but with typicality judgments weighted not by the frquency of each adjective-noun pair's occurrence in the Language Development Project, but instead by their frequency of occurrence in the Corpus of Contemporary American English [COCA; @davies2008]. While this estimate of adult usage is imperfect--as the adjective-nouns pairs produced by parents in our corpus may not be a representative sample of adjectives and nouns spoken by the adults in COCA, it provides a first approximation to adult usage. When we fit the same mixed-effects model to the data, we found that the intercept was reliably negative, indicating that adult-directed peech is likely also biased toward description of atypical features ($\beta =$ `r mean_coca_token %>% pull(estimate)`, 
+$t =$ `r mean_coca_token %>% pull(statistic)`, $p$ `r mean_coca_token %>% pull(p.value) %>% printp()`)
 
 However, while descriptions at every age tended to point out atypical features, this effect changed in strength over development. An age effect added to the previous model was reliably negative, indicating that parents of older children are relatively more likely to focus on atypical features  ($\beta =$ `r type_weight %>% filter(term == "log(age)") %>% pull(estimate)`, 
 $t =$ `r type_weight %>% filter(term == "log(age)") %>% pull(statistic)`, $p =$ `r type_weight %>% filter(term == "log(age)") %>% pull(p.value) %>% printp()`). This effect also remained significant when pairs were weighted according the their frequency ($\beta =$ `r token_weight %>% filter(term == "log(age)") %>% pull(estimate)`, 
 $t =$ `r token_weight %>% filter(term == "log(age)") %>% pull(statistic)`, $p =$ `r token_weight %>% filter(term == "log(age)") %>% pull(p.value) %>% printp()`).
 
 
-```{r}
+```{r compute_prototypicals}
 prototypical_ratings <- type_data_by_session %>%
   mutate(typical = mean_typ >= 5)
+
+#look for prototypicals
+#  defined as anything 5 or higher, "somewhat typical" to "extremely  typical"
+prototypicals <- prototypical_ratings %>%
+  group_by(age, typical) %>%
+  summarize(weighted_sum = sum(n), sum = n()) %>%
+  group_by(age, typical) %>%
+  summarize(sum = sum(sum), weighted_sum = sum(weighted_sum)) %>%
+  pivot_longer(cols = c(sum, weighted_sum), names_to = "measure", values_to = "sum") %>%
+  group_by(age, measure) %>%
+  mutate(prop = sum / sum(sum)) %>%
+  filter(typical)
 
 
 typical_type_lmer <- glmer(typical ~ log(age) + (1|noun), 
@@ -265,19 +334,9 @@ $t =$ `r typical_type_lmer %>% filter(term == "log(age)") %>% pull(statistic)`, 
 
 
 ```{r prototypical_plot, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "Proportion of caregiver description that is about typically-true features, as a function of age."}
-#look for prototypicals
-#  defined as anything 5 or higher, "somewhat typical" to "extremely  typical"
-prototypicals <- prototypical_ratings %>%
-  group_by(age, typical) %>%
-  summarize(weighted_sum = sum(n), sum = n()) %>%
-  group_by(age, typical) %>%
-  summarize(sum = sum(sum), weighted_sum = sum(weighted_sum)) %>%
-  pivot_longer(cols = c(sum, weighted_sum), names_to = "measure", values_to = "sum") %>%
-  group_by(age, measure) %>%
-  mutate(prop = sum / sum(sum)) %>%
-  filter(typical)
 
-prototypicals %>% filter(measure == "weighted_sum") %>% 
+prototypicals %>% 
+  filter(measure == "weighted_sum") %>% 
   ggplot(aes(x = age,y = prop, colour = age)) +
   geom_smooth(method = "glm", formula = y~x,
                       method.args = list(family = gaussian(link = 'log')),color = "black") +
@@ -301,9 +360,9 @@ prototypicals %>% filter(measure == "weighted_sum") %>%
 
 Given the striking consistency in adult-to-adult speech and caregiver speech across ages, we next briefly consider what kind of information is contained in children's speech. By analyzing children's own utterances, we can determine when children come to use description in a way that looks like caregiver speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe more typical features of the world?
 
-The Language Development Corpus contains 442,048 child utterances. Using the set of adjective-noun pairs for which we have judgments from our analysis of caregiver speech, we repeat our analysis on usage data for a set of 533 distinct adjective-noun pairs. 
+The Language Development Corpus contains 442,048 child utterances. Using the set of adjective-noun pairs for which we have judgments from our analysis of caregiver speech, we repeat our analysis on usage data for a set of `r kid_total` distinct adjective-noun pairs, `r kid_frac` of which appeared in children's productions. While preliminary, a mixed effects model predicting typicality had a highly-reliable negative intercept ($\beta =$ `r mean_kid_token %>% filter(term == "(Intercept)") %>% pull(estimate)`, $t =$ `r mean_kid_token %>% filter(term == "(Intercept)") %>% pull(statistic)`, $p =$ `r mean_kid_token %>% filter(term == "(Intercept)") %>% pull(p.value) %>% printp()`),  but adding an age term did not improve model fit. Thus, children's speech is also biased towards atypical descriptions, and this bias does not change reliably over the first 5 years.
 
-While preliminary, an identical mixed effects model predicting typicality from usage shows that children's speech is signficantly biased toward description of atypical features (*B* XXX, *p* < YYY ). Mirroring caregiver and adult-adult speech, children's productions show a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never').
+<!-- Mirroring caregiver and adult-adult speech, children's productions show a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). -->
 
 
 ## Discussion
@@ -484,9 +543,10 @@ kid_production %>%
 
 
 ```{r adult_directed, include = FALSE, fig.height=4, fig.width=3.8, fig.align = "left", num.cols.cap=1, fig.cap = "Looking at COCA data, these denisity plots show the usage amount based on the typicality of the adj-noun pair, seperated by the type of language (e.g., written)."}
-adult_tokens <- read_csv("../../data/adult_tokens.csv")
-
-adult_tokens$type <- factor(adult_tokens$type, levels=c("acad", "fic", "mag", "news", "spok"), labels=c("Academic \n Journals", "Fiction", "Magazines", "Newspapers", "Spoken \n(TV + radio)"))
+adult_tokens <- read_csv(here("data/adult_tokens_withn.csv")) %>%
+  mutate(type = factor(type, levels=c("acad", "fic", "mag", "news", "spok"), 
+         labels=c("Academic \n Journals", "Fiction", "Magazines", 
+                  "Newspapers", "Spoken \n(TV + radio)")))
 
 adult_tokens %>%
   ggplot(aes(x=as.numeric(mean_typ), y=type, group=type, fill=type)) +

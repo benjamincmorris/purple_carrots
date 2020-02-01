@@ -21,7 +21,7 @@ library(tidytext)
 library(tidyverse)
 ```
 
-```{r read-files}
+```{r read-files, eval = F}
 files <- list.files(here("wlp"), recursive = T, full.names = T)
 
 read_coca_file <- function(file) {
@@ -52,7 +52,7 @@ read_coca_file <- function(file) {
 }
 ```
 
-```{r run-coca}
+```{r run-coca, eval = F}
 # coca <- map_dfr(files, read_coca_file)
 # write_feather(coca, "coca.feather")
 coca <- read_feather(here("coca.feather"))
@@ -79,6 +79,27 @@ counts <- pairs %>%
 
 write_feather(counts, here("coca_counts.feather"))
 ```
+
+```{r}
+coca_counts <- read_feather(here("data/coca_counts.feather"))
+
+token_data <- read_csv(here("data/clean_token_data.csv")) %>%
+  distinct(adj, noun, .keep_all = TRUE) %>%
+  select(adj, noun, x1:x5, mean_typ, noun_conc)
+
+adult_tokens <- read_csv(here("data/adult_tokens.csv")) %>%
+  select(-X1, -adj.y, -noun.y, -adj_stem, -noun_stem, -mean_typ) %>%
+  rename(adj = adj.x, noun = noun.x) %>%
+  distinct() %>%
+  left_join(coca_counts, by = c("adj", "noun", "type")) %>%
+  left_join(token_data, by = c("adj", "noun")) %>%
+  select(adj, noun, type, n, x1:x5, mean_typ, noun_conc)
+
+write_csv(adult_tokens, here("data/adult_tokens_withn.csv"))
+```
+
+
+
 
 ```{r old-coca-pipeline, include = F, eval = F}
 corpus <- read_lines(file) %>%
