@@ -35,6 +35,11 @@ get_table <- function(connection, name) {
 
 list_tables(ldp)
 get_table(ldp, "ppvt")
+subs <- get_table(ldp, "subjects") %>% collect()
+typ_kids <- subs %>%
+  filter(lesion == "") %>% 
+  filter(project == 2) %>% 
+  pull(id)
 ```
 
 ```{r}
@@ -45,6 +50,8 @@ toc()
 beep()
 
 utts_clean <- utts %>%
+  #include only typically developing participants
+  filter(subject %in% typ_kids) %>%
   #grab parent utterances
   filter(!is.na(p_chat))  %>%
   #drop the many things we don't care about
@@ -62,7 +69,6 @@ PoS <- utts_clean %>%
 ```{r}
 #unnest just morph codes --> PoS
   # then split morph code into morph + word
-head(PoS)
 tagged <- PoS %>%
   separate(PoS, into=c("PoS", "word"), sep="\\|") %>%
   filter(!is.na(word)) %>%
@@ -80,9 +86,7 @@ ranked <- tagged %>%
   mutate(age_quant = ntile(tagged$session,4)) %>%
   anti_join(stop_words) %>%
   filter(stem != "") %>%
-  filter(grepl("n:",PoS, fixed=TRUE) | 
-           grepl("n|",PoS, fixed=TRUE) |
-           grepl("n",PoS, fixed=TRUE)) %>%
+  filter(grepl("n",PoS, fixed=TRUE)) %>%
   group_by(stem, age_quant) %>%
   summarize(n=n()) %>% 
   arrange(age_quant, desc(n)) %>%
@@ -104,12 +108,10 @@ cor.test(ranked_wide$`1`, ranked_wide$`4`, na.rm=TRUE)
 
 ```
 ###quick descriptives:
-- 9,174 distinct nouns used across LDP (probably some more data cleaning to do...)
+- 8,150 distinct nouns used across LDP (probably some more data cleaning to do...)
 
 - seperate 12 sessions into 1 year ranges (4 bins)
-- 2,153 distinct nouns, after filtering only to things in all 4 years of measurment
-- 0.68 correlation of noun freq rank between time 1 and time 2, for all nouns
-  - 0.59 correlation of noun freq rank between time 1 and time 4, for all nouns
+- 1,829 distinct nouns, after filtering only to things in all 4 years of measurment
 
 
 #grab adjectives from target nouns
@@ -147,8 +149,6 @@ unmod_utts <- anti_join(target_utts, adj_noun_utts, by=c("subject", "session", "
 
 #should be 0
 nrow(target_utts) - nrow(adj_noun_utts) - nrow(unmod_utts)
-
-target_utts %>% mutate(rowid_to_column())
 
 #peek at most common pairs
 adj_noun_utts %>% 
@@ -200,7 +200,7 @@ adj_noun_concrete %>%
   count(adj) %>%
   arrange(desc(n))
 
-turk_full_count %>% 
+adj_noun_concrete %>% 
   count(noun)  %>%
   arrange(desc(n)) 
 
@@ -210,11 +210,32 @@ turk_full_count %>%
 
 ```{r}
 #read in the judgment data
-full_turk_counts <- read.csv("data/judgments_session.csv")
-final_adjs <- full_turk_counts %>% distinct(adj) %>% pull(adj)
-final_nouns <- full_turk_counts %>% distinct(noun) %>% pull(noun)
+old_turk_counts <- read.csv("data/judgments_session.csv")
+final_adjs <- old_turk_counts %>% distinct(adj) %>% pull(adj)
+final_nouns <- old_turk_counts %>% distinct(noun) %>% pull(noun)
 ```
   
+#get utt level
+```{r}
+tmp <- adj_noun_utts %>% 
+  mutate(noun_stem = wordStem(noun)) %>%
+  mutate(adj_stem = wordStem(adj)) %>%
+  filter(noun_stem %in% wordStem(final_nouns)) %>%
+  filter(adj_stem %in% wordStem(final_adjs))
+
+judgements <- full_turk_counts %>% distinct(adj, noun, adj_stem, noun_stem, x1, x2, x3, x4, x5, mean_typ)
+
+final_utts <- 
+  tmp %>% 
+  filter(subject %in% typ_kids) %>%
+  left_join(judgements) %>% 
+  filter(!is.na(mean_typ))
+
+final_utts %>% count(adj, noun)
+
+final_utts %>% count(adj, noun) %>% arrange(desc(n))
+```
+
 
 #session usage plot by typicality judgments
 ```{r}
@@ -228,10 +249,10 @@ full_turk_counts_plot$session2 <- cut(full_turk_counts_plot$session,
 
 full_expanded <- full_turk_counts[rep(row.names(full_turk_counts), full_turk_counts$n), 1:17]
 
-full_expanded %>%
+final_utts %>%
   mutate(typicality=mean_typ) %>%
   mutate(age = (4*session + 10)) %>%
-  filter(age <= 38) %>%
+  # filter(age <= 38) %>%
   group_by(session) %>%
   mutate(age=min(age)) %>% 
   ggplot( aes(x=as.numeric(typicality), y=age, group=age, fill=age)) +
@@ -285,21 +306,6 @@ prototypicals %>%
         axis.ticks = element_line(),
         axis.text = element_text(size=20),
         panel.grid = element_line(color="lightgrey",size=0.5))
-```
-
-```{r}
-booted <- full_expanded %>%
-  mutate(typicality = mean_typ) %>%
-  mutate(age = (4*session + 10)) %>%
-  group_by(age) %>%
-  tidyboot_mean(typicality)
-
-booted %>%
-  ggplot(aes(x=age, y=empirical_stat))+
-  geom_bar(stat='identity') +
-  geom_linerange(aes(ymin=ci_lower, ymax=ci_upper)) +
-  geom_smooth(method=lm) +
-  coord_cartesian(ylim=c(2.6,3.6))
 ```
 
 
@@ -395,33 +401,7 @@ full_freq %>%
 
 
 
-#get utt level
-```{r}
-tmp <- adj_noun_utts %>% 
-  mutate(noun_stem = wordStem(noun)) %>%
-  mutate(adj_stem = wordStem(adj)) %>%
-  filter(noun_stem %in% wordStem(final_nouns)) %>%
-  filter(adj_stem %in% wordStem(final_adjs))
 
-full_turk_counts %>% summarize(sum(n))
-
-judgements <- full_turk_counts %>% distinct(adj, noun, adj_stem, noun_stem, x1, x2, x3, x4, x5, mean_typ)
-
-final_utts <- 
-  tmp %>% 
-  left_join(judgements) %>% 
-  filter(!is.na(mean_typ))
-
-final_utts %>% count(adj, noun)
-
-final_utts %>% count(adj, noun) %>% arrange(desc(n))
-full_turk_counts %>% group_by(adj, noun) %>% summarize(n=sum(n)) %>% arrange(desc(n)) %>% select(adj, noun, n)
-
-missed <- 
-  tmp %>% 
-  left_join(judgements) %>% 
-  filter(is.na(mean_typ))
-```
 
 
 
@@ -431,21 +411,28 @@ adj_noun_concrete_utts <- adj_noun_utts %>%
   mutate(adj_stem = wordStem(adj),
          noun_stem = wordStem(noun)) %>%
   filter(adj %in% most_concrete$Word &
-         noun_stem %in% most_concrete$stem) 
+         noun_stem %in% most_concrete$stem) %>%
+  distinct()
 
 tmp <- tagged %>%
-  inner_join(adj_noun_concrete_utts, by=c("p_chat", "utt_id"))
+  inner_join(adj_noun_concrete_utts %>% select(subject, p_chat, utt_id, noun, adj), by=c("subject", "p_chat", "utt_id"))
+
+
+judgements <- full_turk_counts %>% distinct(adj, noun, adj_stem, noun_stem, x1, x2, x3, x4, x5, mean_typ, article)
 
 prenominals <- tmp %>%
   group_by(p_chat, utt_id) %>%
   mutate(lag_word = lag(word)) %>%
   filter(noun == word) %>%
   mutate(prenominal = if_else(lag_word == adj, T, F)) %>%
-  distinct(utt_id, noun, adj, .keep_all = TRUE) %>%
   filter(noun %in% final_nouns & adj %in% final_adjs) %>% 
   left_join(judgements) %>% 
-  filter(!is.na(mean_typ)) %>%
-  mutate(prenominal = if_else(is.na(prenominal), F, prenominal))
+  filter(! is.na(mean_typ)) %>%
+  mutate(prenominal = if_else(is.na(prenominal), F, prenominal)) 
+
+final_utts[! final_utts$utt_id %in% prenominals$utt_id , ]
+final_utts %>% count(utt_id) %>% arrange(desc(n))
+prenominals %>% count(utt_id) %>% arrange(desc(n))
 
 
 prenominals %>%
@@ -453,20 +440,31 @@ prenominals %>%
   count(prenominal) %>%
   mutate(prop = n/sum(n))
 
+token_data <- prenominals %>% 
+  left_join(concrete_concepts, by = c("noun"="Word")) %>% select(-stem.y) %>% 
+  left_join(word_freq, by = c("noun_stem"="stem")) %>% 
+  rename(noun_freq = word_freq,
+         noun_conc = Conc.M) %>%
+  #remove actual utterances for LDP privacy
+  ungroup() %>%
+  select(-p_chat, -p_mor, -PoS, -word, -stem.x, -lag_word, -Conc.SD) %>%
+  mutate(age = (4*session + 10))
+  
 
-boot_prenominals <- prenominals %>%
-  mutate(typicality = mean_typ) %>%
-  filter(!is.na(prenominal)) %>%
-  mutate(age = (4*session.x + 10)) %>%
-  group_by(age, prenominal) %>%
-  tidyboot_mean(typicality)
 
-boot_prenominals %>%  
-  ggplot(aes(x=prenominal, y=mean, fill= prenominal)) +
-  geom_bar(stat='identity') +
-  geom_linerange(aes(ymin=ci_lower, ymax=ci_upper)) +
-  facet_wrap(~age) +
-  coord_cartesian(ylim=c(2.6,3.6))
+# boot_prenominals <- prenominals %>%
+#   mutate(typicality = mean_typ) %>%
+#   filter(!is.na(prenominal)) %>%
+#   mutate(age = (4*session.x + 10)) %>%
+#   group_by(age, prenominal) %>%
+#   tidyboot_mean(typicality)
+# 
+# boot_prenominals %>%  
+#   ggplot(aes(x=prenominal, y=mean, fill= prenominal)) +
+#   geom_bar(stat='identity') +
+#   geom_linerange(aes(ymin=ci_lower, ymax=ci_upper)) +
+#   facet_wrap(~age) +
+#   coord_cartesian(ylim=c(2.6,3.6))
 ```
 
 
