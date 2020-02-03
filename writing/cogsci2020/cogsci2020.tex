@@ -64,25 +64,21 @@ atypical feature description across development}
 
 \begin{abstract}
 Language provides children a powerful source of information about the
-world. However, language does not perfectly reflect the world: the most
-typical features of natural kinds may often go unremarked. For instance,
-adults rarely describe the color of an orange carrot, as world knowledge
-makes this description redundant. Given children's nascent world
-knowledge, does parents' speech to children follow this pattern? From
-longitudinal corpus data of parent-child communication (Goldin-Meadow et
-al., 2014) between 14--58 months, we extracted usage data for 637
-high-frequency concrete nouns and co-occurring adjectives. Independent
-raters coded the typicality of 1,901 unique adjective--noun pairs on a
-7-point Likert scale. We find that parent language highlights the
-atypical features of things, across all child ages. However, parents
-were reliably more likely to use typical descriptors when talking to
-younger compared with older children. We train distributional learning
-model on our corpus and the wikipedia corpus, and show that rich
-typicality information remains difficult to extract from language alone.
-Overall, child language input reflects notable more than typical
-features, but increased description of typical features early in
-development may provide a foothold for young learners. Implications for
-child learning are discussed.
+world. However, language does not perfectly reflect the world: what is
+typical may often go unremarked. For instance, adults rarely describe
+the color of an orange carrot, as world knowledge makes this description
+redundant. Given children's nascent world knowledge, does parents'
+speech to children follow this pattern? From a longitudinal corpus of
+parent-child communication (Goldin-Meadow et al., 2014) between 14--58
+months, we extracted usage data for 637 high-frequency concrete nouns
+and co-occurring adjectives. Independent raters coded the typicality of
+1,901 unique adjective--noun pairs on a 7-point Likert scale. We find
+that parent language highlights the atypical features of things, across
+all child ages. Parents were reliably more likely to use typical
+descriptors when talking to younger compared to older children. Using
+vector space models trained on our corpus and on Wikipedia, we show that
+rich typicality information remains difficult to extract from language
+alone.\\
 
 \textbf{Keywords:}
 language input, language acquisition, child-directed speech
@@ -93,20 +89,20 @@ around them in just a few short years, from the rules that govern the
 movement of physical objects to the hierarchical structure of natural
 categories and even relational structures among social and cultural
 groups (Baillargeon, 1994; Legare \& Harris, 2016; Rogers \& McClelland,
-2004). Where does the information for this rapid acquisition come from?
-Undoubtedly, a sizeable component comes from direct experience observing
-and interacting with the world (Sloutsky \& Fisher, 2004; Stahl \&
-Feigenson, 2015). But another important source of information comes from
-the language people use to talk about the world (Landauer \& Dumais,
-1997; Rhodes, Leslie, \& Tworek, 2012). How similar is the information
-available from children's direct experience to the information available
-in the language children hear?
+2004). Where does the information driving this rapid acquisition come
+from? Undoubtedly, a sizeable component comes from direct experience
+observing and interacting with the world (Sloutsky \& Fisher, 2004;
+Stahl \& Feigenson, 2015). But another important source of information
+comes from the language people use to talk about the world (Landauer \&
+Dumais, 1997; Rhodes, Leslie, \& Tworek, 2012). How similar is the
+information available from children's direct experience to the
+information available in the language children hear?
 
 Two lines of work suggest that they may be surprisingly similar. One
 compelling area of work is the comparison of semantic structures learned
 by congentinally blind children to those of their sighted peers. In
 several domains that would at first blush rely heavily on visual
-information, such as color terms or verbs of visual perception (e.g.
+information, such as color terms and verbs of visual perception (e.g.
 \emph{look}, \emph{see}), blind children's semantic similarity judgments
 are quite similar to those of sighted children (Landau, Gleitman, \&
 Landau, 2009). Further, blind adults' judgments of visual perception
@@ -115,45 +111,37 @@ intensity (e.g.~blaze vs.~glow), just like sighted adults (Bedny,
 Koster-Hale, Elli, Yazzolino, \& Saxe, 2019). A second line of evidence
 supporting the similarity of information in perception and language is
 the broad success of statistical models trained on language alone in
-approximating human judgments across a variety of domains (Devlin,
-Chang, Lee, \& Toutanova, 2018; Landauer \& Dumais, 1997; Mikolov,
-Sutskever, Chen, Corrado, \& Dean, 2013). Even more compellingly, models
-trained on both linguistic usage and perceptual features for some words
-can infer the perceptual features of linguistically related words
-entirely from the covariation of language and perception (Johns \&
-Jones, 2012).
+approximating human judgments across a variety of domains (Landauer \&
+Dumais, 1997; Mikolov, Sutskever, Chen, Corrado, \& Dean, 2013). Even
+more compellingly, models trained on both linguistic usage and
+perceptual features for some words can infer the perceptual features of
+linguistically related words entirely from the covariation of language
+and perception (Johns \& Jones, 2012).
 
 Still, there is reason to believe that some semantic features may be
-harder to learn from language than these data suggest. While the
-co-occurrence structure of language may provide strong clues that
-carrots are like tomatoes, carrots are vegetables, and carrots are eaten
-for dinner, they may provide very little evidence that carrots are
-orange (Willits, Sussman, \& Amato, 2008). This is because people rarely
-use language merely to provide running comentary on the world around
-them. Instead, we use language to talk about things we find
-interesting--things that are surprising, exciting, or otherwise
-divergent from our conversational partners' expectations (Grice, 1975).
-
-Thus, speakers are informative in relation to common knowledge with
-their conversational partner and available information in the
-environment, not redundant with these other sources of knowledge.
-Communication tasks in the lab largely bolster this claim, finding that
-people avoid being over- or under-informative when they speak (Mangold
-\& Pobel, 1988). In particular, speakers are informative in relation to
-both the context of objects in the environment and the typical features
-of those objects ({\textbf{???}}; Mitchell, Reiter, \& Deemter, 2013;
-Rubio-Fernández, 2016). While speakers overwhelmingly refer to an object
-that is typical of its category with a bare noun---e.g., calling a
-yellow banana ``a banana''---they often specify when an object has an
-atypical feature, rarely referring to a green or blue banana without
-noting its color.
+harder to learn from language than these data suggest. This is because
+people rarely use language merely to provide running comentary on the
+world around them; instead, we use language to talk about things that
+diverge from our expectations or those of our conversational partner
+(Grice, 1975). People tend to avoid being over- or under-informative
+when they speak, for instance noting only the features of an object
+necessary for their conversational partner to identify it (Mangold \&
+Pobel, 1988). In particular, people are informative with respect to both
+the referential context and the typical features of the the object to
+which they are referring (Rubio-Fernández, 2016; Westerbeek, Koolen, \&
+Maes, 2015). People tend to refer to an object that is typical of its
+category with a bare noun (e.g., calling an orange carrot ``a carrot''),
+but often specify when an object has an atypical feature (e.g, ``a
+purple carrot''). Given these communicative pressures, naturalistic
+language statistics may provide surprisingly little evidence about what
+is typical (Willits, Sussman, \& Amato, 2008).
 
 If parents speak to children in this minimally informative way, children
 may be faced with input that emphasizes atypicality in relation to world
 knowledge they do not yet have. For things like carrots--which children
 learn about both from perception and from language--this issue may be
 resolved by integrating both sources of information. Likely almost all
-of the carrots children see are orange, and hearing an atypical feature
+of the carrots children see are orange, and hearing an atypical exemplar
 noted as a ``purple carrot'' may make little difference in their
 inferences about the category of carrots more broadly. But for things to
 which they lack perceptual access--such as rare objects, unfamiliar
@@ -161,29 +149,29 @@ social groups, or inaccessible features like the roundness of the
 Earth--much of the information must come from language (Harris \&
 Koenig, 2006). If language predominantly notes atypical features rather
 than typical ones, children may overrepresent atypical features as they
-learn how things in the world tend to be.
+learn the way things in the world tend to be.
 
 On the other hand, parents may speak to children far differently from
-the way they speak to other adults. They may reflect typical
-characteristics of the world more veridically in their speech to
-children, or even emphasize typical features in order to teach children
-about the world. Parents alter their speech to children along a number
-of structural dimensions, using simpler syntax and more reduplications
-(Snow, 1972). Their use of description may reflect similar alignment to
-children's growing knowledge.
+the way they speak to other adults. Parents' speech may reflect typical
+features of the world more veridically, or even emphasize typical
+features in order to teach children about the world. Parents alter their
+speech to children along a number of structural dimensions, using
+simpler syntax and more reduplications (Snow, 1972). Their use of
+description may reflect similar alignment to children's growing
+knowledge.
 
 We examine the typicality of adjectives in a large, diverse corpus of
 parent-child interactions recorded in children's homes to ask whether
 parents talking to their children--just like adults speaking and
 writing--tend to use adjectives predominantly to mark atypical features.
-We find that they do: parents and children overwhelmingly choose to
+We find that they do: Parents and children overwhelmingly choose to
 mention atypical rather than typical features. We also find that parents
 use adjectives differently over the course of children's development,
 noting typical features more often to younger children. We then ask
 whether the co-occurrence structure of language nonetheless captures
 typicality information by training vector space models on child-directed
-speech and adult to adult speech. We find that relatively little typical
-feature information is represented in these semantic spaces.
+speech. We find that relatively little typical feature information is
+represented in these semantic spaces.
 
 \hypertarget{adjective-typicality}{%
 \section{Adjective typicality}\label{adjective-typicality}}
@@ -458,7 +446,7 @@ capture typical feature information.
 
 }
 
-\caption[Typicality ratings]{Typicality ratings}\label{fig:halfs}
+\caption[Plots of nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective ("rated at least often")]{Plots of nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective ("rated at least often"). The black dotted line shows average human typicality ratings (scaled) for these items. The blue line shows how well our models do at capturing this trend, with grey lines representing individual pairs.}\label{fig:halfs}
 \end{figure}
 \end{CodeChunk}
 
@@ -480,7 +468,7 @@ apple & red & orange \\
   balloon & colored & orange \\ 
    \hline
 \end{tabular}
-\caption{The ten adjective-noun pairs where word2vec's similarity is most mistaken.} 
+\caption{The ten cases in which word2vec similarities are worst at predicting human typicality judgments. For each of these cases, the model judges the low-typicality adjective to be more similar to the noun than the high-typicality adjective.} 
 \label{tab:pairs_tab}
 \end{table}
 
@@ -539,13 +527,10 @@ classified 42 out of 79 (0.53), which was not better than chance
 (0.73), which was better than chance according to a binomial test, but
 still fairly poor perfomance (\(p =\) \textless{} .001). Fig
 \ref{fig:halfs} shows the ratings from Turkers and the two models for
-the 79 nouns.
-
-Table \ref{tab:pairs_tab} shows the 10 adjective-noun pairs where
-word2vec trained on Wikipedia produce judgments that are farthest away
-from the human judgments for these nouns (LDP was similar). These
-adjectives vary in kind, but many pick out typical colors (e.g. ``red
-apple'')--precisely as we predicted.
+the 79 nouns. Table \ref{tab:pairs_tab} shows the 10 adjective-noun
+pairs where word2vec trained on Wikipedia produce judgments that are
+farthest away from the human judgments for these nouns (LDP was
+similar). \textbf{fix up the discussion here}
 
 \hypertarget{general-discussion}{%
 \section{General Discussion}\label{general-discussion}}
@@ -629,7 +614,7 @@ world.
 \noindent
 
 \hypertarget{refs}{}
-\leavevmode\hypertarget{ref-akhtar_1996}{}%
+\leavevmode\hypertarget{ref-akhtar1996}{}%
 Akhtar, N., Carpenter, M., \& Tomasello, M. (1996). The Role of
 Discourse Novelty in Early Word Learning. \emph{Child Development},
 \emph{67}(2), 635--645.
@@ -654,12 +639,7 @@ ratings for 40 thousand generally known english word lemmas.
 Davies, M. (2008). The corpus of contemporary american english (coca):
 520 million words, 1990-present.
 
-\leavevmode\hypertarget{ref-devlin2018}{}%
-Devlin, J., Chang, M.-W., Lee, K., \& Toutanova, K. (2018). Bert:
-Pre-training of deep bidirectional transformers for language
-understanding. \emph{arXiv Preprint arXiv:1810.04805}.
-
-\leavevmode\hypertarget{ref-goldin2014}{}%
+\leavevmode\hypertarget{ref-goldin-meadow2014}{}%
 Goldin-Meadow, S., Levine, S. C., Hedges, L. V., Huttenlocher, J.,
 Raudenbush, S. W., \& Small, S. L. (2014). New evidence about language
 and cognitive development based on a longitudinal study: Hypotheses for
@@ -699,7 +679,7 @@ Lewis, M., Zettersten, M., \& Lupyan, G. (2019). Distributional
 semantics as a source of visual knowledge. \emph{Proceedings of the
 National Academy of Sciences}, \emph{116}(39), 19237--19238.
 
-\leavevmode\hypertarget{ref-mangold_1988}{}%
+\leavevmode\hypertarget{ref-mangold1988}{}%
 Mangold, R., \& Pobel, R. (1988). Informativeness and Instrumentality in
 Referential Communication. \emph{Journal of Language and Social
 Psychology}, \emph{7}(3-4), 181--191.
@@ -716,11 +696,7 @@ Mikolov, T., Sutskever, I., Chen, K., Corrado, G. S., \& Dean, J.
 compositionality. In \emph{Advances in neural information processing
 systems} (pp. 3111--3119).
 
-\leavevmode\hypertarget{ref-mitchell_2013}{}%
-Mitchell, M., Reiter, E., \& Deemter, K. van. (2013). Typicality and
-Object Reference, 7.
-
-\leavevmode\hypertarget{ref-nadig_2002}{}%
+\leavevmode\hypertarget{ref-nadig2002}{}%
 Nadig, A. S., \& Sedivy, J. C. (2002). Evidence of Perspective-Taking
 Constraints in Children's On-Line Reference Resolution.
 \emph{Psychological Science}, \emph{13}(4), 329--336.
@@ -734,7 +710,7 @@ Academy of Sciences}, \emph{109}(34), 13526--13531.
 Rogers, T. T., \& McClelland, J. L. (2004). \emph{Semantic cognition: A
 parallel distributed processing approach}. MIT press.
 
-\leavevmode\hypertarget{ref-rubio-fernandez_2016}{}%
+\leavevmode\hypertarget{ref-rubio-fernandez2016}{}%
 Rubio-Fernández, P. (2016). How Redundant Are Redundant Color
 Adjectives? An Efficiency-Based Analysis of Color Overspecification.
 \emph{Frontiers in Psychology}, \emph{7}.
@@ -749,10 +725,19 @@ Sloutsky, V. M., \& Fisher, A. V. (2004). Induction and categorization
 in young children: A similarity-based model. \emph{Journal of
 Experimental Psychology: General}, \emph{133}(2), 166.
 
+\leavevmode\hypertarget{ref-snow1972}{}%
+Snow, C. E. (1972). Mothers' speech to children learning language.
+\emph{Child Development}, 549--565.
+
 \leavevmode\hypertarget{ref-stahl2015}{}%
 Stahl, A. E., \& Feigenson, L. (2015). Observing the unexpected enhances
 infants' learning and exploration. \emph{Science}, \emph{348}(6230),
 91--94.
+
+\leavevmode\hypertarget{ref-westerbeek2015}{}%
+Westerbeek, H., Koolen, R., \& Maes, A. (2015). Stored object knowledge
+and the production of referring expressions: The case of color
+typicality. \emph{Frontiers in Psychology}, \emph{6}.
 
 \leavevmode\hypertarget{ref-willits2008}{}%
 Willits, J. A., Sussman, R. S., \& Amato, M. S. (2008). Event knowledge
