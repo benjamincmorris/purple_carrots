@@ -159,8 +159,6 @@ tidy_turk_counts <- type_data_by_session %>%
                                T ~ "the")) %>%
   left_join(model_judgments %>% select(-turker_judgment), by = c("adj","noun"))
 
-tidy_turk_counts_for_plots <- tidy_turk_counts %>%
-  distinct(noun,adj,mean_typ,ldp_similarity,wiki_similarity)
 
 mean_type <- lmer(centered_score ~ 1 + (1|noun),
                      data = tidy_turk_counts) %>%
@@ -257,9 +255,9 @@ kid_token_p <- mean_kid_token %>% filter(term == "(Intercept)") %>%
 
 ## Results
 
-To estimate the relative frequency with which caregivers refer to typical vs. atypical referents, we used Turkers' judgments about the atypicality of each adjective-noun pair in the data. In our analyses, we token-weighted these judgments--giving higher weight to pairs that occurred more frequently in children's inputs. However, results are qualitatively identical and all signifcant effects remain significant without these re-weightings.
+To estimate the relative frequency with which caregivers refer to typical versus atypical referents, we used Turkers' judgments about the atypicality of each adjective-noun pair in the data. In our analyses, we token-weighted these judgments, giving higher weight to pairs that occurred more frequently in children's inputs. However, results are qualitatively identical and all significant effects remain significant without these re-weightings.
 
-If caregivers speak informatively to convey what is atypical or surprising in relation to their own sophisticated world knowledge, we should see that caregiver description is dominated by modifiers that are sometimes true of the noun they modify. If instead child-directed speech privileges redundant information perhaps to align to young children's limited world knowledge, caregiver description should yield a distinct distribution dominated by highly typical modifiers. We find parents' description largely focuses on features that are only sometimes true of the concept (Figure \ref{fig:distribution_plot}).
+If caregivers speak informatively to convey what is atypical or surprising in relation to their own sophisticated world knowledge, we should see that caregiver description is dominated by modifiers that are sometimes true of the noun they modify. If instead child-directed speech privileges redundant information, perhaps to align to young children's limited world knowledge, caregiver description should yield a distinct distribution dominated by highly typical modifiers. We find that parents' description predominantly focuses on features that are only sometimes true of the concept (Figure \ref{fig:distribution_plot}).
 
 ```{r distribution_plot, fig.height = 5.5, fig.width=3.4, fig.align = "center", num.cols.cap=1, fig.cap = "Denisity plots showing the usage amount at each timepoint based on the typicality of the adj-noun pair.", fig.pos="tb"}
 # full_turk_counts <- read_csv(here("data/judgments_session.csv"))
@@ -396,8 +394,15 @@ This usage pattern aligns with the idea that language is used informatively in r
 Much information can be gleaned from language that does not seem available at first glance. From language alone, simple distributional learning models can recover enough information to perform comparably to non-native college applicants on the Test of English as a Foreign Language [@landauer1997]. Recently, @lewis2019 demonstrated that even nuanced feature information may be learnable through distributional semantics alone, without any complex inferential machinery. We take a similar approach to ask whether a distributional semantics model trained on the language children hear can capture typical feature information. 
 
 ```{r word2vec cors}
-word2vec_cor_data <- tidy_turk_counts %>%
+tidy_turk_counts <- tidy_turk_counts %>%
   filter(!(adj == noun)) %>%
+  filter(!(adj == "orange")) %>%
+  filter(!(noun == "orange"))
+
+tidy_turk_counts_for_plots <- tidy_turk_counts %>%
+  distinct(noun,adj,mean_typ,ldp_similarity,wiki_similarity)
+
+word2vec_cor_data <- tidy_turk_counts %>%
   group_by(adj, noun, wiki_similarity, ldp_similarity) %>%
   summarise(typicality = mean(score, na.rm = T), n = sum(n)) 
 
@@ -589,7 +594,7 @@ pair_tab <- high_low_pairs %>%
   arrange(diff) %>%
   ungroup() %>%
   # slice(1:10) %>%
-  slice(1:6) %>%
+  slice(1:20) %>%
   select(-diff) %>%
   xtable(caption = "This table shows the six cases in which word2vec similarities are worst at predicting human typicality judgments, judging the low-typicality adjective to be more similar than the high-typicality adjective.",
          label = "tab:pairs_tab")
