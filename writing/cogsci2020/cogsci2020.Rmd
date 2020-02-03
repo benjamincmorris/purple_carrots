@@ -81,11 +81,11 @@ print(tab, type = "latex", comment = F, table.placement = "tb", floating = TRUE,
       include.rownames = FALSE)
 ```
 
-We examine the typicality of adjectives in a large, diverse corpus of parent-child interactions recorded in children's homes to ask whether parents talking to their children--just like adults speaking and writing--tend to use adjectives predominantly to mark atypical features. We find that they do: Parents and children overwhelmingly choose to mention atypical rather than typical features. We also find that parents use adjectives differently over the course of children's development, noting typical features more often to younger children. We then ask whether the co-occurrence structure of language nonetheless captures typicality information by training vector space models on child-directed speech. We find that relatively little typical feature information is represented in these semantic spaces. 
+We examine the typicality of adjectives in a large, diverse corpus of parent-child interactions recorded in children's homes to ask whether parents talking to their children—just like adults speaking and writing—tend to use adjectives predominantly to mark atypical features. We find that they do: Parents and children overwhelmingly choose to mention atypical rather than typical features. We also find that parents use adjectives differently over the course of children's development, noting typical features more often to younger children. We then ask whether the co-occurrence structure of language nonetheless captures typicality information by training vector space models on child-directed speech. We find that relatively little typical feature information is represented in these semantic spaces. 
 
 # Adjective typicality
 
-In order to determine whether parents use adjectives mostly to mark atypical features of categories, we analyzed caregiver speech from a large corpus of parent-child interactions recorded in the home. We extracted a subset of adjective-noun combinations that co-occured, and asked a sample of Amazon Mechanical Turkers to judge how typical the property described by each adjective was for the noun it modified. We then examined both the broad features of this typicality distribution and how it changed over development.
+In order to determine whether parents use adjectives mostly to mark atypical features of categories, we analyzed caregiver speech from a large corpus of parent-child interactions recorded in the home. We extracted a subset of adjective-noun combinations that co-occurred, and asked a sample of Amazon Mechanical Turkers to judge how typical the property described by each adjective was for the noun it modified. We then examined both the broad features of this typicality distribution and how it changed over development.
 
 ## Corpus
 
@@ -98,14 +98,14 @@ Our sample consisted of 64 typically-developing children and their caregivers wi
 
 From these utterances, we extracted all of the nouns (using human-coded part of speech tags) resulting in a set of 8,150 total nouns. Because of our interest in change over development, we considered only nouns that appeared at least once every 3 sessions (i.e. per developmental year). This yielded a set of some 1,829 potential target nouns used over 198,014 distinct utterances.
 
-We selected from the corpus all 35,761 distinct utterances containing any of these nouns and any word tagged as an adjective. We considered for analysis all adjective-noun pairs that occurred in any utterance (i.e. utterances with one noun and three adjectives were coded as three pairs) for a total of 18,050 distinct pairs. This set contained a number of high-frequency idiomatic pairs whose typicality was difficult to classify (e.g., "good"--"job"; "little"--"bit"). To resolve this issue, we used human judgments of words' concreteness to identify and exclude candidate idioms [@brysbaert2014]. We retained for analysis only pairs where both the adjective and noun were in the top 25% of the concreteness ratings (e.g., "dirty" -- "dish"; "green" -- "fish") restricting our set to 2,477.  Finally, all pairs were given to 7 human coders to judge whether the pair was "incoherent or unrelated" and we thus excluded a final 576 pairs from the sample (e.g., incoherent pairs such as "flat" -- "honey").
+We selected from the corpus all 35,761 distinct utterances containing any of these nouns and any word tagged as an adjective. We considered for analysis all adjective-noun pairs that occurred in any utterance (e.g., utterances with one noun and three adjectives were coded as three pairs) for a total of 18,050 distinct pairs. This set contained a number of high-frequency idiomatic pairs whose typicality was difficult to classify (e.g., "good"--"job"; "little"--"bit"). To resolve this issue, we used human judgments of words' concreteness to identify and exclude candidate idioms [@brysbaert2014]. We retained for analysis only pairs in which both the adjective and noun were in the top 25% of the concreteness ratings (e.g., "dirty" -- "dish"; "green" -- "fish") restricting our set to 2,477.  Finally, human coders in the lab judged whether each pair was "incoherent or unrelated" and we thus excluded a final 576 pairs from the sample (e.g., incoherent pairs such as "flat" -- "honey").
 
 Thus, our final sample included 1,901 unique adjective-noun pairs drawn from 3,749 distinct utterances. The pairs were combinations of 637 distinct concrete nouns and 111 distinct concrete adjectives. We compiled these pairs and collected human judgments on Amazon Mechanical Turk for each pair, as described below. Table \ref{tab:utt_table} contains example utterances from the final set and typicality judgments from our human raters.
 
 
 ## Participants
 
-Each participant rated 20 pairs, and each pair was rated by four participants; we used [Dallinger](http://docs.dallinger.io/en/latest/), a tool for automating complex recruitment on Amazon Mechanical Turk, to balance recruitment. Overall, we recruited 444 participants to rate 2200 adjective–noun pairs. After exclusions using an attention check **what was the check?**, we retained 8580 judgments, with each adjective–noun pair retaining at least two judgments.
+Each participant rated 20 pairs, and each pair was rated by four participants; we used [Dallinger](http://docs.dallinger.io/en/latest/), a tool for automating complex recruitment on Amazon Mechanical Turk, to balance recruitment. Overall, we recruited 444 participants to rate 2200 adjective–noun pairs. After exclusions using an attention check that asked participants to simply choose a specific number on the scale, we retained 8580 judgments, with each adjective–noun pair retaining at least two judgments.
 
 ## Design and Procedure
 
@@ -512,8 +512,8 @@ halves_data <- high_low_pairs %>%
   mutate(measure = factor(measure, 
                           levels = c("mean_typ", "ldp_similarity", 
                                      "wiki_similarity"), 
-                          labels = c("Human", "LDP Word2Vec", 
-                                     "Wiki Word2Vec"))) %>%
+                          labels = c("Human", "LDP word2vec", 
+                                     "Wiki word2vec"))) %>%
   mutate(score = if_else(measure=="Human", score/7, score)) %>%
   filter(! noun == "orange") %>%
     filter(! adj == "orange") 
@@ -546,7 +546,7 @@ To test this possibility, we trained word2vec, a model that predicts words using
 
 ## Results
 
-We find that similarities in the model trained on the Language Development Project corpus have near zero correlation with human adjective–noun typicality ratings ($r =$ `r ldp_cor_estimate`, $p =$ `r ldp_cor_p`). This is in spite of better correlations with large sets of human similarity judgments between different kinds of word pairs (correlation with  wordsim353, 0.37; correlation with simlex, 0.15). This suggests that statistical patterns in child-directed speech are likely insufficient to encode information about the typical features of objects, despite encoding at least some information about word meaning more broadly. 
+We find that similarities in the model trained on the Language Development Project corpus have near zero correlation with human adjective–noun typicality ratings ($r =$ `r ldp_cor_estimate`, $p =$ `r ldp_cor_p`). Our model does capture meaningful information about the structure of language, showing higher correlations with large sets of human similarity judgments within part of speech categories (correlation with wordsim353 similarities between noun pairs, 0.28; correlation with simlex similarities within noun, adjective, and verb pairs, 0.16). This suggests that statistical patterns in child-directed speech are likely insufficient to encode information about the typical features of objects, despite encoding at least some information about word meaning more broadly. 
 
 ```{r halfs, cache=F, fig.width=3.4, fig.height = 3.4, fig.align = "center", num.cols.cap=1, fig.cap = 'Plots of nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective (rated at least "often").'}
 
