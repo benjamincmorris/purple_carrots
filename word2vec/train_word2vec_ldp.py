@@ -13,7 +13,7 @@ FILE_NAMES = []
 
 FILE_NAMES.append('ldp_parent.txt')
 
-read_dir = '/Users/clairebergey/Documents/purple_carrots/data'
+read_dir = '../data'
 
 exclude = set('@#1234567890()*')
 

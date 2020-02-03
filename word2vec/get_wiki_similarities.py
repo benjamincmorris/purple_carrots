@@ -10,15 +10,13 @@ import logging
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)             
 import numpy as np   
 import csv
-from matplotlib import pyplot
 from numpy import cov
-import seaborn
 import itertools
 
 model = gensim.models.Word2Vec.load("ldp_adult_word2vec.model")
 
 sim_judgments = {}
-with open('../data/judgments_session.csv', mode='r') as csv_file:
+with open('../data/clean_token_data.csv', mode='r') as csv_file:
     readCSV = csv.DictReader(csv_file, delimiter=',')
     for row in readCSV:
         if row['adj'] not in sim_judgments:
@@ -41,8 +39,6 @@ for adj in sim_judgments:
             ldp_sim_judgments.append(float(model.similarity(adj, noun)))
             word_pairs.append((adj,noun))
 
-
-seaborn.stripplot(ldp_sim_judgments, wiki_sim_judgments, s = 2, jitter = 3)
 covariance = np.corrcoef(ldp_sim_judgments, wiki_sim_judgments)
 print(covariance)
 
