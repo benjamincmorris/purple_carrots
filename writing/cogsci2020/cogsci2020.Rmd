@@ -581,6 +581,8 @@ halves_data %>%
 
 ```{r pairs_tab, results="asis", tab.env = "table"}
 pair_tab <- high_low_pairs %>%
+    filter(! noun == "orange") %>%
+    filter(! adj == "orange") %>%
   group_by(noun) %>%
   summarise(diff = first(wiki_similarity) - last(wiki_similarity)) %>%
   filter(diff < 0) %>%
