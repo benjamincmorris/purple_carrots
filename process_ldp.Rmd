@@ -32,12 +32,19 @@ Load utterances
 ```{r load-ldp-data}
 ldp <- connect_to_ldp()
 
+subs_to_keep <- get_table(ldp, "subjects") %>%
+    collect() %>%
+    filter(lesion == "", project == 2) %>%
+    pull(id)
+
 utts <- get_table(ldp, "utterances") %>%
   select(time, row, subject, session, p_chat, c_chat) %>%
   collect() %>%
+  filter(subject %in% subs_to_keep) %>%
   gather(person, utterance, p_chat, c_chat) %>%
   filter(!is.na(utterance)) %>%
   arrange(subject, session, row)
+
 ```
 
 ```{r, write-files}

@@ -351,27 +351,22 @@ by the adults in COCA, it provides a first approximation to adult usage.
 When we fit the same mixed-effects model to the data, we found that the
 intercept was reliably negative, indicating that adult-directed peech is
 likely also biased toward description of atypical features (\(\beta =\)
--0.3, \(t =\) -3.22, \(p\) .002)
+-0.3, \(t =\) -19.72, \(p\) \textless{} .001)
 
 However, while descriptions at every age tended to point out atypical
 features, this effect changed in strength over development. An age
 effect added to the previous model was reliably negative, indicating
 that parents of older children are relatively more likely to focus on
-atypical features (\(\beta =\) -0.1, \(t =\) -3.22, \(p =\) .001). This
-effect also remained significant when pairs were weighted according the
-their frequency (\(\beta =\) -0.11, \(t =\) -3.47, \(p =\) .001).
-
-Though there is striking consistency of description in caregiver speech
-across development, we found parents of older children were more likely
-to refer to atypical features. In line with our hypotheses, it seems
-that caregivers are more likely to provide description of typical
-features for their young children, compared with older children. To
-confirm this intuition, we defined adjectives as highly-typical if
-Turkers judged them to be `often', `almost always', or `always' true. We
-predicted whether each judgment was highly typical from a mixed-effects
-logistic regression with a fixed effect of age (log-scaled) and a random
-effect of noun. Age was a highly-reliable predictor (\(\beta =\) -0.65,
-\(t =\) -2.98, \(p =\) .003). While children at all ages hear more talk
+atypical features (\(\beta =\) -0.11, \(t =\) -3.47, \(p =\) .001). In
+line with our hypotheses, it seems that caregivers are more likely to
+provide description of typical features for their young children,
+compared with older children. As a second test of this intuition, we
+defined adjectives as highly-typical if Turkers judged them to be
+`often', `almost always', or `always' true. We predicted whether each
+judgment was highly typical from a mixed-effects logistic regression
+with a fixed effect of age (log-scaled) and a random effect of noun. Age
+was a highly-reliable predictor (\(\beta =\) -0.94, \(t =\) -5.01,
+\(p =\) \textless{} .001). While children at all ages hear more talk
 about what is atypically true (Figure \ref{fig:distribution_plot}),
 younger children hear relatively more talk about what is typically true
 than older children do (Figure \ref{fig:prototypical_plot}).
@@ -466,8 +461,41 @@ inferential machinery. We take a similar approach to ask whether a
 distributional semantics model trained on the language children hear can
 capture typical feature information.
 
-\hypertarget{word2vec}{%
-\subsubsection{Word2Vec}\label{word2vec}}
+\begin{CodeChunk}
+\begin{figure}[tb]
+
+{\centering \includegraphics{figs/halfs-1} 
+
+}
+
+\caption[Typicality ratings]{Typicality ratings}\label{fig:halfs}
+\end{figure}
+\end{CodeChunk}
+
+\begin{table}[tb]
+\centering
+\begin{tabular}{lll}
+  \hline
+noun & high & low \\ 
+  \hline
+apple & red & orange \\ 
+  lemon & yellow & orange \\ 
+  puzzle & flat & giant \\ 
+  bird & outside & purple \\ 
+  banana & yellow & orange \\ 
+  elephant & fat & pink \\ 
+  whale & wet & red \\ 
+  frog & green & purple \\ 
+  food & solid & purple \\ 
+  balloon & colored & orange \\ 
+   \hline
+\end{tabular}
+\caption{The ten adjective-noun pairs where word2vec's similarity is most mistaken.} 
+\label{tab:model_errors}
+\end{table}
+
+\hypertarget{method}{%
+\subsection{Method}\label{method}}
 
 To test this possibility, we trained word2vec, a model that predicts
 words using their contexts, on the same corpus of child-directed speech
@@ -476,56 +504,58 @@ continuous-bag-of-words word2vec model trained using the package gensim
 (Řehůřek \& Sojka, 2010). If the model captures information about the
 typical features of objects, we should see that the model's word pair
 similarities are correlated with the typicality ratings we elicited from
-human raters.
+human raters. For a second comparison, we also used an off-the-shelf
+implementation of word2vec trained on Wikipedia (Mikolov, Grave,
+Bojanowski, Puhrsch, \& Joulin, 2018). While the Language Development
+Project corpus likely underestimates the amount of structure in
+children's linguistic input, Wikipedia likely overestimates it.
 
 \hypertarget{results-1}{%
-\subsubsection{Results}\label{results-1}}
+\subsection{Results}\label{results-1}}
 
-We find that similarities in the model have near zero correlation with
-human adjective--noun typicality ratings (r = 0.018). This is in spite
-of better correlations with large sets of human similarity judgments
-between different kinds of word pairs (correlation with wordsim353,
-0.37; correlation with simlex, 0.15). This suggests that statistical
-patterns in child-directed speech are likely insufficient to encode
-information about the typical features of objects, despite encoding at
-least some information about word meaning more broadly. However, the
-corpus on which we trained this model was small; perhaps our model did
-not get enough language to draw out the patterns that would reflect the
-typical features of objects. To test this possibility, we asked whether
-word vectors trained on a much larger corpus---English
-Wikipedia---strongly correlate with typicality ratings. We find that
-while the correlation between similarities in the Wikipedia--trained
-model and human noun--adjective typicality ratings is stronger, it is
-still fairly weak at r = 0.24. Strikingly, the correlation between
-similarities in our model and similarities in the Wikipedia-trained
-models is stronger (r = 0.33) than either model's correlations with
-human judgments. This suggests that these models are picking up on some
-systematic associations between nouns and adjectives, but not typical
-ones. Overall, these results suggest that models of distributional
-semantics fail to extract typical feature information from language in
-which atypical features are more often described.
+We find that similarities in the model trained on the Language
+Development Project corpus have near zero correlation with human
+adjective--noun typicality ratings (\(r =\) 0.01, \(p =\) .712). This is
+in spite of better correlations with large sets of human similarity
+judgments between different kinds of word pairs (correlation with
+wordsim353, 0.37; correlation with simlex, 0.15). This suggests that
+statistical patterns in child-directed speech are likely insufficient to
+encode information about the typical features of objects, despite
+encoding at least some information about word meaning more broadly.
 
-\begin{CodeChunk}
-\begin{figure}[tb]
+However, the corpus on which we trained this model was small; perhaps
+our model did not get enough language to draw out the patterns that
+would reflect the typical features of objects. To test this possibility,
+we asked whether word vectors trained on a much larger corpus---English
+Wikipedia---strongly correlate with typicality ratings. This model's
+similarities were signifcantly correlated with human judgments, although
+the strength of the correlation was still fairly weak (\(r =\) 0.24,
+\(p\) \textless{} .001). Interestingly, similarities from the two models
+wrere more highly correlated than either model's similarity and human
+judgments (\(r =\) 0.32, \(p\) \textless{} .001). This suggests that
+these models are picking up on some systematic associations between
+nouns and adjectives, but not typicality inofrmation ones.
 
-{\centering \includegraphics{figs/word2vec1-1} 
+One possibile confound in these analyses is that the similarity
+judgments produced by our models reflect many dimensions of similarity,
+but human judgments reflect only typicality. To accomodate this, we
+performed a second analysis where we considered only the subset of 79
+nouns that had both a typical (rated as at least ``often'') and an
+atypical (rated as at most ``sometimes'') adjective. We then asked
+whether the models rated the typical adjective as more similar to the
+noun it modified than the atypical noun. The LDP model correctly
+classified 42 out of 79 (0.53), which was not better than chance
+(\(p =\) .653). The Wikipedia model correctly classified 58 out of 79
+(0.73), which was better than chance according to a binomial test, but
+still fairly poor perfomance (\(p =\) \textless{} .001). Fig
+\ref{fig:halfs} shows the ratings from Turkers and the two models for
+the 79 nouns.
 
-}
-
-\caption[Correlation between vector similarities in word2vec (trained on the LDP corpus) and human-rated typicality judgments for our noun-adjective pairs]{Correlation between vector similarities in word2vec (trained on the LDP corpus) and human-rated typicality judgments for our noun-adjective pairs.}\label{fig:word2vec1}
-\end{figure}
-\end{CodeChunk}
-
-\begin{CodeChunk}
-\begin{figure}[tb]
-
-{\centering \includegraphics{figs/word2vec2-1} 
-
-}
-
-\caption[Correlation between vector similarities in word2vec trained on the LDP corpus and vector similarities in word2vec trained on English Wikipedia for our noun-adjective pairs]{Correlation between vector similarities in word2vec trained on the LDP corpus and vector similarities in word2vec trained on English Wikipedia for our noun-adjective pairs.}\label{fig:word2vec2}
-\end{figure}
-\end{CodeChunk}
+Table \ref{tab:pairs_tab} shows the 10 adjective-noun pairs where
+word2vec trained on Wikipedia produce judgments that are farthest away
+from the human judgments for these nouns (LDP was similar). These
+adjectives vary in kind, but many pick out typical colors (e.g. ``red
+apple'')--precisely as we predicted.
 
 \hypertarget{general-discussion}{%
 \section{General Discussion}\label{general-discussion}}
@@ -544,7 +574,7 @@ one in which caregivers predominantly point out the atypical features of
 things.
 
 How, then, do children learn about the typical features of things from
-such an environment? While younger children may gain an importnat
+such an environment? While younger children may gain an important
 foothold from hearing more description of typical features, they still
 face language dominated by atypical description. Further when we looked
 at more nuanced ways\ldots{} , we found that models of distributional
@@ -599,12 +629,6 @@ learning. Communication pressures are pervasive forces structuring the
 language children hear, and future work must disentangle whether
 children capitalize on them or are misled by them in learning about the
 world.
-
-\hypertarget{acknowledgements}{%
-\section{Acknowledgements}\label{acknowledgements}}
-
-Place acknowledgments (including funding information) in a section at
-the end of the paper.
 
 \hypertarget{references}{%
 \section{References}\label{references}}
@@ -678,6 +702,12 @@ learning. \emph{Child Development}, \emph{87}(3), 633--642.
 Lewis, M., Zettersten, M., \& Lupyan, G. (2019). Distributional
 semantics as a source of visual knowledge. \emph{Proceedings of the
 National Academy of Sciences}, \emph{116}(39), 19237--19238.
+
+\leavevmode\hypertarget{ref-mikolov2018}{}%
+Mikolov, T., Grave, E., Bojanowski, P., Puhrsch, C., \& Joulin, A.
+(2018). Advances in pre-training distributed word representations. In
+\emph{Proceedings of the international conference on language resources
+and evaluation (lrec 2018)}.
 
 \leavevmode\hypertarget{ref-mikolov2013}{}%
 Mikolov, T., Sutskever, I., Chen, K., Corrado, G. S., \& Dean, J.
