@@ -121,21 +121,35 @@ and perception (Johns \& Jones, 2012).
 
 Still, there is reason to believe that some semantic features may be
 harder to learn from language than these data suggest. This is because
-people rarely use language merely to provide running comentary on the
-world around them; instead, we use language to talk about things that
-diverge from our expectations or those of our conversational partner
-(Grice, 1975). People tend to avoid being over- or under-informative
-when they speak, for instance noting only the features of an object
-necessary for their conversational partner to identify it (Mangold \&
-Pobel, 1988). In particular, people are informative with respect to both
-the referential context and the typical features of the the object to
-which they are referring (Rubio-Fernández, 2016; Westerbeek, Koolen, \&
-Maes, 2015). People tend to refer to an object that is typical of its
-category with a bare noun (e.g., calling an orange carrot ``a carrot''),
-but often specify when an object has an atypical feature (e.g, ``a
-purple carrot''). Given these communicative pressures, naturalistic
-language statistics may provide surprisingly little evidence about what
-is typical (Willits, Sussman, \& Amato, 2008).
+we rarely use language merely to provide running commentary on the world
+around us; instead, we use language to talk about things that diverge
+from our expectations or those of our conversational partner (Grice,
+1975). People tend to avoid being over- or under-informative when they
+speak. In particular, when referring to objects, people are informative
+with respect to both the referential context and the typical features of
+the the object to which they are referring (Rubio-Fernández, 2016;
+Westerbeek, Koolen, \& Maes, 2015). People tend to refer to an object
+that is typical of its category with a bare noun (e.g., calling an
+orange carrot ``a carrot''), but often specify when an object has an
+atypical feature (e.g, ``a purple carrot''). Given these communicative
+pressures, naturalistic language statistics may provide surprisingly
+little evidence about what is typical (Willits, Sussman, \& Amato,
+2008).
+
+\begin{table*}[tb]
+\centering
+\begin{tabular}{llrrrrr}
+  \hline
+utterance & pair & rating 1 & rating 2 & rating 3 & rating 4 & mean typicality \\ 
+  \hline
+especially with wooden shoes. & wooden-shoe &   2 &   2 &   3 &   2 & 2.75 \\ 
+  you like red onions? & red-onion &   3 &   5 &   3 &   4 & 3.75 \\ 
+  the garbage is dirty. & dirty-garbage &   7 &   7 &   5 &   7 & 6.50 \\ 
+   \hline
+\end{tabular}
+\caption{Sample typicality ratings from 4 human coders for three adjective-noun pairs drawn from the corpus.} 
+\label{tab:utt_table}
+\end{table*}
 
 If parents speak to children in this minimally informative way, children
 may be faced with input that emphasizes atypicality in relation to world
@@ -189,18 +203,18 @@ and how it changed over development.
 \hypertarget{corpus}{%
 \subsection{Corpus}\label{corpus}}
 
-We used data from the Language Development Project-- a large-scale,
+We used data from the Language Development Project, a large-scale,
 longitudinal corpus of parent-child interactions recorded in children's
 homes. Families were recruited to be representative of the Chicagoland
 area in both socio-economic and racial composition (Goldin-Meadow et
-al., 2014). Recordings were taken in the home every 4-months from when
-the child was 14-months-old until they were 58-months-old, resulting in
+al., 2014). Recordings were taken in the home every 4 months from when
+the child was 14 months old until they were 58 months old, resulting in
 12 timepoints. Each recording was of a 90-minute session in which
 parents and children were free to behave as they liked and interact as
 much or as little as they liked.
 
 Our sample consisted of 64 typically-developing children and their
-caregivers, with data from at least 4 timepoints (\emph{mean} = 11.3
+caregivers with data from at least 4 timepoints (\emph{mean} = 11.3
 timepoints). Together, this resulted in a total of 641,402 distinct
 parent utterances.
 
@@ -238,21 +252,6 @@ Turk for each pair, as described below. Table \ref{tab:utt_table}
 contains example utterances from the final set and typicality judgments
 from our human raters.
 
-\begin{table*}[tb]
-\centering
-\begin{tabular}{llrrrrr}
-  \hline
-utterance & pair & rating 1 & rating 2 & rating 3 & rating 4 & mean typicality \\ 
-  \hline
-especially with wooden shoes. & wooden-shoe &   2 &   2 &   3 &   2 & 2.75 \\ 
-  you like red onions? & red-onion &   3 &   5 &   3 &   4 & 3.75 \\ 
-  the garbage is dirty. & dirty-garbage &   7 &   7 &   5 &   7 & 6.50 \\ 
-   \hline
-\end{tabular}
-\caption{Sample typicality ratings from 4 human coders for three adjective-noun pairs drawn from the corpus.} 
-\label{tab:utt_table}
-\end{table*}
-
 \hypertarget{participants}{%
 \subsection{Participants}\label{participants}}
 
@@ -278,17 +277,6 @@ ratings were combined with usage data from our corpus analysis to let us
 determine the extent to which parents use language to describe typical
 and atypical features.
 
-\begin{CodeChunk}
-\begin{figure}[tb]
-
-{\centering \includegraphics{figs/distribution_plot-1} 
-
-}
-
-\caption[Denisity plots showing the usage amount at each timepoint based on the typicality of the adj-noun pair]{Denisity plots showing the usage amount at each timepoint based on the typicality of the adj-noun pair.}\label{fig:distribution_plot}
-\end{figure}
-\end{CodeChunk}
-
 \hypertarget{results}{%
 \subsection{Results}\label{results}}
 
@@ -309,6 +297,17 @@ limited world knowledge, caregiver description should yield a distinct
 distribution dominated by highly typical modifiers. As can be seen in
 Figure \ref{fig:distribution_plot} parents' description largely focuses
 on features that are only sometimes true of the concept.
+
+\begin{CodeChunk}
+\begin{figure}[tb]
+
+{\centering \includegraphics{figs/distribution_plot-1} 
+
+}
+
+\caption[Denisity plots showing the usage amount at each timepoint based on the typicality of the adj-noun pair]{Denisity plots showing the usage amount at each timepoint based on the typicality of the adj-noun pair.}\label{fig:distribution_plot}
+\end{figure}
+\end{CodeChunk}
 
 To confirm this effect statistically, we first centered the ratings
 (i.e. ``about half'' was coded 0), and then predicted the rating on each
@@ -440,39 +439,6 @@ inferential machinery. We take a similar approach to ask whether a
 distributional semantics model trained on the language children hear can
 capture typical feature information.
 
-\begin{CodeChunk}
-\begin{figure}[tb]
-
-{\centering \includegraphics{figs/halfs-1} 
-
-}
-
-\caption[Plots of nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective ("rated at least often")]{Plots of nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective ("rated at least often"). The black dotted line shows average human typicality ratings (scaled) for these items. The blue line shows how well our models do at capturing this trend, with grey lines representing individual pairs.}\label{fig:halfs}
-\end{figure}
-\end{CodeChunk}
-
-\begin{table}[tb]
-\centering
-\begin{tabular}{lll}
-  \hline
-noun & high & low \\ 
-  \hline
-apple & red & orange \\ 
-  lemon & yellow & orange \\ 
-  puzzle & flat & giant \\ 
-  bird & outside & purple \\ 
-  banana & yellow & orange \\ 
-  elephant & fat & pink \\ 
-  whale & wet & red \\ 
-  frog & green & purple \\ 
-  food & solid & purple \\ 
-  balloon & colored & orange \\ 
-   \hline
-\end{tabular}
-\caption{The ten cases in which word2vec similarities are worst at predicting human typicality judgments. For each of these cases, the model judges the low-typicality adjective to be more similar to the noun than the high-typicality adjective.} 
-\label{tab:pairs_tab}
-\end{table}
-
 \hypertarget{method}{%
 \subsection{Method}\label{method}}
 
@@ -502,6 +468,17 @@ statistical patterns in child-directed speech are likely insufficient to
 encode information about the typical features of objects, despite
 encoding at least some information about word meaning more broadly.
 
+\begin{CodeChunk}
+\begin{figure}[tb]
+
+{\centering \includegraphics{figs/halfs-1} 
+
+}
+
+\caption[Plots of nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective (rated at least "often")]{Plots of nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective (rated at least "often").}\label{fig:halfs}
+\end{figure}
+\end{CodeChunk}
+
 However, the corpus on which we trained this model was small; perhaps
 our model did not get enough language to draw out the patterns that
 would reflect the typical features of objects. To test this possibility,
@@ -528,10 +505,28 @@ classified 42 out of 79 (0.53), which was not better than chance
 (0.73), which was better than chance according to a binomial test, but
 still fairly poor perfomance (\(p =\) \textless{} .001). Fig
 \ref{fig:halfs} shows the ratings from Turkers and the two models for
-the 79 nouns. Table \ref{tab:pairs_tab} shows the 10 adjective-noun
-pairs where word2vec trained on Wikipedia produce judgments that are
-farthest away from the human judgments for these nouns (LDP was
-similar). \textbf{fix up the discussion here}
+the 79 nouns. Table \ref{tab:pairs_tab} gves the six cases in which
+word2vec similarities are worst at predicting human typicality
+judgments, judging the low-typicality adjective to be more similar than
+the high-typicality.
+
+\begin{table}[tb]
+\centering
+\begin{tabular}{lll}
+  \hline
+noun & high & low \\ 
+  \hline
+apple & red & orange \\ 
+  lemon & yellow & orange \\ 
+  puzzle & flat & giant \\ 
+  bird & outside & purple \\ 
+  banana & yellow & orange \\ 
+  elephant & fat & pink \\ 
+   \hline
+\end{tabular}
+\caption{This table shows the six cases in which word2vec similarities are worst at predicting human typicality judgments, judging the low-typicality adjective to be more similar than the high-typicality adjective.} 
+\label{tab:pairs_tab}
+\end{table}
 
 \hypertarget{general-discussion}{%
 \section{General Discussion}\label{general-discussion}}
@@ -593,8 +588,6 @@ learning. Communication pressures are pervasive forces structuring the
 language children hear, and future work must disentangle whether
 children capitalize on them or are misled by them in learning about the
 world.
-
-\vspace{1em} \fbox{\parbox[b][][c]{7.3cm}{\centering Data and analysis code will be made available through GitHub after de-anonymization. \ }}
 
 \hypertarget{references}{%
 \section{References}\label{references}}
@@ -669,11 +662,6 @@ learning. \emph{Child Development}, \emph{87}(3), 633--642.
 Lewis, M., Zettersten, M., \& Lupyan, G. (2019). Distributional
 semantics as a source of visual knowledge. \emph{Proceedings of the
 National Academy of Sciences}, \emph{116}(39), 19237--19238.
-
-\leavevmode\hypertarget{ref-mangold1988}{}%
-Mangold, R., \& Pobel, R. (1988). Informativeness and Instrumentality in
-Referential Communication. \emph{Journal of Language and Social
-Psychology}, \emph{7}(3-4), 181--191.
 
 \leavevmode\hypertarget{ref-mikolov2018}{}%
 Mikolov, T., Grave, E., Bojanowski, P., Puhrsch, C., \& Joulin, A.
