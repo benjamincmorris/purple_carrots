@@ -1,0 +1,227 @@
+---
+title: "generics"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RMySQL)
+library(SnowballC)
+library(childesr)
+library(tidytext)
+library(tictoc)
+library(ggridges)
+library(tidyverse)
+library(here)
+library(scales)
+library(tidyboot)
+library(lme4)
+library(feather)
+
+source(here("read_ldp.R"))
+ldp <- connect_to_ldp()
+```
+
+```{r}
+list_tables <- function(connection) {
+  DBI::dbListTables(connection)
+}
+
+get_table <- function(connection, name) {
+  dplyr::tbl(connection, name)
+}
+
+list_tables(ldp)
+get_table(ldp, "ppvt")
+subs <- get_table(ldp, "subjects") %>% collect()
+typ_kids <- subs %>%
+  filter(lesion == "") %>% 
+  filter(project == 2) %>% 
+  pull(id)
+```
+
+```{r}
+tic()
+utts <- get_table(ldp, "utterances") %>%
+  collect()
+toc()
+beep()
+
+utts_clean <- utts %>%
+  #include only typically developing participants
+  filter(subject %in% typ_kids) %>%
+  #grab parent utterances
+  filter(!is.na(p_chat))  %>%
+  #drop the many things we don't care about
+  select(subject, session, p_chat, p_mor)  %>%
+  #add new utt_id variable
+  mutate(utt_id= row_number())
+
+PoS <- utts_clean %>% 
+  # filter(session==1) %>%
+  unnest_tokens(PoS, p_mor, drop=FALSE, token = stringr::str_split, pattern = " ") %>%
+  filter(PoS != "")
+```
+
+
+```{r}
+#unnest just morph codes --> PoS
+  # then split morph code into morph + word
+tagged <- PoS %>%
+  separate(PoS, into=c("PoS", "word"), sep="\\|") %>%
+  filter(!is.na(word)) %>%
+  separate(word, into=c("word", "garbage"), sep= "[^[:alnum:]]") %>%
+  mutate(stem = wordStem(word)) %>%  
+  select(-garbage)
+```
+
+
+#check noun usage consistency across ages
+#correlate rank frequency across age groups for available nouns?
+```{r}
+ranked <- tagged %>%
+  ungroup() %>%
+  mutate(age_quant = ntile(tagged$session,4)) %>%
+  anti_join(stop_words) %>%
+  filter(stem != "") %>%
+  filter(grepl("n",PoS, fixed=TRUE)) %>%
+  group_by(stem, age_quant) %>%
+  summarize(n=n()) %>% 
+  arrange(age_quant, desc(n)) %>%
+  group_by(age_quant) %>%
+  mutate(rank = row_number())
+
+ranked_wide <- ranked %>% 
+  select(stem, age_quant, rank) %>% 
+  spread(age_quant, rank) %>%
+  rowwise() %>%
+  mutate(tot_usage = sum(`1`, `2`, `3`, `4`, na.rm=TRUE)) %>%
+  mutate(all_sess = if_else(is.na(`1` + `2` + `3` + `4`), F, T))
+
+#filtered to things only in all sessions
+ranked_all_sess <- ranked_wide %>% filter(all_sess==T)
+
+cor.test(ranked_wide$`1`, ranked_wide$`2`, na.rm=TRUE)
+cor.test(ranked_wide$`1`, ranked_wide$`4`, na.rm=TRUE)
+
+```
+###quick descriptives:
+- 8,150 distinct nouns used across LDP (probably some more data cleaning to do...)
+
+- seperate 12 sessions into 1 year ranges (4 bins)
+- 1,829 distinct nouns, after filtering only to things in all 4 years of measurment
+
+
+#grab adjectives from target nouns
+```{r}
+#ranked_all_sess
+#only nouns used in each year starting at session 1 (i.e. sessions [1:3, 4:6, 7:9, 10:12])
+target_nouns <- ranked_all_sess %>% pull(stem)
+
+
+#grab target utterances with target nouns
+total_utts <- tagged
+target_utts <- total_utts[total_utts$stem %in% target_nouns,] %>% 
+  filter(PoS== "n") %>%
+  rename(noun=word,
+         noun_PoS = PoS) %>% 
+  select(-stem)
+
+
+adj_list <- total_utts %>% 
+  filter(grepl("adj", PoS)) %>%
+  filter(PoS == "adj") %>%
+  distinct(PoS) %>% 
+  pull(PoS)
+
+all_adjectives <- total_utts[total_utts$PoS %in% adj_list,] %>% 
+  rename(adj=word,
+         adj_PoS = PoS) %>% 
+  select(-stem)
+
+#all the target utts with an ajective
+adj_noun_utts <- inner_join(target_utts, all_adjectives, by=c("subject", "session", "p_chat", "p_mor", "utt_id"))
+ # %>% filter(adj=="")
+
+unmod_utts <- anti_join(target_utts, adj_noun_utts, by=c("subject", "session", "p_chat", "p_mor", "utt_id")) 
+
+#should be 0
+nrow(target_utts) - nrow(adj_noun_utts) - nrow(unmod_utts)
+
+#peek at most common pairs
+adj_noun_utts %>% 
+  count(adj, noun, sort=TRUE) %>%
+  head(50)
+
+#ALL pairs
+adj_noun_pairs_target_full <- adj_noun_utts %>% 
+  count(adj, noun, sort=TRUE) %>%
+  mutate(rank = row_number()) 
+
+#ALL pairs, split by session
+adj_noun_pairs_target_session <- adj_noun_utts %>% 
+  count(session, adj, noun) %>%
+  arrange(session, desc(n), adj, noun)
+
+#a ton of these pairs occur just once
+adj_noun_pairs_target_full %>% filter(n==1) %>%
+  group_by(adj, noun) %>% nrow
+```
+
+#Use Brysbaert threshold
+```{r}
+#get brysbaert concreteness
+concrete_concepts <- read.csv("data/concreteness.csv") %>%
+  mutate(stem= wordStem(Word)) %>%
+  # filter(stem %in% target_nouns) %>%
+  select(Word, stem, Conc.M, Conc.SD)
+
+#get sense of concretness range across all 40,000 items
+hist(concrete_concepts$Conc.M)
+
+most_concrete <- concrete_concepts %>%
+  mutate(conc_rank = ntile(Conc.M,4)) %>%
+  arrange(desc(Conc.M)) %>%
+  filter(conc_rank == 4)
+#using 4 bins thresholds concreteness scores of 3.89 or higher...
+
+#filter to concrete adjective + noun
+adj_noun_concrete <- adj_noun_utts %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+  distinct()
+
+
+adj_noun_concrete %>% 
+  count(adj) %>%
+  arrange(desc(n))
+
+adj_noun_concrete %>% 
+  count(noun)  %>%
+  arrange(desc(n)) 
+
+
+```
+
+```{r}
+
+generics <- adj_noun_concrete_utts %>%
+  filter(grepl(" are", p_chat), !grepl("this", p_chat), !grepl("\\?", p_chat)) %>%
+  left_join(judgements)
+
+generics %>%
+  ggplot(aes(x = mean_typ)) +
+  geom_histogram()
+
+adj_noun_concrete_utts %>%
+  distinct(p_chat) %>%
+  write_csv(here("data/for_generics_coding.csv"))
+
+
+
+
+
+```

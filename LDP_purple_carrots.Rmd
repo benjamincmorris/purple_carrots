@@ -19,6 +19,7 @@ library(here)
 library(scales)
 library(tidyboot)
 library(lme4)
+library(feather)
 
 source(here("read_ldp.R"))
 ldp <- connect_to_ldp()
@@ -162,7 +163,7 @@ adj_noun_pairs_target_full <- adj_noun_utts %>%
 
 #ALL pairs, split by session
 adj_noun_pairs_target_session <- adj_noun_utts %>% 
-  count(adj, noun) %>%
+  count(session, adj, noun) %>%
   arrange(session, desc(n), adj, noun)
 
 #a ton of these pairs occur just once
@@ -472,9 +473,9 @@ token_data <- prenominals %>%
 
 
 prenominals %>% 
-  mutate(age = (4*session.x + 10)) %>%
+  mutate(age = (4*session + 10)) %>%
   # filter(age <= 38) %>%
-  group_by(session.x, prenominal) %>%
+  group_by(session, prenominal) %>%
   mutate(age=min(age)) %>%
   ggplot( aes(x=as.numeric(mean_typ), y=age, group=age, fill=age)) +
   geom_density_ridges2() +
@@ -499,20 +500,20 @@ prenominals %>%
 
 ```{r}
 tmp <- prenominals %>% filter(prenominal) %>% ungroup() %>%
-  select(subject.x, session.x, noun, adj, prenominal, x1, x2, x3, x4, x5, mean_typ)
+  select(subject, session, noun, adj, prenominal, x1, x2, x3, x4, x5, mean_typ)
 
 
 prototypicals <- prenominals %>% 
   mutate(typicality=mean_typ) %>%
   mutate(howTyp = if_else(typicality>=5, T, F)) %>%
-  group_by(session.x, prenominal, howTyp) %>%
+  group_by(session, prenominal, howTyp) %>%
   summarize(sum=n()) %>%
   mutate(prop=sum/sum(sum)) %>%
   filter(howTyp, prenominal)
 
 
 prototypicals %>%
-  mutate(age = (4*session.x + 10)) %>%
+  mutate(age = (4*session + 10)) %>%
   ggplot(aes(x=age,y=prop, colour=age, linetype = prenominal)) +
   geom_smooth(method= loess, color= "black")+
   geom_point(aes(fill=age), colour="black",pch=21, size=5) +
@@ -547,6 +548,15 @@ missed <- full_turk_counts %>%
   left_join(tmp, by=c("adj_stem", "noun_stem")) %>%
   filter(is.na(adult_freq))
 
+cocaonlypairs <- tmp %>%
+  distinct(adj,noun,adult_freq) %>%
+  left_join(judgements, by=c("adj", "noun")) %>%
+  filter(is.na(mean_typ)) %>%
+  select(adj,noun,adult_freq) %>%
+  filter(adult_freq > 30)
+  
+ggplot(cocaonlypairs %>% filter(adult_freq < 200, adult_freq > 20), aes(adult_freq)) +
+  geom_histogram()
 
 adult_types <- full_turk_counts %>%
   distinct(adj, noun, adj_stem, noun_stem, mean_typ) %>%
