@@ -1,0 +1,75 @@
+---
+title: "UD Pipe"
+author: "Dan Yurovsky"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+  highlight: tango
+theme: sandstone
+code_folding: show
+toc: false
+toc_float: false
+---
+
+```{r libraries}
+library(udpipe)
+library(feather)
+library(here)
+library(tidyverse)
+library(glue)
+```
+
+```{r run-udpipe, eval = FALSE}
+run_udpipe <- function(filename) {
+  utterances <- read_csv(here(glue("data/{filename}.txt")),
+                     col_names = FALSE) %>%
+  rename(text = X1) %>%
+  mutate(doc_id = 1:n())
+
+  udmodel <- udpipe_load_model(file = "english-ewt-ud-2.4-190531.udpipe")
+
+  parses <- utterances %>%
+    udpipe(., udmodel, parallel.cores = 4) %>%
+    as_tibble()
+
+  write_feather(parses, here(glue("data/{filename}_parses.feather")))
+}
+
+walk(c("ldp_child", "ldp_parent"), run_udpipe)
+```
+
+```{r get-pairs}
+get_pairs <- function(filename) {
+  
+  parses <- read_feather(here(glue("data/{filename}_parses.feather")))
+
+  adj_parses <- parses %>%
+    group_by(doc_id) %>%
+    filter(any(upos == "ADJ"))
+  
+  adjs <- adj_parses %>%
+    filter(upos == "ADJ") %>%
+    select(doc_id, sentence, token_id, token, head_token_id, lemma, upos) %>%
+    rename(adj_token = token, adj_token_id = token_id, adj_pos = upos,
+           adj_lemma = lemma)
+  
+  nouns_setup <- adj_parses %>%
+    select(doc_id, sentence, token_id, token, lemma, upos)
+  
+  # Note: Cases where adj_token != adj_lemma should be hand-checked
+  pairs <- adjs %>%
+    left_join(nouns_setup, by = c("doc_id", "sentence", 
+                                 "head_token_id"="token_id")) %>%
+    rename(noun_pos = upos, noun_token_id = head_token_id, noun_token = token,
+           noun_lemma = lemma) %>%
+    filter(noun_pos == "NOUN") %>%
+    select(doc_id, adj_token_id, noun_token_id, sentence, adj_token, 
+           noun_token, adj_lemma, noun_lemma) %>%
+    mutate_at(vars(adj_token_id, noun_token_id), as.numeric) %>%
+    mutate(prenominal = adj_token_id == noun_token_id - 1)
+  
+  write_csv(pairs, here(glue("data/{filename}_parsed_pairs.csv")))
+}
+
+walk2(c("ldp_parent", "ldp_child"), get_pairs)
+```
