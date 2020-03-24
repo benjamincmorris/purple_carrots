@@ -13,18 +13,22 @@ toc_float: false
 
 ```{r libraries}
 library(udpipe)
+library(cleanNLP)
+library(reticulate)
 library(feather)
 library(here)
 library(tidyverse)
 library(glue)
+
+use_python("/Users/dan/.pyenv/shims/python")
+cnlp_init_corenlp(lang = "en")
 ```
 
-```{r run-udpipe, eval = FALSE}
+```{r run-udpipe, message = FALSE, eval = FALSE}
 run_udpipe <- function(filename) {
-  utterances <- read_csv(here(glue("data/{filename}.txt")),
-                     col_names = FALSE) %>%
-  rename(text = X1) %>%
-  mutate(doc_id = 1:n())
+  utterances <- read_lines(here(glue("data/{filename}.txt"))) %>%
+    enframe(name = NULL, value = "text") %>%
+    mutate(doc_id = 1:n())
 
   udmodel <- udpipe_load_model(file = "english-ewt-ud-2.4-190531.udpipe")
 
@@ -35,10 +39,10 @@ run_udpipe <- function(filename) {
   write_feather(parses, here(glue("data/{filename}_parses.feather")))
 }
 
-walk(c("ldp_child", "ldp_parent"), run_udpipe)
+walk(c("ldp_child_original", "ldp_parent_original"), run_udpipe)
 ```
 
-```{r get-pairs}
+```{r get-pairs-udpipe}
 get_pairs <- function(filename) {
   
   parses <- read_feather(here(glue("data/{filename}_parses.feather")))
@@ -71,5 +75,67 @@ get_pairs <- function(filename) {
   write_csv(pairs, here(glue("data/{filename}_parsed_pairs.csv")))
 }
 
-walk2(c("ldp_parent", "ldp_child"), get_pairs)
+walk(c("ldp_parent_original", "ldp_child_original"), get_pairs)
 ```
+
+```{r run-corenlp, message = FALSE, eval = FALSE}
+
+run_corenlp <- function(filename) {
+  utterances <- read_lines(here(glue("data/{filename}.txt"))) %>%
+    enframe(name = NULL, value = "text") %>%
+    mutate(doc_id = 1:n())
+
+  parses <- utterances %>%
+    cnlp_annotate(., verbose = 10000) %>%
+    first() %>%
+    left_join(utterances, by = "doc_id")
+
+  write_feather(parses, here(glue("data/{filename}_parses_corenlp.feather")))
+}
+
+walk(c("ldp_child_original", "ldp_parent_original"), run_corenlp)
+```
+
+```{r get-pairs-corenlp}
+get_pairs <- function(filename) {
+  
+  parses <- read_feather(here(glue("data/{filename}_parses_corenlp.feather"))) %>%
+    rename(token_id = tid, head_token_id = tid_source, sentence = text)
+
+  adj_parses <- parses %>%
+    group_by(doc_id) %>%
+    filter(any(upos == "ADJ"))
+  
+  adjs <- adj_parses %>%
+    filter(upos == "ADJ") %>%
+    select(doc_id, sentence, token_id, token, head_token_id, lemma, upos) %>%
+    rename(adj_token = token, adj_token_id = token_id, adj_pos = upos,
+           adj_lemma = lemma)
+  
+  nouns_setup <- adj_parses %>%
+    select(doc_id, sentence, token_id, token, lemma, upos)
+  
+  # Note: Cases where adj_token != adj_lemma should be hand-checked
+  pairs <- adjs %>%
+    left_join(nouns_setup, by = c("doc_id", "sentence", 
+                                 "head_token_id"="token_id")) %>%
+    rename(noun_pos = upos, noun_token_id = head_token_id, noun_token = token,
+           noun_lemma = lemma) %>%
+    filter(noun_pos == "NOUN") %>%
+    select(doc_id, adj_token_id, noun_token_id, sentence, adj_token, 
+           noun_token, adj_lemma, noun_lemma) %>%
+    mutate_at(vars(adj_token_id, noun_token_id), as.numeric) %>%
+    mutate(prenominal = adj_token_id == noun_token_id - 1)
+  
+  write_csv(pairs, here(glue("data/{filename}_parsed_pairs_corenlp.csv")))
+}
+
+walk(c("ldp_parent_original", "ldp_child_original"), get_pairs)
+```
+
+```{r}
+pairs <- read_csv(here("data/ldp_parent_original_parsed_pairs.csv"))
+
+View(pairs)
+```
+
