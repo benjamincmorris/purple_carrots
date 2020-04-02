@@ -1,0 +1,117 @@
+---
+title: "purple_carrots_parser_interrater"
+author: "ben morris"
+date: "4/2/2020"
+output: html_document
+---
+
+```{r, warning = F}
+knitr::opts_chunk$set(echo = F, warning = F, message = F, fig.align='center')
+
+library(tidyverse)
+library(knitr)
+library(here)
+library(stringr)
+```
+
+
+```{r, warning = FALSE}
+BM <- read_csv("data/utts_modifier_coding_for_parser/test_parser_utts_BM.csv") %>%
+  mutate(ben_says = 1) %>%
+  rename(ben_prenominal = prenominal)
+CB <- read_csv("data/utts_modifier_coding_for_parser/test_parser_utts_CB.csv") %>%
+  mutate(claire_says = 1) %>%
+  rename(claire_prenominal = prenominal)
+```
+
+# Interrater Reliability
+
+### IRR for Coding Modification
+
+- i.e. did the raters identify the same pairs
+
+```{r}
+# adj_noun_agreement
+agreement <- full_join(BM, CB, by=c("p_chat", "adj", "noun")) %>%
+  select(-X5) %>%
+  mutate(ben_says = if_else(is.na(ben_says), 0, ben_says)) %>%
+  mutate(claire_says = if_else(is.na(claire_says), 0, claire_says)) %>%
+  mutate(claire_prenominal = if_else(is.na(claire_prenominal), 0, claire_prenominal)) %>%
+  mutate(modifier_agreement = if_else(ben_says == claire_says, 1, 0)) 
+
+agreement %>%
+  count(modifier_agreement) %>%
+  mutate(prop_agree = n/sum(n)) %>%
+  kable(.)
+```
+
+
+### IRR for coding Prenominal
+
+- % agreement on whether the adj was prenominal
+  - filtered to just the agreed utts
+  - excluded the utterances that were judged to have no modification
+
+```{r}
+prenominal_agreement <- agreement %>%
+  filter(ben_says == claire_says) %>%
+  filter(!is.na(adj)) %>%
+  # we'd coded prenominals slightly differently
+  #   here 3 means NO ADJ
+  mutate(claire_prenominal = if_else(is.na(adj), 3, claire_prenominal)) %>%
+  mutate(ben_prenominal = if_else(is.na(ben_prenominal), 3, ben_prenominal)) %>%
+  mutate(prenominal_agreement = if_else(ben_prenominal == claire_prenominal, 1, 0))
+
+prenominal_agreement %>% 
+  count(prenominal_agreement) %>%
+  mutate(prop_agree_prenominal = n/sum(n)) %>%
+  kable(.)
+```
+
+
+# How many utts (based on ldp coding) *Actually* have modificaton (approx.)?
+```{r}
+agreement %>%
+  count(!is.na(adj)) %>%
+  mutate(prop_real_modified = n/sum(n)) %>%
+  kable(.)
+```
+
+
+
+
+# Testing on old UDPipe Parse
+```{r}
+parent_parser_utts <- read_csv(here("data/ldp_parent_parsed_pairs.csv"))
+child_parser_utts <- read_csv(here("data/ldp_child_parsed_pairs.csv"))
+
+judged_utts <- agreement %>%
+  pull(p_chat)
+
+parser_utts <- bind_rows(parent_parser_utts, child_parser_utts) %>%
+  select(sentence, adj_token, noun_token) %>%
+  mutate(parser_says = 1)  
+
+#issue here is that our utts have diff punctuation?
+sum(parser_utts$sentence %in% judged_utts)
+
+judged_utts_no_punc <- 
+  judged_utts %>%
+  gsub('[[:punct:] ]+',' ', .)
+
+parser_utts %>%
+  # rowwise() %>%
+  # gsub('[[:punct:] ]+',' ', sentence) %>%
+  rowwise() %>%
+  # filter(sentence %in% judged_utts_no_punc)
+  filter(str_detect(sentence, "you're going to make your own rules"))
+
+
+
+
+
+all_judgments <- agreement %>%
+  full_join(parser_utts, by = c("p_chat" = "sentence", "adj" = "adj_token", "noun" = "noun_token"))
+```
+
+
