@@ -36,7 +36,7 @@
 \usepackage{apacite}
 
 % KM added 1/4/18 to allow control of blind submission
-
+\cogscifinalcopy
 
 \usepackage{color}
 
@@ -55,7 +55,22 @@
 \title{Children hear more about what is atypical than what is typical}
 
 
-\author{{\large \bf Morton Ann Gernsbacher (MAG@Macc.Wisc.Edu)} \\ Department of Psychology, 1202 W. Johnson Street \\ Madison, WI 53706 USA \AND {\large \bf Sharon J.~Derry (SDJ@Macc.Wisc.Edu)} \\ Department of Educational Psychology, 1025 W. Johnson Street \\ Madison, WI 53706 USA}
+\author{Benjamin C. Morris \\
+      \texttt{benmorris@uchicago.edu} \\
+     Department of Psychology \\ University of Chicago
+\And \textbf{Claire Bergey} \\
+     \texttt{cbergey@uchicago.edu} \\
+     Department of Psychology \\ University of Chicago
+\And Daniel Yurovsky \\
+     \texttt{yurovsky@cmu.edu} \\
+     Department of Psychology \\ Carnegie Mellon University \\ University of Chicago}
+
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newenvironment{cslreferences}%
+  {\setlength{\parindent}{0pt}%
+  \everypar{\setlength{\hangindent}{\cslhangindent}}\ignorespaces}%
+  {\par}
 
 \begin{document}
 
@@ -300,9 +315,9 @@ features that are atypical (Figure \ref{fig:distribution_plot}).
 \end{figure}
 \end{CodeChunk}
 
-To confirm this effect statistically, we centered the ratings (i.e.
-``about half'' was coded as 0), and then predicted the rating on each
-trial with a mixed effect model with only an intercept and a random
+To confirm this effect statistically, we centered the ratings
+(i.e.~``about half'' was coded as 0), and then predicted the rating on
+each trial with a mixed effect model with only an intercept and a random
 effect of noun (\texttt{typicality $\sim$ 1 + (1|noun)}). The intercept
 was reliably negative, indicating that adjectives tend to refer to
 atypical features of objects (\(\beta =\) -0.77, \(t =\) -19.72, \(p\)
@@ -394,9 +409,11 @@ It should be noted that children's utterances come from naturalistic
 conversations with caregivers, and their use of atypical description may
 be prompted by parent-led discourse. That is, if a caregiver chooses to
 describe the \emph{purpleness} of a cat in book, the child may well
-respond by asking about that same feature. Future analyses would need to
-better disentangle the extent to which children's productions are
-imitative of caregivers.
+respond by asking about that same feature. Further, atypical descriptors
+may actually be more likley to elicit imitation from child speakers,
+compared with typical descriptors (Bannard, Rosner, \& Matthews, 2017).
+Future analyses would need to better disentangle the extent to which
+children's productions are imitative of caregivers.
 
 Interestingly, the descriptions children hear change over development,
 becoming increasingly focused on atypical features. The higher
@@ -434,34 +451,45 @@ capture typical feature information.
 \hypertarget{method}{%
 \subsection{Method}\label{method}}
 
-To test this possibility, we trained word2vec, a model that predicts
-words using their contexts, on the same corpus of child-directed speech
-used in our first set of analyses. Our model is a
-continuous-bag-of-words word2vec model trained using the package gensim
-(Řehůřek \& Sojka, 2010). If the model captures information about the
-typical features of objects, we should see that the model's word pair
-similarities are correlated with the typicality ratings we elicited from
-human raters. For a second comparison, we also used an off-the-shelf
-implementation of word2vec trained on Wikipedia (Mikolov, Grave,
-Bojanowski, Puhrsch, \& Joulin, 2018). While the Language Development
-Project corpus likely underestimates the amount of structure in
-children's linguistic input, Wikipedia likely overestimates it.
+To test this possibility, we trained word2vec--a distributional
+semantics model--on the same corpus of child-directed speech used in our
+first set of analyses. Word2vec is a neural network model that learns to
+predict words from the contexts in which they appear. This leads
+word2vec to learn representations in which words that appear in similar
+contexts become similar to each-other (Firth, 1957).
+
+We used the continuous-bag-of-words (CBOW) implementation of word2vec in
+the \texttt{gensim} package (Řehůřek \& Sojka, 2010). We trained the
+model using a surrounding context of 5 words on either side of the
+target word and 100 dimensions (weights in the hidden layer) to
+represent each word. After training, we extracted the hidden layer
+representation of each word in the model's vocabulary--these are the
+vectors used to represent these words.
+
+If the model captures information about the typical features of objects,
+we should see that the model's noun-adjective word pair similarities are
+correlated with the typicality ratings we elicited from human raters.
+For a second comparison, we also used an off-the-shelf implementation of
+word2vec trained on Wikipedia (Mikolov, Grave, Bojanowski, Puhrsch, \&
+Joulin, 2018). While the Language Development Project corpus likely
+underestimates the amount of structure in children's linguistic input,
+Wikipedia likely overestimates it.
 
 \hypertarget{results-1}{%
 \subsection{Results}\label{results-1}}
 
 We find that similarities in the model trained on the Language
 Development Project corpus have near zero correlation with human
-adjective--noun typicality ratings (\(r =\) 0.03, \(p =\) .208). Our
-model does capture meaningful information about the structure of
-language, showing higher correlations with large sets of human
-similarity judgments between word pairs within part of speech categories
-(correlation with wordsim353 similarities of noun pairs, 0.28;
-correlation with simlex similarities of noun, adjective, and verb pairs,
-0.16). This suggests that statistical patterns in child-directed speech
-are likely insufficient to encode information about the typical features
-of objects, despite encoding at least some information about word
-meaning more broadly.
+adjective--noun typicality ratings (\(r =\) 0.03, \(p =\) .208).
+However, our model does capture other meaningful information about the
+structure of language, such as similarity. Comparing with pre-existing
+large-scale human similarity judgements for word pairs, our model shows
+signficant correlations (correlation with wordsim353 similarities of
+noun pairs, 0.28; correlation with simlex similarities of noun,
+adjective, and verb pairs, 0.16). This suggests that statistical
+patterns in child-directed speech are likely insufficient to encode
+information about the typical features of objects, despite encoding at
+least some information about word meaning more broadly.
 
 However, the corpus on which we trained this model was small; perhaps
 our model did not get enough language to draw out the patterns that
@@ -558,13 +586,26 @@ learned about by direct experience. If such concepts pattern similarly
 to the concrete objects analyzed here, children are in a particularly
 difficult bind.
 
+While our work captures the usage statistics of naturalistic language,
+it is possible that other, uncaptured cues from language and interaction
+simplify this learning problem. For example, certain syntactic
+constructions may actually highlight the typicality of a feature, such
+as generics (e.g., ``tomatoes are red''). Caregivers may also be marking
+the atypicality of a feature, for example demonstrating surprise. Cues
+from language and the interaction may provide key information in some
+cases; however, given the sheer frequency of atypical descriptors, it
+seems unlikely that they are consistently well-marked.
+
 Another possibility is that children expect language to be used
 informatively at a young age. Under this hypothesis, their language
-environment is not misleading at all. If young children expect
-adjectives to mark atypical features (Horowitz \& Frank, 2016), they can
-use description and the lack thereof to learn more about the world.
-Indeed, this idea is consistent with our finding that even young
-children largely choose to describe atypical features. Though this
+environment is not misleading at all. Children as young as two years old
+tend to use words to comment on what is new rather than what is known or
+assumed (Baker \& Greenfield, 1988). Children may therefore expect
+adjectives to comment on surprising features of objects. If young
+children expect adjectives to mark atypical features (Horowitz \& Frank,
+2016), they can use description and the lack thereof to learn more about
+the world. Indeed, this idea is consistent with our finding that even
+young children largely choose to describe atypical features. Though this
 effect can be explained by simpler means such as mimicry, it suggests
 that caregivers and children may be usefully aligned in the aspects of
 the world they choose to talk about.
@@ -582,6 +623,14 @@ language children hear, and future work must disentangle whether
 children capitalize on them or are misled by them in learning about the
 world.
 
+\vspace{1em} \fbox{\parbox[b][][c]{7.3cm}{\centering Stimuli, data, and analysis code available at\ \url{https://osf.io/ypdzv/}}}
+
+\hypertarget{acknowledgements}{%
+\section{Acknowledgements}\label{acknowledgements}}
+
+This research was funded by a James S. McDonnell Foundation Scholar
+Award to DY.
+
 \hypertarget{references}{%
 \section{References}\label{references}}
 
@@ -591,10 +640,22 @@ world.
 \noindent
 
 \hypertarget{refs}{}
+\begin{cslreferences}
 \leavevmode\hypertarget{ref-baillargeon1994}{}%
 Baillargeon, R. (1994). How do infants learn about the physical world?
 \emph{Current Directions in Psychological Science}, \emph{3}(5),
 133--140.
+
+\leavevmode\hypertarget{ref-baker1988}{}%
+Baker, N. D., \& Greenfield, P. M. (1988). The development of new and
+old information in young children's early language. \emph{Language
+Sciences}, \emph{10}(1), 3--34.
+
+\leavevmode\hypertarget{ref-bannard2017}{}%
+Bannard, C., Rosner, M., \& Matthews, D. (2017). What's worth talking
+about? Information theory reveals how children balance informativeness
+and ease of production. \emph{Psychological Science}, \emph{28}(7),
+954--966.
 
 \leavevmode\hypertarget{ref-bedny2019}{}%
 Bedny, M., Koster-Hale, J., Elli, G., Yazzolino, L., \& Saxe, R. (2019).
@@ -610,6 +671,10 @@ ratings for 40 thousand generally known english word lemmas.
 \leavevmode\hypertarget{ref-davies2008}{}%
 Davies, M. (2008). The corpus of contemporary american english (coca):
 520 million words, 1990-present.
+
+\leavevmode\hypertarget{ref-firth1957}{}%
+Firth, J. R. (1957). A synopsis of linguistic theory, 1930-1955.
+\emph{Studies in Linguistic Analysis}.
 
 \leavevmode\hypertarget{ref-goldin-meadow2014}{}%
 Goldin-Meadow, S., Levine, S. C., Hedges, L. V., Huttenlocher, J.,
@@ -710,6 +775,7 @@ typicality. \emph{Frontiers in Psychology}, \emph{6}.
 Willits, J. A., Sussman, R. S., \& Amato, M. S. (2008). Event knowledge
 vs. Verb knowledge. In \emph{Proceedings of the 30th annual conference
 of the cognitive science society} (pp. 2227--2232).
+\end{cslreferences}
 
 \bibliographystyle{apacite}
 
