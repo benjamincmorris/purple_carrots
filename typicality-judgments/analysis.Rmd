@@ -1,0 +1,76 @@
+---
+title: "pilotanalysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+library(ggthemes)
+library(janitor)
+library(tidyboot)
+```
+
+```{r analysis}
+
+raw_data <- read_csv(here("data/info.csv")) %>%
+  rename(subid = origin_id)
+
+subj_check <- raw_data %>%
+  select(subid, property2, contents) %>%
+  filter(!is.na(property2)) %>%
+  filter(property2 == "attentioncheck") %>%
+  mutate(attncheckscore = ifelse(contents == 5, 1, 0)) %>%
+  select(subid, attncheckscore) %>%
+  distinct()
+
+data <- raw_data %>%
+  select(id, subid, property1, property2, contents, network_id) %>%
+  filter(!is.na(property1)) %>%
+  left_join(subj_check) %>%
+  filter(attncheckscore == 1) %>%
+  mutate(contents = as.numeric(contents))
+
+
+data %>%
+  group_by(subid) %>%
+  summarise(sd = sd(contents)) %>%
+  pull(sd) %>%
+  hist()
+
+ggplot(data, aes(x = network_id)) +
+  geom_histogram(bins = 111)
+
+ggplot(data, aes(x = contents)) +
+  geom_histogram(bins = 7)
+
+interrater <- data %>%
+  unite(stim, property1, property2) %>%
+  group_by(stim) %>%
+  summarise(n = n()) %>%
+  filter(n > 1)
+
+wide_data <- data %>%
+  unite(stim, property1, property2) %>%
+  select(-subid, -id) %>%
+  filter(stim %in% interrater$stim) %>%
+  group_by(stim) %>%
+  mutate(response = 1:n()) %>%
+  spread(response, contents) %>%
+  clean_names() %>%
+  rowwise() %>%
+  mutate(range = max(x1, x2) - min(x1, x2))
+
+wide_data %>%
+  arrange(desc(range)) %>%
+  separate(stim, into = c("adjective", "noun")) 
+
+ggplot(wide_data, aes(x = x1, y = x2)) + 
+  geom_jitter()
+
+cor.test(wide_data$x1, wide_data$x2)
+```
+
+

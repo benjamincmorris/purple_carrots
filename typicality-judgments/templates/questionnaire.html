@@ -1,0 +1,38 @@
+{% extends "base/questionnaire.html" %}
+
+{% block questions %}
+    <!-- additional custom questions -->
+    <div class="row question">
+        <div class="col-md-8">
+            On a scale of 1-10 (where 10 is the most clear), please rate how clear and straightforward this task was:
+        </div>
+        <div class="col-md-4">
+            <select id="clarity" name="clarity">
+                <option value="10">10 - Very clear</option>
+                <option value="9">9</option>
+                <option value="8">8</option>
+                <option value="7">7</option>
+                <option value="6">6</option>
+                <option value="5" SELECTED>5 - Moderately clear</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1 - Not at all clear</option>
+            </select>
+        </div>
+    </div>
+    <p>Any further comments on or suggestions for this experiment? <p>
+            <input id="comments" name = "comments" class="form-control" rows="10"></input>
+    <p></p>
+{% endblock %}
+
+{% block scripts %}
+  <script type="text/javascript">
+    $(document).ready(function () {
+      $("#submit-questionnaire").click(function() {
+
+        dallinger.submitQuestionnaire();
+      });
+    });
+  </script>
+{% endblock %}
