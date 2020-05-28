@@ -48,6 +48,7 @@ tic()
 utts <- get_table(ldp, "utterances") %>%
   collect()
 toc()
+library(beep)
 beep()
 
 utts_clean <- utts %>%
@@ -177,7 +178,8 @@ adj_noun_pairs_target_full %>% filter(n==1) %>%
 concrete_concepts <- read.csv("data/concreteness.csv") %>%
   mutate(stem= wordStem(Word)) %>%
   # filter(stem %in% target_nouns) %>%
-  select(Word, stem, Conc.M, Conc.SD)
+  select(Word, stem, Conc.M, Conc.SD) %>%
+  mutate(conc_rank = ntile(Conc.M,4))
 
 #get sense of concretness range across all 40,000 items
 hist(concrete_concepts$Conc.M)
@@ -205,6 +207,49 @@ adj_noun_concrete %>%
   count(noun)  %>%
   arrange(desc(n)) 
 
+adj_noun_concrete %>% 
+  count(adj, noun) %>%
+  arrange(desc(n))
+
+
+```
+
+#check thresholds
+```{r}
+looser_concrete <- concrete_concepts %>%
+  mutate(conc_rank = ntile(Conc.M,10)) %>%
+  arrange(desc(Conc.M)) %>%
+  filter(conc_rank >= 7)
+
+#filter different levels for adj and noun
+adj_noun_concrete_half <- adj_noun_utts %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% looser_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+  distinct()
+
+loose_adj <- adj_noun_concrete_half %>% 
+  count(adj) %>%
+  arrange(desc(n)) %>% pull(adj)
+
+orig_adj <- adj_noun_concrete %>% 
+  count(adj) %>%
+  arrange(desc(n)) %>% pull(adj)
+
+loose_adj[! loose_adj %in% orig_adj]
+
+
+orig_pairs <- adj_noun_concrete %>% 
+  count(adj, noun) %>%
+  arrange(desc(n))
+
+loose_pairs <- adj_noun_concrete_half %>% 
+  count(adj, noun) %>%
+  arrange(desc(n))
+
+loose_pairs %>%
+  anti_join(orig_pairs)
 
 ```
 
