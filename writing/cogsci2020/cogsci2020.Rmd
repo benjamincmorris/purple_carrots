@@ -19,7 +19,9 @@ author-information: >
         Department of Psychology \\ Carnegie Mellon University \\ University of Chicago}
 
 abstract: >
-  How do children learn the typical features of objects in the world? For many objects, this information must come from the language they hear. However, language does not veridically reflect the world: People are more likely to talk about atypical features (e.g., "purple carrot") than typical features (e.g., "orange carrot"). Does the speech that children hear from their parents also overrepresent atypical features? We examined the typicality of adjectives produced by parents in a large, longitudinal corpus of parent-child interaction. Across nearly 2000 unique adjective–noun pairs, we found that parents highlight atypical features of objects, but also that they are more likely to describe the typical features of objects when their children are younger. We also found that vector space models trained on linguistic input recovered very little of this typicality information. These results suggest that young children may either have warped estimates of the typical features of categories they learn about through language or use other information to acquire an adult-like understanding of typicality.
+  How do children learn the typical features of objects in the world? For many objects, this information must come from the language they hear. However, language does not veridically reflect the world: People are more likely to talk about atypical features (e.g., “purple carrot”) than typical features (e.g., “orange carrot”). Does the speech children hear from their parents also overrepresent atypical features? We examined the typicality of adjectives produced by parents in a large, longitudinal corpus of parent-child interaction. Across nearly 2000 unique adjective–noun pairs, we found parents’ adjectives predominantly mark atypical features of objects, although parents of very young children are relatively more likely to comment on typical features as well. We then used vector space models to show that learning the typical features of common categories from linguistic input alone is challenging even with sophisticated statistical inference techniques.
+  
+  <!-- typicality information is not readily available even -->
 
 keywords: >
     language input, language acquisition, child-directed speech, corpus analysis, word2vec
@@ -297,7 +299,7 @@ To confirm this effect statistically, we centered the ratings (i.e. "about half"
 <!-- Examining usage data as a function of typicality (see Figure \ref{fig:distribution_plot}), we see evidence of a positive skew (0.65). Data from every time point from 14-58 months seems to show a similar pattern (skews 0.23 - 0.82). These skews provide further evidence that the the bulk of caregiver language reflects lower-typicality adjective-noun pairs. -->
 
 For comparison, we performed the same analyses but with typicality judgments weighted not by the frequency of each adjective-noun pair's occurrence in the Language Development Project, but instead by their frequency of occurrence in the Corpus of Contemporary American English [COCA; @davies2008]. While this estimate of adult usage is imperfect—the adjective-nouns pairs produced by parents in our corpus may not be a representative sample of adjectives and nouns spoken by the adults in COCA—it provides a first approximation to adult usage. When we fit the same mixed-effects model to the data, we found that the intercept was reliably negative, indicating that adult-to-adult speech is likely also biased toward description of atypical features ($\beta =$ `r coca_token_estimate`, 
-$t =$ `r coca_token_statistic`, $p$ `r coca_token_p`)
+$t =$ `r coca_token_statistic`, $p$ `r coca_token_p`).
 
 ```{r compute_prototypicals}
 prototypical_ratings <- type_data_by_session %>%
