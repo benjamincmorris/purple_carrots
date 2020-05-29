@@ -75,7 +75,7 @@ tab <- tibble(utterance = c("especially with wooden shoes.",
               `rating 2` = c(2, 5, 7),
               `rating 3` = c(3, 3, 5),
               `rating 4` = c(2, 4, 7),
-              `mean typicality` = c(2.75, 3.75, 6.5)) %>% 
+              `mean typicality` = c(2.25, 3.75, 6.5)) %>% 
   xtable(display = c("s", "s", "s", "d", "d", "d", "d", "f"),
          caption = "Sample typicality ratings from 4 human coders for three adjective-noun pairs drawn from the corpus.",
          label = "tab:utt_table")
@@ -268,7 +268,7 @@ kid_token_p <- mean_kid_token %>% filter(term == "(Intercept)") %>%
 
 The human typicality ratings were combined with usage data from our corpus analysis to let us determine the extent to which parents use language to describe typical and atypical features. In our analyses, we token-weighted these judgments, giving higher weight to pairs that occurred more frequently in children's inputs. However, results are qualitatively identical and all significant effects remain significant without these re-weightings.
 
-If caregivers speak informatively to convey what is atypical or surprising in relation to their own sophisticated world knowledge, we should see that caregiver description is dominated by modifiers that are sometimes or rarely true of the noun they modify. If instead child-directed speech privileges redundant information, perhaps to align to young children's limited world knowledge, caregiver description should yield a distinct distribution dominated by highly typical modifiers. We find that parents' description predominantly focuses on features that are atypical (Figure \ref{fig:distribution_plot}).
+If caregivers speak informatively to convey what is atypical or surprising in relation to their own sophisticated world knowledge, we should see that caregiver description is dominated by modifiers that are sometimes or rarely true of the noun they modify. If instead child-directed speech privileges redundant information, perhaps to align to young children's limited world knowledge, caregiver description should yield a distinct distribution dominated by highly typical modifiers. As predicted in our pre-registration, we find that parents' description predominantly focuses on features that are atypical (Figure \ref{fig:distribution_plot}).
 
 ```{r distribution_plot, fig.height = 5.5, fig.width=3.4, fig.align = "center", num.cols.cap=1, fig.cap = "Density plots showing usage at each timepoint based on the typicality of the adjective-noun pair.", fig.pos="tb"}
 
@@ -342,7 +342,7 @@ typical_p <- typical_token_lmer %>% filter(term == "log(age)") %>%
 ```
 
 
-Returning to caregiver speech, while descriptions at every age tended to point out atypical features (as in adult-to-adult speech), this effect changed in strength over development. An age effect added to the previous model was reliably negative, indicating that parents of older children are relatively more likely to focus on atypical features  ($\beta =$ `r token_development_estimate`, $t =$ `r token_development_statistic`, $p =$ `r token_development_p`). In line with the idea that caregivers adapt their speech to their children's knowledge, it seems that caregivers are more likely to provide description of typical features for their young children, compared with older children. As a second test of this idea, we defined adjectives as highly typical if Turkers judged them to be 'often', 'almost always', or 'always' true. We predicted whether each judgment was highly typical from a mixed-effects logistic regression with a fixed effect of age (log-scaled) and a random effect of noun. Age was a highly reliable predictor ($\beta =$ `r typical_effect`, 
+Returning to caregiver speech, while descriptions at every age tended to point out atypical features (as in adult-to-adult speech), this effect changed in strength over development. As predicted, an age effect added to the previous model was reliably negative, indicating that parents of older children are relatively more likely to focus on atypical features  ($\beta =$ `r token_development_estimate`, $t =$ `r token_development_statistic`, $p =$ `r token_development_p`). In line with the idea that caregivers adapt their speech to their children's knowledge, it seems that caregivers are more likely to provide description of typical features for their young children, compared with older children. As a second test of this idea, we defined adjectives as highly typical if Turkers judged them to be 'often', 'almost always', or 'always' true. We predicted whether each judgment was highly typical from a mixed-effects logistic regression with a fixed effect of age (log-scaled) and a random effect of noun. Age was a highly reliable predictor ($\beta =$ `r typical_effect`, 
 $t =$ `r typical_statistic`, $p =$ `r typical_p`). While children at all ages hear more talk about what is atypically true (Figure  \ref{fig:distribution_plot}), younger children hear relatively more talk about what is typically true than older children do (Figure \ref{fig:prototypical_plot}).
 
 ```{r prototypical_plot, fig.width=3.6, fig.align = "center", num.cols.cap=1, fig.cap = "Proportion of caregiver description that is about typically-true features, as a function of age."}
