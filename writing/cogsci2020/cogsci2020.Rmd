@@ -97,7 +97,7 @@ We examine the typicality of adjectives in a large, diverse corpus of parent-chi
 
 # Adjective typicality
 
-In order to determine whether parents use adjectives mostly to mark atypical features of categories, we analyzed caregiver speech from a large corpus of parent-child interactions. We extracted a subset of adjective-noun combinations that co-occurred, and asked a sample of Amazon Mechanical Turkers to judge how typical the property described by each adjective was for the noun it modified. We then examined both the broad features of this typicality distribution and the way it changes over development.
+In order to determine whether parents use adjectives mostly to mark atypical features of categories, we analyzed caregiver speech from a large corpus of parent-child interactions. We extracted a subset of adjective-noun combinations that co-occurred, and asked a sample of Amazon Mechanical Turkers to judge how typical the property described by each adjective was for the noun it modified. We then examined both the broad features of this typicality distribution and the way it changes over development. Our theoretical hypotheses, statistical models, sample size, and exclusion criteria were pre-registered on the Open Science Framework (\url{https://osf.io/ypdzv/}).
 
 ## Corpus
 

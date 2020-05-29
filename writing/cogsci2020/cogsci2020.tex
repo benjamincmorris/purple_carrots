@@ -65,6 +65,13 @@
      \texttt{yurovsky@cmu.edu} \\
      Department of Psychology \\ Carnegie Mellon University \\ University of Chicago}
 
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newenvironment{cslreferences}%
+  {\setlength{\parindent}{0pt}%
+  \everypar{\setlength{\hangindent}{\cslhangindent}}\ignorespaces}%
+  {\par}
+
 \begin{document}
 
 \maketitle
@@ -83,8 +90,7 @@ mark atypical features of objects, although parents of very young
 children are relatively more likely to comment on typical features as
 well. We then used vector space models to show that learning the typical
 features of common categories from linguistic input alone is challenging
-even with sophisticated statistical inference techniques. typicality
-information is not readily available even
+even with sophisticated statistical inference techniques.
 
 \textbf{Keywords:}
 language input, language acquisition, child-directed speech, corpus
@@ -199,7 +205,9 @@ adjective-noun combinations that co-occurred, and asked a sample of
 Amazon Mechanical Turkers to judge how typical the property described by
 each adjective was for the noun it modified. We then examined both the
 broad features of this typicality distribution and the way it changes
-over development.
+over development. Our theoretical hypotheses, statistical models, sample
+size, and exclusion criteria were pre-registered on the Open Science
+Framework (\url{https://osf.io/ypdzv/}).
 
 \hypertarget{corpus}{%
 \subsection{Corpus}\label{corpus}}
@@ -307,9 +315,9 @@ features that are atypical (Figure \ref{fig:distribution_plot}).
 \end{figure}
 \end{CodeChunk}
 
-To confirm this effect statistically, we centered the ratings (i.e.
-``about half'' was coded as 0), and then predicted the rating on each
-trial with a mixed effect model with only an intercept and a random
+To confirm this effect statistically, we centered the ratings
+(i.e.~``about half'' was coded as 0), and then predicted the rating on
+each trial with a mixed effect model with only an intercept and a random
 effect of noun (\texttt{typicality $\sim$ 1 + (1|noun)}). The intercept
 was reliably negative, indicating that adjectives tend to refer to
 atypical features of objects (\(\beta =\) -0.77, \(t =\) -19.72, \(p\)
@@ -331,7 +339,7 @@ adults in COCA---it provides a first approximation to adult usage. When
 we fit the same mixed-effects model to the data, we found that the
 intercept was reliably negative, indicating that adult-to-adult speech
 is likely also biased toward description of atypical features
-(\(\beta =\) -0.3, \(t =\) -19.72, \(p\) \textless{} .001)
+(\(\beta =\) -0.3, \(t =\) -19.72, \(p\) \textless{} .001).
 
 Returning to caregiver speech, while descriptions at every age tended to
 point out atypical features (as in adult-to-adult speech), this effect
@@ -634,6 +642,7 @@ Award to DY.
 \noindent
 
 \hypertarget{refs}{}
+\begin{cslreferences}
 \leavevmode\hypertarget{ref-baillargeon1994}{}%
 Baillargeon, R. (1994). How do infants learn about the physical world?
 \emph{Current Directions in Psychological Science}, \emph{3}(5),
@@ -768,6 +777,7 @@ typicality. \emph{Frontiers in Psychology}, \emph{6}.
 Willits, J. A., Sussman, R. S., \& Amato, M. S. (2008). Event knowledge
 vs. Verb knowledge. In \emph{Proceedings of the 30th annual conference
 of the cognitive science society} (pp. 2227--2232).
+\end{cslreferences}
 
 \bibliographystyle{apacite}
 
