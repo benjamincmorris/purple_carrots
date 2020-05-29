@@ -65,13 +65,6 @@
      \texttt{yurovsky@cmu.edu} \\
      Department of Psychology \\ Carnegie Mellon University \\ University of Chicago}
 
-\newlength{\cslhangindent}
-\setlength{\cslhangindent}{1.5em}
-\newenvironment{cslreferences}%
-  {\setlength{\parindent}{0pt}%
-  \everypar{\setlength{\hangindent}{\cslhangindent}}\ignorespaces}%
-  {\par}
-
 \begin{document}
 
 \maketitle
@@ -81,18 +74,17 @@ How do children learn the typical features of objects in the world? For
 many objects, this information must come from the language they hear.
 However, language does not veridically reflect the world: People are
 more likely to talk about atypical features (e.g., ``purple carrot'')
-than typical features (e.g., ``orange carrot''). Does the speech that
+than typical features (e.g., ``orange carrot''). Does the speech
 children hear from their parents also overrepresent atypical features?
 We examined the typicality of adjectives produced by parents in a large,
 longitudinal corpus of parent-child interaction. Across nearly 2000
-unique adjective--noun pairs, we found that parents highlight atypical
-features of objects, but also that they are more likely to describe the
-typical features of objects when their children are younger. We also
-found that vector space models trained on linguistic input recovered
-very little of this typicality information. These results suggest that
-young children may either have warped estimates of the typical features
-of categories they learn about through language or use other information
-to acquire an adult-like understanding of typicality.
+unique adjective--noun pairs, we found parents' adjectives predominantly
+mark atypical features of objects, although parents of very young
+children are relatively more likely to comment on typical features as
+well. We then used vector space models to show that learning the typical
+features of common categories from linguistic input alone is challenging
+even with sophisticated statistical inference techniques. typicality
+information is not readily available even
 
 \textbf{Keywords:}
 language input, language acquisition, child-directed speech, corpus
@@ -315,9 +307,9 @@ features that are atypical (Figure \ref{fig:distribution_plot}).
 \end{figure}
 \end{CodeChunk}
 
-To confirm this effect statistically, we centered the ratings
-(i.e.~``about half'' was coded as 0), and then predicted the rating on
-each trial with a mixed effect model with only an intercept and a random
+To confirm this effect statistically, we centered the ratings (i.e.
+``about half'' was coded as 0), and then predicted the rating on each
+trial with a mixed effect model with only an intercept and a random
 effect of noun (\texttt{typicality $\sim$ 1 + (1|noun)}). The intercept
 was reliably negative, indicating that adjectives tend to refer to
 atypical features of objects (\(\beta =\) -0.77, \(t =\) -19.72, \(p\)
@@ -410,7 +402,7 @@ conversations with caregivers, and their use of atypical description may
 be prompted by parent-led discourse. That is, if a caregiver chooses to
 describe the \emph{purpleness} of a cat in book, the child may well
 respond by asking about that same feature. Further, atypical descriptors
-may actually be more likley to elicit imitation from child speakers,
+may actually be more likely to elicit imitation from child speakers,
 compared with typical descriptors (Bannard, Rosner, \& Matthews, 2017).
 Future analyses would need to better disentangle the extent to which
 children's productions are imitative of caregivers.
@@ -484,7 +476,7 @@ adjective--noun typicality ratings (\(r =\) 0.03, \(p =\) .208).
 However, our model does capture other meaningful information about the
 structure of language, such as similarity. Comparing with pre-existing
 large-scale human similarity judgements for word pairs, our model shows
-signficant correlations (correlation with wordsim353 similarities of
+significant correlations (correlation with wordsim353 similarities of
 noun pairs, 0.28; correlation with simlex similarities of noun,
 adjective, and verb pairs, 0.16). This suggests that statistical
 patterns in child-directed speech are likely insufficient to encode
@@ -586,16 +578,6 @@ learned about by direct experience. If such concepts pattern similarly
 to the concrete objects analyzed here, children are in a particularly
 difficult bind.
 
-While our work captures the usage statistics of naturalistic language,
-it is possible that other, uncaptured cues from language and interaction
-simplify this learning problem. For example, certain syntactic
-constructions may actually highlight the typicality of a feature, such
-as generics (e.g., ``tomatoes are red''). Caregivers may also be marking
-the atypicality of a feature, for example demonstrating surprise. Cues
-from language and the interaction may provide key information in some
-cases; however, given the sheer frequency of atypical descriptors, it
-seems unlikely that they are consistently well-marked.
-
 It is also possible that other cues from language and interaction
 provide young learners with clues to what is typical or atypical, and
 these cues are uncaptured by our measure of usage statistics. Caregivers
@@ -652,7 +634,6 @@ Award to DY.
 \noindent
 
 \hypertarget{refs}{}
-\begin{cslreferences}
 \leavevmode\hypertarget{ref-baillargeon1994}{}%
 Baillargeon, R. (1994). How do infants learn about the physical world?
 \emph{Current Directions in Psychological Science}, \emph{3}(5),
@@ -787,7 +768,6 @@ typicality. \emph{Frontiers in Psychology}, \emph{6}.
 Willits, J. A., Sussman, R. S., \& Amato, M. S. (2008). Event knowledge
 vs. Verb knowledge. In \emph{Proceedings of the 30th annual conference
 of the cognitive science society} (pp. 2227--2232).
-\end{cslreferences}
 
 \bibliographystyle{apacite}
 
