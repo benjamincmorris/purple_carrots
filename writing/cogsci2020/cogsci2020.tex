@@ -65,13 +65,6 @@
      \texttt{yurovsky@cmu.edu} \\
      Department of Psychology \\ Carnegie Mellon University \\ University of Chicago}
 
-\newlength{\cslhangindent}
-\setlength{\cslhangindent}{1.5em}
-\newenvironment{cslreferences}%
-  {\setlength{\parindent}{0pt}%
-  \everypar{\setlength{\hangindent}{\cslhangindent}}\ignorespaces}%
-  {\par}
-
 \begin{document}
 
 \maketitle
@@ -301,8 +294,9 @@ sometimes or rarely true of the noun they modify. If instead
 child-directed speech privileges redundant information, perhaps to align
 to young children's limited world knowledge, caregiver description
 should yield a distinct distribution dominated by highly typical
-modifiers. We find that parents' description predominantly focuses on
-features that are atypical (Figure \ref{fig:distribution_plot}).
+modifiers. As predicted in our pre-registration, we find that parents'
+description predominantly focuses on features that are atypical (Figure
+\ref{fig:distribution_plot}).
 
 \begin{CodeChunk}
 \begin{figure}[tb]
@@ -315,9 +309,9 @@ features that are atypical (Figure \ref{fig:distribution_plot}).
 \end{figure}
 \end{CodeChunk}
 
-To confirm this effect statistically, we centered the ratings
-(i.e.~``about half'' was coded as 0), and then predicted the rating on
-each trial with a mixed effect model with only an intercept and a random
+To confirm this effect statistically, we centered the ratings (i.e.
+``about half'' was coded as 0), and then predicted the rating on each
+trial with a mixed effect model with only an intercept and a random
 effect of noun (\texttt{typicality $\sim$ 1 + (1|noun)}). The intercept
 was reliably negative, indicating that adjectives tend to refer to
 atypical features of objects (\(\beta =\) -0.77, \(t =\) -19.72, \(p\)
@@ -343,9 +337,9 @@ is likely also biased toward description of atypical features
 
 Returning to caregiver speech, while descriptions at every age tended to
 point out atypical features (as in adult-to-adult speech), this effect
-changed in strength over development. An age effect added to the
-previous model was reliably negative, indicating that parents of older
-children are relatively more likely to focus on atypical features
+changed in strength over development. As predicted, an age effect added
+to the previous model was reliably negative, indicating that parents of
+older children are relatively more likely to focus on atypical features
 (\(\beta =\) -0.11, \(t =\) -3.47, \(p =\) .001). In line with the idea
 that caregivers adapt their speech to their children's knowledge, it
 seems that caregivers are more likely to provide description of typical
@@ -642,7 +636,6 @@ Award to DY.
 \noindent
 
 \hypertarget{refs}{}
-\begin{cslreferences}
 \leavevmode\hypertarget{ref-baillargeon1994}{}%
 Baillargeon, R. (1994). How do infants learn about the physical world?
 \emph{Current Directions in Psychological Science}, \emph{3}(5),
@@ -777,7 +770,6 @@ typicality. \emph{Frontiers in Psychology}, \emph{6}.
 Willits, J. A., Sussman, R. S., \& Amato, M. S. (2008). Event knowledge
 vs. Verb knowledge. In \emph{Proceedings of the 30th annual conference
 of the cognitive science society} (pp. 2227--2232).
-\end{cslreferences}
 
 \bibliographystyle{apacite}
 
