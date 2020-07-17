@@ -12,30 +12,35 @@ toc_float: false
 ---
 
 ```{r libraries}
+#library(cleanNLP)
 library(udpipe)
-library(cleanNLP)
-library(reticulate)
+#library(reticulate)
 library(feather)
 library(here)
 library(tidyverse)
 library(glue)
 
+
 use_python("/Users/dan/.pyenv/shims/python")
-cnlp_init_corenlp(lang = "en")
+
+#cnlp_init_corenlp(lang = "en")
+
+source(here("read_ldp.R"))
 ```
 
 ```{r run-udpipe, message = FALSE, eval = FALSE}
 run_udpipe <- function(filename) {
-  utterances <- read_lines(here(glue("data/{filename}.txt"))) %>%
-    enframe(name = NULL, value = "text") %>%
-    mutate(doc_id = 1:n())
+  utterances <- read_csv(here(glue("data/{filename}.txt"))) %>%
+    rename(doc_id = row, text = utts)
 
   udmodel <- udpipe_load_model(file = "english-ewt-ud-2.4-190531.udpipe")
 
   parses <- utterances %>%
     udpipe(., udmodel, parallel.cores = 4) %>%
-    as_tibble()
-
+    as_tibble() %>%
+    mutate(doc_id = as.numeric(doc_id)) %>%
+    left_join(utterances, by = c("doc_id", "sentence" = "text"))
+  
   write_feather(parses, here(glue("data/{filename}_parses.feather")))
 }
 
@@ -53,21 +58,21 @@ get_pairs <- function(filename) {
   
   adjs <- adj_parses %>%
     filter(upos == "ADJ") %>%
-    select(doc_id, sentence, token_id, token, head_token_id, lemma, upos) %>%
+    select(doc_id, sentence, chat, token_id, token, head_token_id, lemma, upos) %>%
     rename(adj_token = token, adj_token_id = token_id, adj_pos = upos,
            adj_lemma = lemma)
   
   nouns_setup <- adj_parses %>%
-    select(doc_id, sentence, token_id, token, lemma, upos)
+    select(doc_id, sentence, chat, token_id, token, lemma, upos)
   
   # Note: Cases where adj_token != adj_lemma should be hand-checked
   pairs <- adjs %>%
-    left_join(nouns_setup, by = c("doc_id", "sentence", 
+    left_join(nouns_setup, by = c("doc_id", "sentence", "chat",
                                  "head_token_id"="token_id")) %>%
     rename(noun_pos = upos, noun_token_id = head_token_id, noun_token = token,
            noun_lemma = lemma) %>%
     filter(noun_pos == "NOUN") %>%
-    select(doc_id, adj_token_id, noun_token_id, sentence, adj_token, 
+    select(doc_id, adj_token_id, noun_token_id, sentence, chat, adj_token, 
            noun_token, adj_lemma, noun_lemma) %>%
     mutate_at(vars(adj_token_id, noun_token_id), as.numeric) %>%
     mutate(prenominal = adj_token_id == noun_token_id - 1)

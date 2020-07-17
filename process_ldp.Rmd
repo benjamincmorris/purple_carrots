@@ -38,9 +38,9 @@ subs_to_keep <- get_table(ldp, "subjects") %>%
     pull(id)
 
 utts <- get_table(ldp, "utterances") %>%
+  filter(subject %in% subs_to_keep) %>%
   select(time, row, subject, session, p_chat, c_chat, p_utts, c_utts) %>%
   collect() %>%
-  filter(subject %in% subs_to_keep) %>%
   pivot_longer(cols = c(p_chat, c_chat, p_utts, c_utts), names_to = "person", 
                values_to = "output") %>%
   separate(person, into = c("person", "type"), sep = "_") %>%
@@ -51,7 +51,7 @@ utts <- get_table(ldp, "utterances") %>%
 
 ```
 
-```{r, write-files}
+```{r, write-tokenized-files, eval = FALSE}
 write_clean_file <- function(utterances, speaker = "parent") {
   
   utterances %>%
@@ -63,18 +63,17 @@ write_clean_file <- function(utterances, speaker = "parent") {
     pull(utterance) %>%
     write_lines(here(glue("data/ldp_{speaker}.txt")))
 }
+walk(c("parent", "child"), ~write_clean_file(utts, .x))
+```
 
-
+```{r write-files} 
 write_original_file <- function(utterances, speaker = "parent") {
   
   utterances %>%
     filter(person == speaker) %>%
-    select(subject, session, row, utts) %>%
-    pull(utts) %>%
-    write_lines(here(glue("data/ldp_{speaker}_original.txt")))
+    select(row, utts, chat) %>%
+    write_csv(here(glue("data/ldp_{speaker}_original.txt")))
 }
 
-walk(c("parent", "child"), ~write_clean_file(utts, .x))
 walk(c("parent", "child"), ~write_original_file(utts, .x))
-
 ```
