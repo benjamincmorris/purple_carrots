@@ -17,45 +17,103 @@ library(feather)
 library(here)
 library(tidyverse)
 library(glue)
+library(knitr)
 ```
 
 ```{r load-data}
+# compare human adj and noun full combinations
+# udpipe adj and noun full combinations
+# udpipe parsed adj noun combinations
+# call compounds adjectives
+
 # no prenominal
+# check ben against claire
 human_parsed_pairs <- read_csv(here("data/test_parser_utts_thousand_CB.csv")) %>%
   mutate(coded = "Claire") %>%
-  bind_rows(read_csv(here("data/test_parser_utts_thousand_BM.csv")) %>%
-              filter(!is.na(coded)) %>%
-              mutate(coded = "Ben")) %>%
+  # bind_rows(read_csv(here("data/test_parser_utts_thousand_BM.csv")) %>%
+  #             filter(!is.na(coded)) %>%
+  #             mutate(coded = "Ben")) %>%
   rename(chat = p_chat) %>%
-  unite(pair, adj, noun, sep = "_")
+  unite(pair, adj, noun, sep = "_") 
 
-udpipe_parsed_pairs <- read_csv(here("data/ldp_parent_original_parsed_pairs.csv")) %>%
+models <- c("nomod", "compound", "conj", "bothmods", "all_pairs")
+
+read_model_pairs <- function(file) {
+  udpipe_parsed_pairs <- read_csv(here(glue(
+    "data/ldp_parent_original_parsed_pairs_{file}.csv"))) %>%
   select(adj_token, noun_token, sentence, chat) %>%
   rename(adj = adj_token, noun = noun_token) %>%
   unite(pair, adj, noun, sep = "_") %>%
   filter(chat %in% human_parsed_pairs$chat) %>%
   distinct(pair, sentence, chat)
+}
 
-missing <- human_parsed_pairs %>%
-  filter(!chat %in% udpipe_parsed_pairs$chat )
+all_model_pairs <- suppressMessages(map(models, read_model_pairs))
 ```
 
 ```{r compute-F-udpipe}
-no_pairs <- human_parsed_pairs %>% 
+get_scores <- function(model_pairs) {
+  no_pairs <- human_parsed_pairs %>% 
   filter(pair == "NA_NA") %>%
   nrow()
 
-recall_items <- human_parsed_pairs %>%
+  recall_items <- human_parsed_pairs %>%
+    select(pair, chat) %>%
+    inner_join(model_pairs %>% select(pair, chat), by = c("pair", "chat"))
+  
+  non_recall_items <- human_parsed_pairs %>%
+    filter(pair != "NA_NA") %>%
+    select(pair, chat) %>%
+    anti_join(model_pairs %>% select(pair, chat), by = c("pair", "chat"))
+  
+  non_precision_items <- model_pairs %>%
+    select(pair, chat) %>%
+    anti_join(human_parsed_pairs %>% select(pair, chat), by = c("pair", "chat"))
+  
+  scores <- tibble(recall = (nrow(recall_items)) / 
+                    (nrow(human_parsed_pairs) - no_pairs),
+                  precision = (nrow(model_pairs) - 
+                                 nrow(non_precision_items)) /
+                    nrow(model_pairs), 
+                  f_score = 2 * ((precision * recall) / (precision + recall)))
+  
+  return(list(scores, non_recall_items, non_precision_items))
+}
+
+model_comparisons <- map(all_model_pairs, get_scores)
+
+scores <- map(model_comparisons, first) %>%
+  bind_rows(.id = "model") %>%
+  mutate(model = factor(model, labels = models))
+
+non_recall_items <- map(model_comparisons, ~nth(.x, 2)) %>%
+  bind_rows(.id = "model") %>%
+  mutate(model = factor(model, labels = models))
+
+non_precision_items <- map(model_comparisons, last) %>%
+  bind_rows(.id = "model") %>%
+  mutate(model = factor(model, labels = models))
+
+
+kable(scores)
+```
+
+```{r prenom-vs-not, eval = FALSE, include = FALSE}
+human_prenominal_pairs <- human_parsed_pairs %>%
+  filter(prenominal == 0)
+
+recall_prenominal_items <- human_prenominal_pairs %>%
   select(pair, chat) %>%
   semi_join(udpipe_parsed_pairs %>% select(pair, chat), by = c("pair", "chat"))
 
-non_precision_items <- udpipe_parsed_pairs %>%
+non_precision_prenominal_items <- udpipe_parsed_pairs %>%
   select(pair, chat) %>%
-  anti_join(human_parsed_pairs %>% select(pair, chat), by = c("pair", "chat"))
+  anti_join(human_prenominal_pairs %>% select(pair, chat), by = c("pair", "chat"))
 
-recall = (nrow(recall_items)) / (nrow(human_parsed_pairs) - no_pairs)
-precision = (nrow(udpipe_parsed_pairs) - nrow(non_precision_items)) / nrow(udpipe_parsed_pairs)
+recall_prenominal = (nrow(recall_prenominal_items)) / (nrow(human_prenominal_pairs))
+
+precision_prenominal = (nrow(udpipe_parsed_pairs) - nrow(non_precision_prenominal_items)) / nrow(udpipe_parsed_pairs)
 
 f_score = 2 * ((precision * recall) / (precision + recall))
-```
 
+```

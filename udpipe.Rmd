@@ -56,18 +56,50 @@ get_pairs <- function(filename) {
     group_by(doc_id) %>%
     filter(any(upos == "ADJ"))
   
+  #Fixes: 
+  #1. adj whose dep_rel is "conj" modify adjectives that modify nouns. Make 
+  # these modify the nouns directly.
+  #2. nouns that are compounds we think are really adjectives.
+  
+  compound_parses <- parses %>%
+    group_by(doc_id) %>%
+    filter(any(upos == "NOUN" && dep_rel == "compound"))
+  
   adjs <- adj_parses %>%
     filter(upos == "ADJ") %>%
-    select(doc_id, sentence, chat, token_id, token, head_token_id, lemma, upos) %>%
+    select(doc_id, sentence, chat, token_id, token, head_token_id, lemma, upos,
+           dep_rel) %>%
     rename(adj_token = token, adj_token_id = token_id, adj_pos = upos,
            adj_lemma = lemma)
   
+  conj_targets <- adjs %>%
+    select(doc_id, sentence, adj_token, adj_token_id, head_token_id) %>%
+    rename(new_dep = adj_token, new_head_id = head_token_id)
+  
+  #fix conj adjs
+  conjs <- adjs %>%
+    filter(dep_rel == "conj") %>%
+    left_join(conj_targets, by = c("doc_id", "sentence", 
+                                   "head_token_id" = "adj_token_id")) %>%
+    filter(!is.na(new_head_id), new_head_id != 0) %>%
+    select(-head_token_id, -dep_rel, -new_dep) %>%
+    rename(head_token_id = new_head_id)
+
   nouns_setup <- adj_parses %>%
-    select(doc_id, sentence, chat, token_id, token, lemma, upos)
+    select(doc_id, sentence, chat, token_id, token, lemma, upos, dep_rel,
+           head_token_id)
+  
+  compounds <- nouns_setup %>%
+    filter(dep_rel == "compound") %>%
+    rename(adj_token_id = token_id, adj_lemma = lemma, adj_token = token,
+           adj_pos = upos)
   
   # Note: Cases where adj_token != adj_lemma should be hand-checked
   pairs <- adjs %>%
-    left_join(nouns_setup, by = c("doc_id", "sentence", "chat",
+    bind_rows(conjs) %>% # add fixed conjunctions
+    bind_rows(compounds) %>% # add compounds
+    left_join(nouns_setup %>% select(-head_token_id), 
+              by = c("doc_id", "sentence", "chat",
                                  "head_token_id"="token_id")) %>%
     rename(noun_pos = upos, noun_token_id = head_token_id, noun_token = token,
            noun_lemma = lemma) %>%
@@ -77,14 +109,25 @@ get_pairs <- function(filename) {
     mutate_at(vars(adj_token_id, noun_token_id), as.numeric) %>%
     mutate(prenominal = adj_token_id == noun_token_id - 1)
   
-  write_csv(pairs, here(glue("data/{filename}_parsed_pairs.csv")))
+  
+  noncompounds <- nouns_setup %>%
+    filter(dep_rel != "compound") %>%
+    select(doc_id, sentence, chat, token, lemma) %>%
+    rename(noun_token = token, noun_lemma = lemma)
+    
+ # possible_pairs <-  adjs %>%
+ #    bind_rows(compounds) %>%
+ #    select(doc_id, sentence, chat, adj_token, adj_lemma) %>%
+ #    left_join(noncompounds, by = c("doc_id", "sentence", "chat"))
+  
+  write_csv(pairs, here(glue("data/{filename}_parsed_pairs_bothmods.csv")))
+  #write_csv(possible_pairs, here(glue("data/{filename}_parsed_pairs_all_pairs.csv")))
 }
 
 walk(c("ldp_parent_original", "ldp_child_original"), get_pairs)
 ```
 
 ```{r run-corenlp, message = FALSE, eval = FALSE}
-
 run_corenlp <- function(filename) {
   utterances <- read_lines(here(glue("data/{filename}.txt"))) %>%
     enframe(name = NULL, value = "text") %>%
