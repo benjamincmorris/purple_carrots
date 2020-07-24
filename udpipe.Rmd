@@ -73,6 +73,7 @@ get_pairs <- function(filename) {
            adj_lemma = lemma)
   
   conj_targets <- adjs %>%
+    filter(dep_rel != "conj") %>%
     select(doc_id, sentence, adj_token, adj_token_id, head_token_id) %>%
     rename(new_dep = adj_token, new_head_id = head_token_id)
   
@@ -109,19 +110,19 @@ get_pairs <- function(filename) {
     mutate_at(vars(adj_token_id, noun_token_id), as.numeric) %>%
     mutate(prenominal = adj_token_id == noun_token_id - 1)
   
-  
   noncompounds <- nouns_setup %>%
-    filter(dep_rel != "compound") %>%
+    filter(dep_rel != "compound", upos == "NOUN") %>%
     select(doc_id, sentence, chat, token, lemma) %>%
     rename(noun_token = token, noun_lemma = lemma)
     
- # possible_pairs <-  adjs %>%
- #    bind_rows(compounds) %>%
- #    select(doc_id, sentence, chat, adj_token, adj_lemma) %>%
- #    left_join(noncompounds, by = c("doc_id", "sentence", "chat"))
+  possible_pairs <-  adjs %>%
+     bind_rows(compounds) %>%
+     select(doc_id, sentence, chat, adj_token, adj_lemma) %>%
+     left_join(noncompounds, by = c("doc_id", "sentence", "chat"))
   
   write_csv(pairs, here(glue("data/{filename}_parsed_pairs_bothmods.csv")))
-  #write_csv(possible_pairs, here(glue("data/{filename}_parsed_pairs_all_pairs.csv")))
+  
+  write_csv(possible_pairs, here(glue("data/{filename}_parsed_pairs_all_pairs.csv")))
 }
 
 walk(c("ldp_parent_original", "ldp_child_original"), get_pairs)
