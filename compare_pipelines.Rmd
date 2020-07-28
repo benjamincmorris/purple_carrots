@@ -21,6 +21,35 @@ library(knitr)
 library(SnowballC)
 ```
 
+
+```{r brysbaert-concreteness}
+#get brysbaert concreteness
+concrete_concepts <- read.csv("data/concreteness.csv") %>%
+  mutate(stem= wordStem(Word)) %>%
+  select(Word, stem, Conc.M, Conc.SD) %>%
+  mutate(conc_rank = ntile(Conc.M,4))
+
+#get sense of concretness range across all 40,000 items
+#hist(concrete_concepts$Conc.M)
+most_concrete <- concrete_concepts %>%
+  mutate(conc_rank = ntile(Conc.M,4)) %>%
+  arrange(desc(Conc.M)) %>%
+  filter(conc_rank == 4)
+#using 4 bins thresholds concreteness scores of 3.89 or higher...
+```
+
+
+```{r filter-concrete}
+filter_concrete <- function(pairs) {
+  pairs %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+    select(-adj_stem, -noun_stem)
+}
+```
+
 ```{r load-data}
 # compare human adj and noun full combinations
 # udpipe adj and noun full combinations
@@ -31,6 +60,8 @@ library(SnowballC)
 # check ben against claire
 human_parsed_pairs <- read_csv(here("data/test_parser_utts_thousand_CB.csv")) %>%
   mutate(coded = "Claire") %>%
+  filter(!is.na(adj)) %>%
+  filter_concrete() %>%
   # bind_rows(read_csv(here("data/test_parser_utts_thousand_BM.csv")) %>%
   #             filter(!is.na(coded)) %>%
   #             mutate(coded = "Ben")) %>%
@@ -44,10 +75,11 @@ read_model_pairs <- function(file) {
     "data/ldp_parent_original_parsed_pairs_{file}.csv"))) %>%
   select(adj_token, noun_token, sentence, chat) %>%
   rename(adj = adj_token, noun = noun_token) %>%
-  filter(chat %in% human_parsed_pairs$chat)
+  filter(chat %in% human_parsed_pairs$chat) %>%
+  filter_concrete() 
   
-  write_csv(udpipe_parsed_pairs %>% select(adj, noun) %>% distinct(), 
-            here(glue("data/model_pairs/{file}.csv")))
+  # write_csv(udpipe_parsed_pairs %>% select(adj, noun) %>% distinct(), 
+  #           here(glue("data/model_pairs/{file}.csv")))
   
  udpipe_parsed_pairs %>%
   unite(pair, adj, noun, sep = "_") %>%
@@ -73,8 +105,7 @@ get_scores <- function(model_pairs) {
     filter(pair != "NA_NA") %>%
     select(pair, chat) %>%
     anti_join(model_pairs %>% select(pair, chat, sentence), 
-              by = c("pair", "chat")) %>% 
-    select(-chat)
+              by = c("pair", "chat")) 
   
   non_precision_items <- model_pairs %>%
     select(pair, chat) %>%
@@ -135,84 +166,3 @@ precision_prenominal = (nrow(udpipe_parsed_pairs) - nrow(non_precision_prenomina
 f_score = 2 * ((precision * recall) / (precision + recall))
 ```
 
-
-
-
-# Use Brysbaert threshold to filter pairs
-
-
-# Read in UDpipe pairs
-```{r}
-all_pairs <- read_csv("data/model_pairs/all_pairs.csv")
-bothmods <- read_csv("data/model_pairs/bothmods.csv")
-compound <- read_csv("data/model_pairs/compound.csv")
-conj <- read_csv("data/model_pairs/conj.csv")
-nomod <- read_csv("data/model_pairs/nomod.csv")
-```
-
-```{r}
-#get brysbaert concreteness
-concrete_concepts <- read.csv("data/concreteness.csv") %>%
-  mutate(stem= wordStem(Word)) %>%
-  select(Word, stem, Conc.M, Conc.SD) %>%
-  mutate(conc_rank = ntile(Conc.M,4))
-
-#get sense of concretness range across all 40,000 items
-hist(concrete_concepts$Conc.M)
-
-most_concrete <- concrete_concepts %>%
-  mutate(conc_rank = ntile(Conc.M,4)) %>%
-  arrange(desc(Conc.M)) %>%
-  filter(conc_rank == 4)
-#using 4 bins thresholds concreteness scores of 3.89 or higher...
-```
-
-```{r}
-#filter to concrete adjective + noun
-all_pairs_concrete <- all_pairs %>%
-  mutate(adj_stem = wordStem(adj),
-         noun_stem = wordStem(noun)) %>%
-  filter(adj %in% most_concrete$Word &
-         noun_stem %in% most_concrete$stem) %>%
-  distinct()
-```
-
-```{r}
-#filter to concrete adjective + noun
-bothmods_concrete <- bothmods %>%
-  mutate(adj_stem = wordStem(adj),
-         noun_stem = wordStem(noun)) %>%
-  filter(adj %in% most_concrete$Word &
-         noun_stem %in% most_concrete$stem) %>%
-  distinct()
-```
-
-```{r}
-#filter to concrete adjective + noun
-compound_concrete <- compound %>%
-  mutate(adj_stem = wordStem(adj),
-         noun_stem = wordStem(noun)) %>%
-  filter(adj %in% most_concrete$Word &
-         noun_stem %in% most_concrete$stem) %>%
-  distinct()
-```
-
-```{r}
-#filter to concrete adjective + noun
-conj_concrete <- conj %>%
-  mutate(adj_stem = wordStem(adj),
-         noun_stem = wordStem(noun)) %>%
-  filter(adj %in% most_concrete$Word &
-         noun_stem %in% most_concrete$stem) %>%
-  distinct()
-```
-
-```{r}
-#filter to concrete adjective + noun
-nomod_concrete <- nomod %>%
-  mutate(adj_stem = wordStem(adj),
-         noun_stem = wordStem(noun)) %>%
-  filter(adj %in% most_concrete$Word &
-         noun_stem %in% most_concrete$stem) %>%
-  distinct()
-```
