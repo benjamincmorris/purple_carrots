@@ -21,6 +21,7 @@ library(tidyboot)
 library(lme4)
 library(feather)
 
+#code for connecting to ldp
 source(here("read_ldp.R"))
 ldp <- connect_to_ldp()
 ```
@@ -37,6 +38,8 @@ get_table <- function(connection, name) {
 list_tables(ldp)
 get_table(ldp, "ppvt")
 subs <- get_table(ldp, "subjects") %>% collect()
+
+#sub ids for typically developing kids
 typ_kids <- subs %>%
   filter(lesion == "") %>% 
   filter(project == 2) %>% 
@@ -44,12 +47,10 @@ typ_kids <- subs %>%
 ```
 
 ```{r}
-tic()
+#pull all the utterances
 utts <- get_table(ldp, "utterances") %>%
   collect()
-toc()
-library(beep)
-beep()
+
 
 utts_clean <- utts %>%
   #include only typically developing participants
@@ -80,8 +81,8 @@ tagged <- PoS %>%
 ```
 
 
-#check noun usage consistency across ages
-#correlate rank frequency across age groups for available nouns?
+# check noun usage consistency across ages
+# correlate rank frequency across age groups for available nouns?
 ```{r}
 ranked <- tagged %>%
   ungroup() %>%
@@ -109,14 +110,11 @@ cor.test(ranked_wide$`1`, ranked_wide$`2`, na.rm=TRUE)
 cor.test(ranked_wide$`1`, ranked_wide$`4`, na.rm=TRUE)
 
 ```
-###quick descriptives:
-- 8,150 distinct nouns used across LDP (probably some more data cleaning to do...)
-
-- seperate 12 sessions into 1 year ranges (4 bins)
-- 1,829 distinct nouns, after filtering only to things in all 4 years of measurment
 
 
-#grab adjectives from target nouns
+
+# grab adjectives from target nouns
+
 ```{r}
 #ranked_all_sess
 #only nouns used in each year starting at session 1 (i.e. sessions [1:3, 4:6, 7:9, 10:12])

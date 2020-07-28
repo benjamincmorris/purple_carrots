@@ -1,0 +1,89 @@
+---
+title: "Checking UDPipe Pairs"
+author: "ben morris"
+date: "7/27/2020"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(SnowballC)
+```
+
+# Read in UDpipe pairs
+```{r}
+all_pairs <- read_csv("data/model_pairs/all_pairs.csv")
+bothmods <- read_csv("data/model_pairs/bothmods.csv")
+compound <- read_csv("data/model_pairs/compound.csv")
+conj <- read_csv("data/model_pairs/conj.csv")
+nomod <- read_csv("data/model_pairs/nomod.csv")
+```
+
+# Use Brysbaert threshold
+```{r}
+#get brysbaert concreteness
+concrete_concepts <- read.csv("data/concreteness.csv") %>%
+  mutate(stem= wordStem(Word)) %>%
+  select(Word, stem, Conc.M, Conc.SD) %>%
+  mutate(conc_rank = ntile(Conc.M,4))
+
+#get sense of concretness range across all 40,000 items
+hist(concrete_concepts$Conc.M)
+
+most_concrete <- concrete_concepts %>%
+  mutate(conc_rank = ntile(Conc.M,4)) %>%
+  arrange(desc(Conc.M)) %>%
+  filter(conc_rank == 4)
+#using 4 bins thresholds concreteness scores of 3.89 or higher...
+```
+
+```{r}
+#filter to concrete adjective + noun
+all_pairs_concrete <- all_pairs %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+  distinct()
+```
+
+```{r}
+#filter to concrete adjective + noun
+bothmods_concrete <- bothmods %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+  distinct()
+```
+
+```{r}
+#filter to concrete adjective + noun
+compound_concrete <- compound %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+  distinct()
+```
+
+```{r}
+#filter to concrete adjective + noun
+conj_concrete <- conj %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+  distinct()
+```
+
+```{r}
+#filter to concrete adjective + noun
+nomod_concrete <- nomod %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+  distinct()
+```
+
