@@ -166,3 +166,9 @@ precision_prenominal = (nrow(udpipe_parsed_pairs) - nrow(non_precision_prenomina
 f_score = 2 * ((precision * recall) / (precision + recall))
 ```
 
+```{r switchboard}
+switchboard <- read_csv(here("data/switchboard_parsed_pairs_allmods.csv")) %>%
+  select(-paragraph_id, -dep_rel, -adj_pos) %>%
+  rename(adj = adj_token, noun = noun_token) %>%
+  filter_concrete() 
+```

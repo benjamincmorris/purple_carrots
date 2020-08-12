@@ -27,10 +27,9 @@ library(udpipe)
 source(here("read_ldp.R"))
 ```
 
-
 Load utterances
 ```{r load-ldp-data}
-ldp <- connect_to_ldp()
+ldp <- connect_to_ldp_local()
 
 subs_to_keep <- get_table(ldp, "subjects") %>%
     collect() %>%
@@ -39,7 +38,7 @@ subs_to_keep <- get_table(ldp, "subjects") %>%
 
 utts <- get_table(ldp, "utterances") %>%
   filter(subject %in% subs_to_keep) %>%
-  select(time, row, subject, session, p_chat, c_chat, p_utts, c_utts) %>%
+  select(time, id, subject, session, p_chat, c_chat, p_utts, c_utts) %>%
   collect() %>%
   pivot_longer(cols = c(p_chat, c_chat, p_utts, c_utts), names_to = "person", 
                values_to = "output") %>%
@@ -47,7 +46,7 @@ utts <- get_table(ldp, "utterances") %>%
   mutate(person = if_else(person == "p", "parent", "child")) %>%
   pivot_wider(names_from = type, values_from  = output) %>%
   filter(!is.na(chat)) %>%
-  arrange(subject, session, row)
+  arrange(subject, session, id)
 
 ```
 
@@ -71,7 +70,7 @@ write_original_file <- function(utterances, speaker = "parent") {
   
   utterances %>%
     filter(person == speaker) %>%
-    select(row, utts, chat) %>%
+    select(id, utts, chat) %>%
     write_csv(here(glue("data/ldp_{speaker}_original.txt")))
 }
 
