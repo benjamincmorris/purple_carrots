@@ -170,5 +170,6 @@ f_score = 2 * ((precision * recall) / (precision + recall))
 switchboard <- read_csv(here("data/switchboard_parsed_pairs_allmods.csv")) %>%
   select(-paragraph_id, -dep_rel, -adj_pos) %>%
   rename(adj = adj_token, noun = noun_token) %>%
-  filter_concrete() 
+  filter_concrete() %>%
+  distinct(adj, noun, .keep_all = TRUE)
 ```
