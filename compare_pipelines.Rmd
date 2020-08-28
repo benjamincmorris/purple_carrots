@@ -50,6 +50,45 @@ filter_concrete <- function(pairs) {
 }
 ```
 
+# Compare all UDPipe pairs to our original set of pairs from alll of LDP
+
+```{r}
+udp_parse <- read_csv(here("data/ldp_parent_parsed_pairs.csv")) %>%
+  rename(adj = adj_token, noun = noun_token)
+
+udp_pairs <- filter_concrete(udp_parse) %>%
+  distinct(adj, noun) %>%
+  mutate(data = "udp")
+
+ldp_pairs <- read_csv(here("data/judgments_session.csv")) %>%
+  distinct(adj, noun) %>%
+  mutate(data = "ldp")
+
+#pairs in both sets
+inner_join(ldp_pairs, udp_pairs, by = c("adj", "noun"))
+
+# udp parsed pairs that aren't in our original ldp set
+anti_join(udp_pairs, ldp_pairs, by = c("adj", "noun"))
+# udp pairs-- adjectives that aren't in our set at all
+anti_join(udp_pairs, ldp_pairs, by = c("adj")) %>% count(adj) %>% arrange(desc(n))
+# udp pairs-- nouns that aren't in our set at all
+anti_join(udp_pairs, ldp_pairs, by = c("noun")) %>% count(noun) %>% arrange(desc(n))
+
+
+# pairs that are in our original set, but not tagged by udp
+anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun"))
+anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
+  count(noun) %>% arrange(desc(n))
+anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
+  count(adj) %>% arrange(desc(n))
+```
+
+***
+***
+***
+
+# Compare CB human judgements to UDPipe judgements for sampe of utts
+
 ```{r load-data}
 # compare human adj and noun full combinations
 # udpipe adj and noun full combinations
