@@ -46,37 +46,37 @@ filter_concrete <- function(pairs) {
          noun_stem = wordStem(noun)) %>%
   filter(adj %in% most_concrete$Word &
          noun_stem %in% most_concrete$stem) %>%
-    select(-adj_stem, -noun_stem)
+    select(-adj_stem)
 }
 ```
 
-# Compare all UDPipe pairs to our original set of pairs from alll of LDP
+# Compare all UDPipe pairs to our original set of pairs from all of LDP
 
 ```{r}
-udp_parse <- read_csv(here("data/ldp_parent_parsed_pairs.csv")) %>%
+udp_parse <- read_csv(here("data/ldp_parent_parsed_pairs_bothmods.csv")) %>%
   rename(adj = adj_token, noun = noun_token)
 
 udp_pairs <- filter_concrete(udp_parse) %>%
-  distinct(adj, noun) %>%
+  distinct(adj, noun_stem) %>%
   mutate(data = "udp")
 
 ldp_pairs <- read_csv(here("data/judgments_session.csv")) %>%
-  distinct(adj, noun) %>%
+  distinct(adj, noun_stem) %>%
   mutate(data = "ldp")
 
 #pairs in both sets
-inner_join(ldp_pairs, udp_pairs, by = c("adj", "noun"))
+inner_join(ldp_pairs, udp_pairs, by = c("adj", "noun_stem"))
 
 # udp parsed pairs that aren't in our original ldp set
 anti_join(udp_pairs, ldp_pairs, by = c("adj", "noun"))
 # udp pairs-- adjectives that aren't in our set at all
 anti_join(udp_pairs, ldp_pairs, by = c("adj")) %>% count(adj) %>% arrange(desc(n))
 # udp pairs-- nouns that aren't in our set at all
-anti_join(udp_pairs, ldp_pairs, by = c("noun")) %>% count(noun) %>% arrange(desc(n))
+anti_join(udp_pairs, ldp_pairs, by = c("noun_stem")) %>% count(noun_stem) %>% arrange(desc(n)) %>% View(.)
 
 
 # pairs that are in our original set, but not tagged by udp
-anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun"))
+anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun_stem"))
 anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
   count(noun) %>% arrange(desc(n))
 anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
