@@ -53,7 +53,7 @@ filter_concrete <- function(pairs) {
 # Compare all UDPipe pairs to our original set of pairs from alll of LDP
 
 ```{r}
-udp_parse <- read_csv(here("data/ldp_parent_original_parsed_pairs_allmods.csv")) %>%
+udp_parse <- read_csv(here("data/ldp_parent_original_parsed_pairs_compounds_and_root.csv")) %>%
   rename(adj = adj_lemma, noun = noun_lemma)
 
 udp_pairs <- filter_concrete(udp_parse) %>%
