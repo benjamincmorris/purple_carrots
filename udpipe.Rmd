@@ -89,25 +89,25 @@ get_pairs <- function(filename) {
            dep_rel) %>%
     rename(adj_token = token, adj_token_id = token_id, adj_pos = upos,
            adj_lemma = lemma)
-  
-  conj_targets <- adjs %>%
-    filter(dep_rel != "conj") %>%
-    select(doc_id, sentence, adj_token, adj_token_id, head_token_id) %>%
-    rename(new_dep = adj_token, new_head_id = head_token_id)
+  # 
+  # conj_targets <- adjs %>%
+  #   filter(dep_rel != "conj") %>%
+  #   select(doc_id, sentence, adj_token, adj_token_id, head_token_id) %>%
+  #   rename(new_dep = adj_token, new_head_id = head_token_id)
 
   nouns_setup <- adj_parses %>%
     select(doc_id, sentence, any_of("chat"), token_id, token, lemma, upos, dep_rel,
            head_token_id)
   
     
-  #fix conj adjs
-  conjs <- adjs %>%
-    filter(dep_rel == "conj") %>%
-    left_join(conj_targets, by = c("doc_id", "sentence", 
-                                   "head_token_id" = "adj_token_id")) %>%
-    filter(!is.na(new_head_id), new_head_id != 0) %>%
-    select(-head_token_id, -dep_rel, -new_dep) %>%
-    rename(head_token_id = new_head_id)
+  #fix conj adjs - don't do
+  # conjs <- adjs %>%
+  #   filter(dep_rel == "conj") %>%
+  #   left_join(conj_targets, by = c("doc_id", "sentence", 
+  #                                  "head_token_id" = "adj_token_id")) %>%
+  #   filter(!is.na(new_head_id), new_head_id != 0) %>%
+  #   select(-head_token_id, -dep_rel, -new_dep) %>%
+  #   rename(head_token_id = new_head_id)
 
   #fix compounds
   compounds <- nouns_setup %>%
@@ -119,21 +119,38 @@ get_pairs <- function(filename) {
   root_adjs <- adj_parses %>%
     group_by(doc_id) %>%
     filter(any(upos == "NOUN")) %>%
+    mutate(noun_count = sum(upos == "NOUN"),
+           pron_count = sum(upos == "PRON")) %>%
     ungroup() %>%
+    filter(upos == "ADJ" | upos == "NOUN")
+  
+  single_noun_roots <- root_adjs %>%
+    filter(upos == "NOUN", noun_count == 1, pron_count == 0) %>%
+    rename(noun_token_id = token_id, noun_lemma = lemma, noun_token = token) %>%
+    select(doc_id, sentence, noun_token_id, noun_lemma, noun_token)
+  
+  root_adjs_processed <- root_adjs %>%
     filter(upos == "ADJ") %>%
     select(doc_id, paragraph_id, sentence, any_of("chat"), token_id, token, head_token_id,
            lemma, upos, dep_rel) %>%
     rename(adj_token = token, adj_token_id = token_id, adj_pos = upos,
            adj_lemma = lemma) %>%
     filter(head_token_id == 0, str_detect(sentence, " ")) %>%
-    rename(noun_token_id = head_token_id) %>%
-    mutate(noun_token = "ROOT", noun_lemma = "ROOT", prenominal = FALSE,
-           noun_token_id = 0,
-           adj_token_id = as.numeric(adj_token_id))
+    left_join(single_noun_roots, by = c("doc_id", "sentence")) %>% 
+    mutate(noun_token_id = if_else(is.na(noun_token_id), 
+                                   head_token_id, noun_token_id),
+           noun_token = if_else(is.na(noun_token), "ROOT", noun_token),
+           noun_lemma = if_else(is.na(noun_lemma), "ROOT", noun_lemma),
+           adj_token_id = as.numeric(adj_token_id),
+           noun_token_id = as.numeric(noun_token_id),
+           prenominal = if_else(noun_token_id == 0, NA, 
+                                (noun_token_id - adj_token_id) == 1)) %>%
+    select(doc_id, sentence, adj_token_id, adj_token, noun_token_id,noun_token, 
+           adj_lemma, noun_lemma, prenominal)
   
   # Note: Cases where adj_token != adj_lemma should be hand-checked
   pairs <- adjs %>%
-    bind_rows(conjs) %>% # add fixed conjunctions
+    #bind_rows(conjs) %>% # add fixed conjunctions
     bind_rows(compounds) %>% # add compounds
     left_join(nouns_setup %>% select(-head_token_id), 
               by = c("doc_id", "sentence",
@@ -145,27 +162,27 @@ get_pairs <- function(filename) {
            noun_token, adj_lemma, noun_lemma) %>%
     mutate_at(vars(adj_token_id, noun_token_id), as.numeric) %>%
     mutate(prenominal = adj_token_id == noun_token_id - 1) %>%
-    bind_rows(root_adjs) %>% # add ROOT adjs
-    filter(!adj_token == "um")
+    bind_rows(root_adjs_processed) %>% # add ROOT adjs
+    filter(!adj_token == "um", !noun_token == "one")
     
-  noncompounds <- nouns_setup %>%
-    filter(dep_rel != "compound", upos == "NOUN") %>%
-    select(doc_id, sentence, any_of("chat"), token, lemma) %>%
-    rename(noun_token = token, noun_lemma = lemma)
-    
-  possible_pairs <- adjs %>%
-     bind_rows(compounds) %>%
-     select(doc_id, sentence, any_of("chat"), adj_token, adj_lemma) %>%
-     left_join(noncompounds, by = c("doc_id", "sentence", "chat"))
+  # noncompounds <- nouns_setup %>%
+  #   filter(dep_rel != "compound", upos == "NOUN") %>%
+  #   select(doc_id, sentence, any_of("chat"), token, lemma) %>%
+  #   rename(noun_token = token, noun_lemma = lemma)
+  #   
+  # possible_pairs <- adjs %>%
+  #    bind_rows(compounds) %>%
+  #    select(doc_id, sentence, any_of("chat"), adj_token, adj_lemma) %>%
+  #    left_join(noncompounds, by = c("doc_id", "sentence", "chat"))
+  # 
+  write_csv(pairs, here(glue("data/{filename}_parsed_pairs_compounds_and_root.csv")))
   
-  write_csv(pairs, here(glue("data/{filename}_parsed_pairs_allmods.csv")))
-  
-  write_csv(possible_pairs, here(glue("data/{filename}_parsed_pairs_all_pairs.csv")))
+#  write_csv(possible_pairs, here(glue("data/{filename}_parsed_pairs_all_pairs.csv")))
 }
 
 walk(c("ldp_parent_original", "ldp_child_original"), get_pairs)
 
-get_pairs("switchboard")
+#get_pairs("switchboard")
 ```
 
 ```{r run-corenlp, message = FALSE, eval = FALSE}

@@ -53,12 +53,13 @@ filter_concrete <- function(pairs) {
 # Compare all UDPipe pairs to our original set of pairs from all of LDP
 
 ```{r}
-udp_parse <- read_csv(here("data/ldp_parent_original_parsed_pairs_bothmods.csv")) %>%
-  rename(adj = adj_token, noun = noun_token) %>%
+udp_parse <- read_csv(here("data/ldp_parent_original_parsed_pairs_compounds_and_root.csv")) %>%
+  rename(adj = adj_lemma, noun = noun_lemma) %>%
   mutate(pair = paste0(adj, "_", noun))
 
 udp_pairs <- filter_concrete(udp_parse) %>%
-  distinct(adj, noun, chat) %>%
+  distinct(adj, noun) %>%
+  filter(noun != "one", adj != noun) %>%
   mutate(data = "udp")
 
 ldp_pairs <- read_csv(here("data/judgments_session.csv")) %>%
@@ -68,9 +69,6 @@ ldp_pairs <- read_csv(here("data/judgments_session.csv")) %>%
 udp_and_ldp_utts <- udp_parse %>%
   filter(pair %in% (pairs))
 
-udp_pair_counts <- udp_pairs %>%
-  left_join(final_utts, by = c("chat" = "p_chat", "adj", "noun")) %>%
-  filter(! is.na(mean_typ)) 
 
 #pairs in both sets
 udp_and_ldp <- inner_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
