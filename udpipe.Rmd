@@ -119,17 +119,34 @@ get_pairs <- function(filename) {
   root_adjs <- adj_parses %>%
     group_by(doc_id) %>%
     filter(any(upos == "NOUN")) %>%
+    mutate(noun_count = sum(upos == "NOUN"),
+           pron_count = sum(upos == "PRON")) %>%
     ungroup() %>%
+    filter(upos == "ADJ" | upos == "NOUN")
+  
+  single_noun_roots <- root_adjs %>%
+    filter(upos == "NOUN", noun_count == 1, pron_count == 0) %>%
+    rename(noun_token_id = token_id, noun_lemma = lemma, noun_token = token) %>%
+    select(doc_id, sentence, noun_token_id, noun_lemma, noun_token)
+  
+  root_adjs_processed <- root_adjs %>%
     filter(upos == "ADJ") %>%
     select(doc_id, paragraph_id, sentence, any_of("chat"), token_id, token, head_token_id,
            lemma, upos, dep_rel) %>%
     rename(adj_token = token, adj_token_id = token_id, adj_pos = upos,
            adj_lemma = lemma) %>%
     filter(head_token_id == 0, str_detect(sentence, " ")) %>%
-    rename(noun_token_id = head_token_id) %>%
-    mutate(noun_token = "ROOT", noun_lemma = "ROOT", prenominal = FALSE,
-           noun_token_id = 0,
-           adj_token_id = as.numeric(adj_token_id))
+    left_join(single_noun_roots, by = c("doc_id", "sentence")) %>% 
+    mutate(noun_token_id = if_else(is.na(noun_token_id), 
+                                   head_token_id, noun_token_id),
+           noun_token = if_else(is.na(noun_token), "ROOT", noun_token),
+           noun_lemma = if_else(is.na(noun_lemma), "ROOT", noun_lemma),
+           adj_token_id = as.numeric(adj_token_id),
+           noun_token_id = as.numeric(noun_token_id),
+           prenominal = if_else(noun_token_id == 0, NA, 
+                                (noun_token_id - adj_token_id) == 1)) %>%
+    select(doc_id, sentence, adj_token_id, adj_token, noun_token_id,noun_token, 
+           adj_lemma, noun_lemma, prenominal)
   
   # Note: Cases where adj_token != adj_lemma should be hand-checked
   pairs <- adjs %>%
@@ -145,7 +162,7 @@ get_pairs <- function(filename) {
            noun_token, adj_lemma, noun_lemma) %>%
     mutate_at(vars(adj_token_id, noun_token_id), as.numeric) %>%
     mutate(prenominal = adj_token_id == noun_token_id - 1) %>%
-    bind_rows(root_adjs) %>% # add ROOT adjs
+    bind_rows(root_adjs_processed) %>% # add ROOT adjs
     filter(!adj_token == "um", !noun_token == "one")
     
   # noncompounds <- nouns_setup %>%
