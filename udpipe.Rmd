@@ -166,7 +166,13 @@ get_pairs <- function(filename) {
     filter(!adj_token == "um", !noun_token == "one") %>%
     mutate(adj_lower = str_to_lower(adj_token)) %>%
     select(-adj_lemma)
-    
+  #   
+  # pairs %>%
+  #   filter(noun_token == "ROOT") %>%
+  #   select(doc_id, sentence, adj_lower, noun_token) %>%
+  #   sample_frac(1) %>%
+  #   write_csv(here("data/root_adjs_to_code.csv"))
+  # 
   # noncompounds <- nouns_setup %>%
   #   filter(dep_rel != "compound", upos == "NOUN") %>%
   #   select(doc_id, sentence, any_of("chat"), token, lemma) %>%
