@@ -163,7 +163,9 @@ get_pairs <- function(filename) {
     mutate_at(vars(adj_token_id, noun_token_id), as.numeric) %>%
     mutate(prenominal = adj_token_id == noun_token_id - 1) %>%
     bind_rows(root_adjs_processed) %>% # add ROOT adjs
-    filter(!adj_token == "um", !noun_token == "one")
+    filter(!adj_token == "um", !noun_token == "one") %>%
+    mutate(adj_lower = str_to_lower(adj_token)) %>%
+    select(-adj_lemma)
     
   # noncompounds <- nouns_setup %>%
   #   filter(dep_rel != "compound", upos == "NOUN") %>%
