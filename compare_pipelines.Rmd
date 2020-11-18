@@ -46,15 +46,16 @@ filter_concrete <- function(pairs) {
          noun_stem = wordStem(noun)) %>%
   filter(adj %in% most_concrete$Word &
          noun_stem %in% most_concrete$stem) %>%
-    select(-adj_stem, -noun_stem)
+    select(-adj_stem)
 }
 ```
 
-# Compare all UDPipe pairs to our original set of pairs from alll of LDP
+# Compare all UDPipe pairs to our original set of pairs from all of LDP
 
 ```{r}
 udp_parse <- read_csv(here("data/ldp_parent_original_parsed_pairs_compounds_and_root.csv")) %>%
-  rename(adj = adj_lemma, noun = noun_lemma)
+  rename(adj = adj_lemma, noun = noun_lemma) %>%
+  mutate(pair = paste0(adj, "_", noun))
 
 udp_pairs <- filter_concrete(udp_parse) %>%
   distinct(adj, noun) %>%
@@ -65,19 +66,63 @@ ldp_pairs <- read_csv(here("data/judgments_session.csv")) %>%
   distinct(adj, noun) %>%
   mutate(data = "ldp")
 
-#pairs in both sets
-inner_join(ldp_pairs, udp_pairs, by = c("adj", "noun"))
+udp_and_ldp_utts <- udp_parse %>%
+  filter(pair %in% (pairs))
 
+
+#pairs in both sets
+udp_and_ldp <- inner_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
+    mutate(pair = paste0(adj, "_", noun))
+```
+
+### Plot of the udp pairs we have judgements for
+
+```{r}
+#read in the judgment data
+old_turk_counts <- read.csv("data/judgments_session.csv")
+
+udp_ldp_counts <- old_turk_counts %>%
+  mutate(pair = paste0(adj, "_", noun)) %>%
+  #filter
+  filter(pair %in% (udp_and_ldp %>% pull(pair)))
+
+#distribution plot for pairs in both sets
+udp_ldp_counts %>%
+  mutate(typicality=mean_typ) %>%
+  mutate(age = (4*session + 10)) %>%
+  group_by(session) %>%
+  mutate(age = min(age)) %>%
+  ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  # theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme_minimal() 
+```
+
+### Looking more into overlapping pairs
+
+```{r}
 # udp parsed pairs that aren't in our original ldp set
-anti_join(udp_pairs, ldp_pairs, by = c("adj", "noun"))
+anti_join(udp_pairs, ldp_pairs, by = c("adj", "noun")) %>% View(.) 
 # udp pairs-- adjectives that aren't in our set at all
 anti_join(udp_pairs, ldp_pairs, by = c("adj")) %>% count(adj) %>% arrange(desc(n))
 # udp pairs-- nouns that aren't in our set at all
-anti_join(udp_pairs, ldp_pairs, by = c("noun")) %>% count(noun) %>% arrange(desc(n))
+anti_join(udp_pairs, ldp_pairs, by = c("noun_stem")) %>% count(noun_stem) %>% arrange(desc(n)) %>% View(.)
 
 
 # pairs that are in our original set, but not tagged by udp
-anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun"))
+anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun_stem"))
 anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
   count(noun) %>% arrange(desc(n))
 anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%

@@ -22,7 +22,10 @@ library(lme4)
 library(feather)
 
 #code for connecting to ldp
+  # note this file is not included in the public repo of this project
+  # as it contains senstive access keys.
 source(here("read_ldp.R"))
+#establish connection, requires vpn to run sucessfully
 ldp <- connect_to_ldp()
 ```
 
@@ -36,7 +39,6 @@ get_table <- function(connection, name) {
 }
 
 list_tables(ldp)
-get_table(ldp, "ppvt")
 subs <- get_table(ldp, "subjects") %>% collect()
 
 #sub ids for typically developing kids
@@ -63,7 +65,6 @@ utts_clean <- utts %>%
   mutate(utt_id= row_number())
 
 PoS <- utts_clean %>% 
-  # filter(session==1) %>%
   unnest_tokens(PoS, p_mor, drop=FALSE, token = stringr::str_split, pattern = " ") %>%
   filter(PoS != "")
 ```
@@ -80,75 +81,34 @@ tagged <- PoS %>%
   select(-garbage)
 ```
 
-
-# check noun usage consistency across ages
-# correlate rank frequency across age groups for available nouns?
-```{r}
-ranked <- tagged %>%
-  ungroup() %>%
-  mutate(age_quant = ntile(tagged$session,4)) %>%
-  anti_join(stop_words) %>%
-  filter(stem != "") %>%
-  filter(grepl("n",PoS, fixed=TRUE)) %>%
-  group_by(stem, age_quant) %>%
-  summarize(n=n()) %>% 
-  arrange(age_quant, desc(n)) %>%
-  group_by(age_quant) %>%
-  mutate(rank = row_number())
-
-ranked_wide <- ranked %>% 
-  select(stem, age_quant, rank) %>% 
-  spread(age_quant, rank) %>%
-  rowwise() %>%
-  mutate(tot_usage = sum(`1`, `2`, `3`, `4`, na.rm=TRUE)) %>%
-  mutate(all_sess = if_else(is.na(`1` + `2` + `3` + `4`), F, T))
-
-#filtered to things only in all sessions
-ranked_all_sess <- ranked_wide %>% filter(all_sess==T)
-
-cor.test(ranked_wide$`1`, ranked_wide$`2`, na.rm=TRUE)
-cor.test(ranked_wide$`1`, ranked_wide$`4`, na.rm=TRUE)
-
-```
-
-
-
-# grab adjectives from target nouns
+### grab adj/noun utts with each tagged
 
 ```{r}
-#ranked_all_sess
-#only nouns used in each year starting at session 1 (i.e. sessions [1:3, 4:6, 7:9, 10:12])
-target_nouns <- ranked_all_sess %>% pull(stem)
-
-
-#grab target utterances with target nouns
-total_utts <- tagged
-target_utts <- total_utts[total_utts$stem %in% target_nouns,] %>% 
-  filter(PoS== "n") %>%
+#get every noun and the utterance it came from
+# utts with multiple nouns in multiple times, this is a count of each noun and the utt it's drawn from
+nouns_with_utts <- tagged[tagged$PoS == "n",] %>% 
   rename(noun=word,
          noun_PoS = PoS) %>% 
   select(-stem)
 
 
-adj_list <- total_utts %>% 
-  filter(grepl("adj", PoS)) %>%
-  filter(PoS == "adj") %>%
-  distinct(PoS) %>% 
-  pull(PoS)
-
-all_adjectives <- total_utts[total_utts$PoS %in% adj_list,] %>% 
+#get every adj and the utterance it came from
+# utts with multiple adjs multiple times, this is a count of each adj and  the utt it's drawn from
+adjs_with_utts <- tagged[tagged$PoS == "adj",] %>% 
   rename(adj=word,
          adj_PoS = PoS) %>% 
   select(-stem)
 
-#all the target utts with an ajective
-adj_noun_utts <- inner_join(target_utts, all_adjectives, by=c("subject", "session", "p_chat", "p_mor", "utt_id"))
- # %>% filter(adj=="")
 
-unmod_utts <- anti_join(target_utts, adj_noun_utts, by=c("subject", "session", "p_chat", "p_mor", "utt_id")) 
+#all the target utts with an adjective and a noun
+#  note again utts repeated where mutliple adjs/nouns
+adj_noun_utts <- inner_join(nouns_with_utts, adjs_with_utts, by=c("subject", "session", "p_chat", "p_mor", "utt_id"))
+
+#noun utts without adjs
+unmod_utts <- anti_join(nouns_with_utts, adjs_with_utts, by=c("subject", "session", "p_chat", "p_mor", "utt_id")) 
 
 #should be 0
-nrow(target_utts) - nrow(adj_noun_utts) - nrow(unmod_utts)
+nrow(distinct(nouns_with_utts)) - nrow(distinct(adj_noun_utts)) - nrow(distinct(unmod_utts))
 
 #peek at most common pairs
 adj_noun_utts %>% 
@@ -208,47 +168,6 @@ adj_noun_concrete %>%
 adj_noun_concrete %>% 
   count(adj, noun) %>%
   arrange(desc(n))
-
-
-```
-
-#check thresholds
-```{r}
-looser_concrete <- concrete_concepts %>%
-  mutate(conc_rank = ntile(Conc.M,10)) %>%
-  arrange(desc(Conc.M)) %>%
-  filter(conc_rank >= 7)
-
-#filter different levels for adj and noun
-adj_noun_concrete_half <- adj_noun_utts %>%
-  mutate(adj_stem = wordStem(adj),
-         noun_stem = wordStem(noun)) %>%
-  filter(adj %in% looser_concrete$Word &
-         noun_stem %in% most_concrete$stem) %>%
-  distinct()
-
-loose_adj <- adj_noun_concrete_half %>% 
-  count(adj) %>%
-  arrange(desc(n)) %>% pull(adj)
-
-orig_adj <- adj_noun_concrete %>% 
-  count(adj) %>%
-  arrange(desc(n)) %>% pull(adj)
-
-loose_adj[! loose_adj %in% orig_adj]
-
-
-orig_pairs <- adj_noun_concrete %>% 
-  count(adj, noun) %>%
-  arrange(desc(n))
-
-loose_pairs <- adj_noun_concrete_half %>% 
-  count(adj, noun) %>%
-  arrange(desc(n))
-
-loose_pairs %>%
-  anti_join(orig_pairs)
-
 ```
 
 
@@ -257,20 +176,21 @@ loose_pairs %>%
 old_turk_counts <- read.csv("data/judgments_session.csv")
 final_adjs <- old_turk_counts %>% distinct(adj) %>% pull(adj)
 final_nouns <- old_turk_counts %>% distinct(noun) %>% pull(noun)
+
+pairs <- old_turk_counts %>% mutate(pair = paste0(adj, "_", noun)) %>% pull(pair)
 ```
   
-#get utt level
-```{r}
-tmp <- adj_noun_utts %>% 
-  mutate(noun_stem = wordStem(noun)) %>%
-  mutate(adj_stem = wordStem(adj)) %>%
-  filter(noun_stem %in% wordStem(final_nouns)) %>%
-  filter(adj_stem %in% wordStem(final_adjs))
+# get utt level
 
-judgements <- full_turk_counts %>% distinct(adj, noun, adj_stem, noun_stem, x1, x2, x3, x4, x5, mean_typ)
+```{r}
+final_utts_no_judgments <- adj_noun_utts %>% 
+  mutate(pair = paste0(adj, "_", noun)) %>%
+  filter(pair %in% pairs)
+
+judgements <- old_turk_counts %>% distinct(adj, noun, adj_stem, noun_stem, x1, x2, x3, x4, x5, mean_typ)
 
 final_utts <- 
-  tmp %>% 
+  final_utts_no_judgments %>% 
   filter(subject %in% typ_kids) %>%
   left_join(judgements) %>% 
   filter(!is.na(mean_typ))
@@ -280,8 +200,9 @@ final_utts %>% count(adj, noun)
 final_utts %>% count(adj, noun) %>% arrange(desc(n))
 ```
 
+# Figures
+### session usage plot by typicality judgments
 
-#session usage plot by typicality judgments
 ```{r}
 #take session level usage
 #  plot overall frequencies at each session
@@ -316,12 +237,11 @@ final_utts %>%
   # scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1))+
   scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
   scale_y_continuous(minor_breaks = seq(14, 42, 4), breaks = seq(14, 38, 4))
-  
-
 ```
 
 
-#session prototypicals plot by typicality judgments
+# session prototypicals plot by typicality judgments
+
 ```{r}
 #look for prototypicals
 #  defined as anything 5 or higher, "somewhat typical" to "extremely  typical"
@@ -353,7 +273,11 @@ prototypicals %>%
 ```
 
 
-#aoas
+---
+# Notes and other things features we've thought about
+
+### aoas
+
 ```{r}
 aoas <- read_csv('data/aoas.csv')
 
@@ -415,7 +339,7 @@ full_aoas %>%
 #overall word freq
 ```{r}
 # need to know overall word frequency to normalize or do conditional probability
-word_freq  <- total_utts %>%
+word_freq  <- tagged %>%
   count(stem, sort=TRUE) %>%
   rename(word_freq = n)
 
