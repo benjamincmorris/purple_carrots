@@ -1,0 +1,260 @@
+---
+title: "Compare processing pipelines"
+author: "Dan Yurovsky"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+  highlight: tango
+theme: sandstone
+code_folding: show
+toc: false
+toc_float: false
+---
+  
+```{r libraries}
+library(udpipe)
+library(feather)
+library(here)
+library(tidyverse)
+library(glue)
+library(knitr)
+library(SnowballC)
+```
+
+
+```{r brysbaert-concreteness}
+#get brysbaert concreteness
+concrete_concepts <- read.csv("data/concreteness.csv") %>%
+  mutate(stem= wordStem(Word)) %>%
+  select(Word, stem, Conc.M, Conc.SD) %>%
+  mutate(conc_rank = ntile(Conc.M,4))
+
+#get sense of concretness range across all 40,000 items
+#hist(concrete_concepts$Conc.M)
+most_concrete <- concrete_concepts %>%
+  mutate(conc_rank = ntile(Conc.M,4)) %>%
+  arrange(desc(Conc.M)) %>%
+  filter(conc_rank == 4)
+#using 4 bins thresholds concreteness scores of 3.89 or higher...
+```
+
+
+```{r filter-concrete}
+filter_concrete <- function(pairs) {
+  pairs %>%
+  mutate(adj_stem = wordStem(adj),
+         noun_stem = wordStem(noun)) %>%
+  filter(adj %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+    select(-adj_stem)
+}
+```
+
+# Compare all UDPipe pairs to our original set of pairs from all of LDP
+
+```{r}
+udp_parse <- read_csv(here("data/ldp_parent_original_parsed_pairs_compounds_and_root.csv")) %>%
+  rename(adj = adj_lemma, noun = noun_lemma) %>%
+  mutate(pair = paste0(adj, "_", noun))
+
+udp_pairs <- filter_concrete(udp_parse) %>%
+  distinct(adj, noun) %>%
+  filter(noun != "one", adj != noun) %>%
+  mutate(data = "udp")
+
+ldp_pairs <- read_csv(here("data/judgments_session.csv")) %>%
+  distinct(adj, noun) %>%
+  mutate(data = "ldp")
+
+udp_and_ldp_utts <- udp_parse %>%
+  filter(pair %in% (pairs))
+
+
+#pairs in both sets
+udp_and_ldp <- inner_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
+    mutate(pair = paste0(adj, "_", noun))
+```
+
+### Plot of the udp pairs we have judgements for
+
+```{r}
+#read in the judgment data
+old_turk_counts <- read.csv("data/judgments_session.csv")
+
+udp_ldp_counts <- old_turk_counts %>%
+  mutate(pair = paste0(adj, "_", noun)) %>%
+  #filter
+  filter(pair %in% (udp_and_ldp %>% pull(pair)))
+
+#distribution plot for pairs in both sets
+udp_ldp_counts %>%
+  mutate(typicality=mean_typ) %>%
+  mutate(age = (4*session + 10)) %>%
+  group_by(session) %>%
+  mutate(age = min(age)) %>%
+  ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  # theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme_minimal() 
+```
+
+### Looking more into overlapping pairs
+
+```{r}
+# udp parsed pairs that aren't in our original ldp set
+anti_join(udp_pairs, ldp_pairs, by = c("adj", "noun")) %>% View(.) 
+# udp pairs-- adjectives that aren't in our set at all
+anti_join(udp_pairs, ldp_pairs, by = c("adj")) %>% count(adj) %>% arrange(desc(n))
+# udp pairs-- nouns that aren't in our set at all
+anti_join(udp_pairs, ldp_pairs, by = c("noun_stem")) %>% count(noun_stem) %>% arrange(desc(n)) %>% View(.)
+
+
+# pairs that are in our original set, but not tagged by udp
+anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun_stem"))
+anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
+  count(noun) %>% arrange(desc(n))
+anti_join(ldp_pairs, udp_pairs, by = c("adj", "noun")) %>%
+  count(adj) %>% arrange(desc(n))
+```
+
+***
+***
+***
+
+# Compare CB human judgements to UDPipe judgements for sampe of utts
+
+```{r load-data}
+# compare human adj and noun full combinations
+# udpipe adj and noun full combinations
+# udpipe parsed adj noun combinations
+# call compounds adjectives
+
+# no prenominal
+# check ben against claire
+human_parsed_pairs <- read_csv(here("data/test_parser_utts_thousand_CB.csv")) %>%
+  mutate(coded = "Claire") %>%
+  filter(!is.na(adj)) %>%
+  filter_concrete() %>%
+  # bind_rows(read_csv(here("data/test_parser_utts_thousand_BM.csv")) %>%
+  #             filter(!is.na(coded)) %>%
+  #             mutate(coded = "Ben")) %>%
+  rename(chat = p_chat) %>%
+  unite(pair, adj, noun, sep = "_") 
+
+models <- c("nomod", "compound", "conj", "bothmods", "all_pairs")
+
+read_model_pairs <- function(file) {
+  udpipe_parsed_pairs <- read_csv(here(glue(
+    "data/ldp_parent_original_parsed_pairs_{file}.csv"))) %>%
+  select(adj_token, noun_token, sentence, chat) %>%
+  rename(adj = adj_token, noun = noun_token) %>%
+  filter(chat %in% human_parsed_pairs$chat) %>%
+  filter_concrete() 
+  
+  # write_csv(udpipe_parsed_pairs %>% select(adj, noun) %>% distinct(), 
+  #           here(glue("data/model_pairs/{file}.csv")))
+  
+ udpipe_parsed_pairs %>%
+  unite(pair, adj, noun, sep = "_") %>%
+  distinct(pair, sentence, chat)
+}
+
+all_model_pairs <- suppressMessages(map(models, read_model_pairs))
+```
+
+```{r compute-F-udpipe}
+get_scores <- function(model_pairs) {
+  no_pairs <- human_parsed_pairs %>% 
+  filter(pair == "NA_NA") %>%
+  nrow()
+
+  recall_items <- human_parsed_pairs %>%
+    select(pair, chat) %>%
+    inner_join(model_pairs %>% select(pair, chat, sentence), 
+               by = c("pair", "chat")) %>%
+    select(-chat)
+  
+  non_recall_items <- human_parsed_pairs %>%
+    filter(pair != "NA_NA") %>%
+    select(pair, chat) %>%
+    anti_join(model_pairs %>% select(pair, chat, sentence), 
+              by = c("pair", "chat")) 
+  
+  non_precision_items <- model_pairs %>%
+    select(pair, chat) %>%
+    anti_join(human_parsed_pairs %>% select(pair, chat), 
+              by = c("pair", "chat")) 
+  
+  scores <- tibble(recall = (nrow(recall_items)) / 
+                    (nrow(human_parsed_pairs) - no_pairs),
+                  precision = (nrow(model_pairs) - 
+                                 nrow(non_precision_items)) /
+                    nrow(model_pairs), 
+                  f_score = 2 * ((precision * recall) / (precision + recall)))
+  
+  return(list(scores, non_recall_items, non_precision_items))
+}
+
+model_comparisons <- map(all_model_pairs, get_scores)
+
+scores <- map(model_comparisons, first) %>%
+  bind_rows(.id = "model") %>%
+  mutate(model = factor(model, labels = models))
+
+non_recall_items <- map(model_comparisons, ~nth(.x, 2)) %>%
+  bind_rows(.id = "model") %>%
+  mutate(model = factor(model, labels = models))
+
+non_precision_items <- map(model_comparisons, last) %>%
+  bind_rows(.id = "model") %>%
+  mutate(model = factor(model, labels = models))
+
+
+kable(scores)
+```
+
+```{r}
+non_recall_items %>%
+  filter(model == "compound") %>%
+  View()
+```
+
+
+```{r prenom-vs-not, eval = FALSE, include = FALSE}
+human_prenominal_pairs <- human_parsed_pairs %>%
+  filter(prenominal == 0)
+
+recall_prenominal_items <- human_prenominal_pairs %>%
+  select(pair, chat) %>%
+  semi_join(udpipe_parsed_pairs %>% select(pair, chat), by = c("pair", "chat"))
+
+non_precision_prenominal_items <- udpipe_parsed_pairs %>%
+  select(pair, chat) %>%
+  anti_join(human_prenominal_pairs %>% select(pair, chat), by = c("pair", "chat"))
+
+recall_prenominal = (nrow(recall_prenominal_items)) / (nrow(human_prenominal_pairs))
+
+precision_prenominal = (nrow(udpipe_parsed_pairs) - nrow(non_precision_prenominal_items)) / nrow(udpipe_parsed_pairs)
+
+f_score = 2 * ((precision * recall) / (precision + recall))
+```
+
+```{r switchboard}
+switchboard <- read_csv(here("data/switchboard_parsed_pairs_allmods.csv")) %>%
+  select(-paragraph_id, -dep_rel, -adj_pos) %>%
+  rename(adj = adj_token, noun = noun_token) %>%
+  filter_concrete() %>%
+  distinct(adj, noun, .keep_all = TRUE)
+```
