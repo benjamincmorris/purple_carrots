@@ -1,0 +1,110 @@
+---
+title: "Process coded data"
+author: "Dan Yurovsky"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+  highlight: tango
+theme: sandstone
+code_folding: show
+toc: false
+toc_float: false
+---
+  
+```{r libraries}
+library(udpipe)
+library(feather)
+library(here)
+library(tidyverse)
+library(glue)
+library(knitr)
+library(SnowballC)
+library(textstem)
+```
+
+Load manually coded root adjs
+```{r}
+dy <- read.csv(here("data/root_coded/root_coded_DY.csv")) %>%
+  as_tibble() %>%
+  filter(coder_id == "DY") %>%
+  rename(coded_noun = noun_token) %>%
+  mutate(extra0 = if_else(keep, glue("{adj_lower}-{coded_noun}"), "-")) %>%
+  select(-keep, -coded_noun, -adj_lower) %>%
+  unite(extra1, extra_adj1, extra_noun1,sep = "-") %>%
+  unite(extra2, extra_adj2, extra_noun2,sep = "-") %>%
+  unite(extra3, extra_adj3, extra_noun3,sep = "-") %>%
+  unite(extra4, extra_adj4, extra_noun4,sep = "-") %>%
+  pivot_longer(cols = c(extra0, extra1:extra4), names_to = "num", 
+               values_to = "coded") %>%
+  filter(coded != "-") %>%
+  separate(coded, into = c("adj", "noun"), sep = "-") %>%
+  select(doc_id, sentence, coder_id, adj, noun)
+
+bm <- read.csv(here("data/root_coded/root_coded_BM.csv")) %>%
+  as_tibble() %>%
+  filter(coder_id == "BM") %>%
+  mutate(keep = !to_drop) %>%
+  select(-to_drop, -noun_token) %>%
+  mutate(extra0 = if_else(keep, glue("{adj_lower}-{coded_noun}"), "-")) %>%
+  select(-keep, -coded_noun, -adj_lower) %>%
+  unite(extra1, extra_adj1, extra_noun1,sep = "-") %>%
+  unite(extra2, extra_adj2, extra_noun2,sep = "-") %>%
+  unite(extra3, extra_adj3, extra_noun3,sep = "-") %>%
+  unite(extra4, extra_adj4, extra_noun4,sep = "-") %>%
+  unite(extra5, extra_adj5, extra_noun5,sep = "-") %>%
+  unite(extra6, extra_adj6, extra_noun6,sep = "-") %>%
+  pivot_longer(cols = c(extra0, extra1:extra6), names_to = "num", 
+               values_to = "coded") %>%
+  filter(coded != "-") %>%
+  separate(coded, into = c("adj", "noun"), sep = "-") %>%
+  select(doc_id, sentence, coder_id, adj, noun)
+ 
+cb <- read.csv(here("data/root_coded/root_coded_CB.csv")) %>%
+  as_tibble() %>%
+  filter(coder == "CB") %>%
+  rename(coder_id = coder) %>%
+  mutate(keep = as.logical(keep),
+         extra0 = if_else(keep, glue("{adj_coded}-{noun_coded}"), "-")) %>%
+  select(-keep, -noun_coded, -adj_lower, -noun_token, -adj_coded) %>%
+  unite(extra1, adj_coded_1, noun_coded_1,sep = "-") %>%
+  unite(extra2, adj_coded_2, noun_coded_2,sep = "-") %>%
+  unite(extra3, adj_coded_3, noun_coded_3,sep = "-") %>%
+  unite(extra4, adj_coded_4, noun_coded_4,sep = "-") %>%
+  unite(extra5, adj_coded_5, noun_coded_5,sep = "-") %>%
+  pivot_longer(cols = c(extra0, extra1, extra2, extra3, extra4, extra5), 
+               names_to = "num", 
+               values_to = "coded") %>%
+  pivot_longer(cols = keep_1:keep_5, names_to = "keep_num", 
+               values_to = "keep_value") %>%
+  mutate(num = str_remove(num, "extra"),
+         keep_num = str_remove(keep_num, "keep_")) %>%
+  filter(num == 0 | keep_num == num) %>%
+  distinct(doc_id, sentence, coder_id, coded, keep_value) %>%
+  distinct() %>%
+  filter(coded != "-", is.na(keep_value) | keep_value == 1) %>%
+  separate(coded, into = c("adj", "noun"), sep = "-", extra = "merge") %>%
+  select(doc_id, sentence, coder_id, adj, noun)
+```
+
+```{r combine}
+all_roots <- bind_rows(dy, cb, bm) 
+
+non_roots <- read_csv(
+  here("data/ldp_parent_original_parsed_pairs_compounds_and_root.csv")) %>%
+  filter(noun_token != "ROOT") %>%
+  select(doc_id, sentence, adj_token, noun_token) %>%
+  rename(noun = noun_token, adj = adj_token) %>%
+  mutate(coder_id = "udpipe")
+
+combined_coded <- non_roots %>%
+  bind_rows(all_roots) %>%
+  mutate(adj = str_to_lower(adj),
+         noun = str_to_lower(noun))
+
+combined_coded %>%
+  mutate(adj_lemma = lemmatize_words(adj),
+         noun_lemma = lemmatize_words(noun)) %>%
+  distinct(adj_lemma, noun_lemma) 
+
+write_csv(here("data/ldp_parent_manually_processed_"))
+```
