@@ -99,11 +99,12 @@ non_roots <- read_csv(
 combined_coded <- non_roots %>%
   bind_rows(all_roots) %>%
   mutate(adj = str_to_lower(adj),
-         noun = str_to_lower(noun))
+         noun = str_to_lower(noun),
+         adj_lemma = lemmatize_words(adj),
+         noun_lemma = lemmatize_words(noun))
+  
 
 combined_coded %>%
-  mutate(adj_lemma = lemmatize_words(adj),
-         noun_lemma = lemmatize_words(noun)) %>%
   distinct(adj_lemma, noun_lemma) 
 
 write_csv(combined_coded, here("data/ldp_parent_manually_processed.csv"))
