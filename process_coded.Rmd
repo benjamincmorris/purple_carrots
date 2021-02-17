@@ -106,5 +106,5 @@ combined_coded %>%
          noun_lemma = lemmatize_words(noun)) %>%
   distinct(adj_lemma, noun_lemma) 
 
-write_csv(here("data/ldp_parent_manually_processed_"))
+write_csv(combined_coded, here("data/ldp_parent_manually_processed.csv"))
 ```
