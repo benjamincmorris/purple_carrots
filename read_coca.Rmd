@@ -19,10 +19,11 @@ library(feather)
 library(data.table)
 library(tidytext)
 library(tidyverse)
+library(stringr)
 ```
 
 ```{r read-files, eval = F}
-files <- list.files(here("wlp"), recursive = T, full.names = T)
+files <- list.files(here("../../Box/COCA/wlp"), recursive = T, full.names = T)
 
 read_coca_file <- function(file) {
   
@@ -37,25 +38,27 @@ read_coca_file <- function(file) {
   type <- filename[2]
   year <- filename[3]
 
-  corpus <- fread(file, skip = 2, sep = "\t", 
-                  col.names = c("word", "stem", "morph")) %>%
-    filter(!is.na(stem)) %>%
-    as_tibble() %>%
-    mutate(sent_break = if_else(stem %in% c("<p>", ".", "?", "!"), 1, 0)) %>%
-    mutate(sentence = cumsum(sent_break) + 1) %>%
-    filter(morph != "y") %>%
-    select(-word, -sent_break) 
-  
-  corpus %>%
-    filter(morph %in% c("nn1", "nn2", "jj")) %>%
-    mutate(type = type, year = year)
+  if (type == "spok") {
+    corpus <- fread(file, skip = 2, sep = "\t", 
+                    col.names = c("word", "stem", "morph")) %>%
+      filter(!is.na(stem)) %>%
+      as_tibble() %>%
+      mutate(sent_break = if_else(stem %in% c("<p>", ".", "?", "!"), 1, 0)) %>%
+      mutate(sentence = cumsum(sent_break) + 1) %>%
+      filter(morph != "y") %>%
+      select(-word, -sent_break) 
+    
+    corpus %>%
+      filter(morph %in% c("nn1", "nn2", "jj")) %>%
+      mutate(type = type, year = year)
+  }
 }
 ```
 
 ```{r run-coca, eval = F}
-# coca <- map_dfr(files, read_coca_file)
-# write_feather(coca, "coca.feather")
-coca <- read_feather(here("coca.feather"))
+#coca <- map_dfr(files, read_coca_file)
+write_feather(coca, "coca_spok.feather")
+coca <- read_feather(here("coca_spok.feather"))
 
 adj_coca <- filter(coca, morph == "jj") %>%
   select(-morph) %>%
@@ -75,13 +78,14 @@ pairs <- inner_join(adj_coca, noun_coca, by = c("year", "type", "sentence"))
 counts <- pairs %>%
   group_by(type, adj, noun) %>%
   summarise(n = n()) %>%
-  filter(n >= 10)
+  filter(n > 1) %>%
+  filter(!str_detect(adj, "-"), !str_detect(adj, "\\*"))
 
-write_feather(counts, here("coca_counts.feather"))
+write_feather(counts, here("data/coca_spok_counts.feather"))
 ```
 
 ```{r}
-coca_counts <- read_feather(here("data/coca_counts.feather"))
+coca_counts <- read_feather(here("data/coca_spok_counts.feather"))
 
 token_data <- read_csv(here("data/clean_token_data.csv")) %>%
   distinct(adj, noun, .keep_all = TRUE) %>%
@@ -95,7 +99,7 @@ adult_tokens <- read_csv(here("data/adult_tokens.csv")) %>%
   left_join(token_data, by = c("adj", "noun")) %>%
   select(adj, noun, type, n, x1:x5, mean_typ, noun_conc)
 
-write_csv(adult_tokens, here("data/adult_tokens_withn.csv"))
+write_csv(adult_tokens, here("data/adult_tokens_spok_withn.csv"))
 ```
 
 

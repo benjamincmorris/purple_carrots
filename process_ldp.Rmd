@@ -29,7 +29,7 @@ source(here("read_ldp.R"))
 
 Load utterances
 ```{r load-ldp-data}
-ldp <- connect_to_ldp_local()
+ldp <- connect_to_ldp()
 
 subs_to_keep <- get_table(ldp, "subjects") %>%
     collect() %>%

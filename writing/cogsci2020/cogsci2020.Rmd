@@ -158,7 +158,9 @@ type_data_by_session <- token_data %>%
 
 
 ```{r models}
-model_judgments <- read_csv(here("data/all_judgments.csv"))
+# old file without bert probs
+#model_judgments <- read_csv(here("data/all_judgments.csv"))
+model_judgments <- read_csv(here("data/all_models_probs.csv"))
 
 tidy_turk_counts <- type_data_by_session %>%
     # select(-noun_conc, -noun_freq) %>%
@@ -401,10 +403,10 @@ tidy_turk_counts <- tidy_turk_counts %>%
   filter(!(noun == "orange"))
 
 tidy_turk_counts_for_plots <- tidy_turk_counts %>%
-  distinct(noun,adj,mean_typ,ldp_similarity,wiki_similarity)
+  distinct(noun,adj,mean_typ,ldp_similarity,wiki_similarity, bert_p, bert_gen)
 
 word2vec_cor_data <- tidy_turk_counts %>%
-  group_by(adj, noun, wiki_similarity, ldp_similarity) %>%
+  group_by(adj, noun, wiki_similarity, ldp_similarity, bert_p, bert_gen) %>%
   summarise(typicality = mean(score, na.rm = T), n = sum(n)) 
 
 ldp_cor <- wtd.cor(word2vec_cor_data %>% pull(typicality),
@@ -415,8 +417,24 @@ wiki_cor <- wtd.cor(word2vec_cor_data %>% pull(typicality),
                     word2vec_cor_data %>% pull(wiki_similarity)) %>%
   as_tibble()
 
+bert_p_cor <- wtd.cor(word2vec_cor_data %>% pull(typicality),
+                    word2vec_cor_data %>% pull(bert_p)) %>%
+  as_tibble()
+
+bert_gen_cor <- wtd.cor(word2vec_cor_data %>% pull(typicality),
+                    word2vec_cor_data %>% pull(bert_gen)) %>%
+  as_tibble()
+
 
 models_cor <- wtd.cor(word2vec_cor_data %>% pull(ldp_similarity),
+                    word2vec_cor_data %>% pull(wiki_similarity)) %>%
+  as_tibble()
+
+bertp_wikiw2v_cor <- wtd.cor(word2vec_cor_data %>% pull(bert_p),
+                    word2vec_cor_data %>% pull(wiki_similarity)) %>%
+  as_tibble()
+
+bertgen_wikiw2v_cor <- wtd.cor(word2vec_cor_data %>% pull(bert_gen),
                     word2vec_cor_data %>% pull(wiki_similarity)) %>%
   as_tibble()
 
@@ -484,8 +502,10 @@ high_low_pairs <- tidy_turk_counts_for_plots %>%
          typicality = factor(typicality, levels = c("low", "high"))) %>%
   left_join(tidy_turk_counts_for_plots)
 
+#write_csv(high_low_pairs, here("data/high_low_pairs.csv"))
+
 correct_orders <- high_low_pairs %>%
-  pivot_longer(cols = c(ldp_similarity, wiki_similarity), 
+  pivot_longer(cols = c(ldp_similarity, wiki_similarity, bert_gen, bert_p), 
                names_to = "measure", values_to = "similarity") %>%
   select(-adj, -mean_typ) %>%
   pivot_wider(names_from = "typicality", values_from = "similarity") %>%
@@ -502,11 +522,23 @@ wiki_correct <- correct_orders %>%
   filter(measure == "wiki_similarity") %>%
   pull(correct)
 
+bertp_correct <- correct_orders %>%
+  filter(measure == "bert_p") %>%
+  pull(correct)
+
+bertgen_correct <- correct_orders %>%
+  filter(measure == "bert_gen") %>%
+  pull(correct)
+
 pairs_total <- correct_orders %>% pull(total) %>% first()
 
 ldp_binom <- binom.test(ldp_correct, pairs_total)$p.value %>%
   printp()
 wiki_binom <- binom.test(wiki_correct, pairs_total)$p.value %>%
+  printp()
+bertp_binom <- binom.test(bertp_correct, pairs_total)$p.value %>%
+  printp()
+bertgen_binom <- binom.test(bertgen_correct, pairs_total)$p.value %>%
   printp()
 ```
 
@@ -515,13 +547,13 @@ wiki_binom <- binom.test(wiki_correct, pairs_total)$p.value %>%
 # The black dotted line shows average human typicality ratings (scaled) for these items. The blue line shows how well our models do at capturing this trend, with grey lines representing individual pairs
 
 halves_data <- high_low_pairs %>%
-  pivot_longer(cols = c(mean_typ, wiki_similarity, ldp_similarity),
+  pivot_longer(cols = c(mean_typ, wiki_similarity, ldp_similarity, bert_gen, bert_p),
               names_to = "measure", values_to = "score") %>%
   mutate(measure = factor(measure, 
                           levels = c("mean_typ", "ldp_similarity", 
-                                     "wiki_similarity"), 
+                                     "wiki_similarity", "bert_p", "bert_gen"), 
                           labels = c("Human", "LDP word2vec", 
-                                     "Wiki word2vec"))) %>%
+                                     "Wiki word2vec", "BERT prenominal", "BERT postnominal"))) %>%
   mutate(score = if_else(measure=="Human", score/7, score)) %>%
   filter(! noun == "orange") %>%
     filter(! adj == "orange") 
@@ -540,7 +572,7 @@ means <- halves_data %>%
 grob <- grobTree(textGrob("Human ratings \n (scaled)", x=0.97,  y=0.85, hjust=1,
   gp=gpar(col="Black", fontsize=9, fontface="italic")))
   
-grob2 <- grobTree(textGrob("Average W2V", x=.96,  y=0.57, hjust=1,
+grob2 <- grobTree(textGrob("Model average", x=.96,  y=0.33, hjust=1,
   gp=gpar(col="steelblue", fontsize=9, fontface="italic")))
 
 typicality_axis <- c("Low Typicality", "High Typicality")
@@ -582,6 +614,42 @@ halves_data %>%
   annotation_custom(grob) +
   annotation_custom(grob2) +
   scale_x_discrete(labels= typicality_axis, expand = c(.2, .2))
+
+bert_plot <- halves_data %>%
+  filter(measure %in% c("BERT prenominal", "BERT postnominal")) %>%
+  mutate(measure = factor(measure, 
+                          levels = c("BERT prenominal", "BERT postnominal"))) %>%
+  ggplot(aes(x = typicality, y = score, group = noun)) +
+  facet_wrap(~measure) +
+  geom_point(alpha = .5, position=position_dodge(0.06), color = "light gray") +
+  geom_line(alpha = .5, color = "light gray", position=position_dodge(0.06)) +
+  geom_line(data=human, aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
+  geom_point(data=human, aes(x=typicality, y=mean, group=NA), color="black") +
+  geom_line(data=means %>% 
+              filter(measure %in% c("BERT prenominal", "BERT postnominal")), 
+            aes(x=typicality, y=mean, group=NA), color="steelblue", size=.8) +
+  geom_point(data=means %>%
+               filter(measure %in% c("BERT prenominal", "BERT postnominal")), 
+             aes(x=typicality, y=mean, group=NA), color="steelblue") +
+  labs(x = "Binned Human-Rated Typicality", y = "Probability") +
+  theme_few() +
+  coord_cartesian(ylim=c(-0.17,1)) +
+  annotation_custom(grob) +
+  annotation_custom(grob2) +
+  scale_x_discrete(labels= typicality_axis, expand = c(.2, .2)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+ggsave(bert_plot, filename = "bert_plot.png",  width = 6, height = 4, units = "in", dpi = 300, bg = "transparent")
 ```
 
 ```{r pairs_tab, results="asis", tab.env = "table"}
