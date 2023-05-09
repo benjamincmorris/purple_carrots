@@ -1,0 +1,47 @@
+---
+title: "purple_carrots_mturk_processing"
+output: html_document
+---
+
+```{r load_libraries}
+library(tidyverse)
+library(jsonlite)
+library(here)
+library(anonymizer)
+
+theme_set(theme_classic(base_size = 18))
+```
+
+```{r read_files}
+files <- list.files(here("writing/journal_article/production-results"), full.names = T)
+
+read_file <- function(file) {
+  
+  json_out <- fromJSON(file)
+  id <- json_out$WorkerId
+  raw_data <- data.frame(do.call(rbind, json_out$answers))
+  raw_data[raw_data == "NULL"] <- NA_character_
+  cols = names(pluck(raw_data, "0"))
+  
+  data <- raw_data
+}
+
+raw_data <- map(files, read_file) %>%
+  do.call(bind_rows, .) %>%
+  as_tibble() 
+
+raw_data <- as.data.frame(lapply(raw_data, unlist))
+```
+
+```{r tidy_data}
+data <- raw_data %>%
+  mutate(subid = anonymize(as.factor(subid), .seed = 400),
+         itemid = as.numeric(itemid),
+         trialnum = as.numeric(trialnum),
+         rating = as.numeric(rating),
+         date = as.Date(date),
+         timestamp = as.character(timestamp),
+         reactiontime = as.numeric(reactiontime)) 
+
+#write_csv(raw_data, here("data/ldp_cabnc_data.csv"))
+```

@@ -1,0 +1,224 @@
+---
+title: "data_processing"
+author: "Claire Bergey"
+date: "12/8/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(feather)
+library(data.table)
+library(tidytext)
+library(tidyverse)
+library(ggridges)
+library(scales)
+library(ggthemes)
+```
+
+```{r read-data}
+coded_data <- read_csv(here("data/ldp_cabnc_data.csv"))
+```
+
+```{r}
+all_subjs <- coded_data %>%
+  count(subid)
+
+keep_subjs <- coded_data %>%
+  filter(is.na(adjective) & is.na(noun) & rating == 5)
+
+subj_data <- coded_data %>%
+  filter(!(is.na(adjective) & is.na(noun))) %>%
+  filter(subid %in% keep_subjs$subid) 
+
+nonsense_pairs <- subj_data %>%
+  group_by(adjective, noun) %>%
+  tally(rating == 8) %>%
+  filter(n >= 2) %>%
+  mutate(adj_noun_phrase = paste(adjective, noun, sep = " "))
+
+subj_data <- subj_data %>%
+  mutate(adj_noun_phrase = paste(adjective, noun, sep = " ")) %>%
+  filter(!(adj_noun_phrase %in% nonsense_pairs$adj_noun_phrase),
+         rating != 8)
+
+mean_ratings <- subj_data %>%
+  group_by(adjective, noun) %>%
+  summarise(mean_typ = mean(rating))
+```
+
+```{r}
+ldp <- read_csv(here("data/ldp_conc_adj_noun_utts_with_session.csv"))
+orig_tokens <- read_csv(here("data/ldp_cabnc_pairs_all_info.csv"))
+
+ldp <- ldp %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  select(doc_id, sentence, noun_token, adjective, noun, prenominal, 
+         dataset, subject, session, person, chat, utts, mass, adj_article, 
+         article, adj_token_id, noun_token_id) 
+
+ldp_coded <- ldp %>%
+  left_join(mean_ratings, by = c("adjective", "noun")) %>%
+  rename(mean_rating = mean_typ) %>%
+  filter(!is.na(mean_rating))
+```
+
+```{r read-cabnc}
+cabnc <- read_csv(here("data/all_cabnc_ldpParentandKid_conc_unique_UTTS.csv"))
+
+# for now this has both cabnc and ldp utterances. let's get a list of most common adjectives to use ...
+common_adjs <- cabnc %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  count(adjective) %>%
+  arrange(desc(n)) %>%
+  slice(1:500)
+
+#write_csv(common_adjs, here("data/500_common_adjs.csv"))
+
+cabnc <- cabnc %>%
+  filter(dataset == "cabnc_utts_udpipe") %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  select(doc_id, sentence, noun_token, adjective, noun, prenominal, 
+         dataset, subject, session, person, chat, utts, mass, adj_article, 
+         article, adj_token_id, noun_token_id) 
+```
+
+```{r}
+all_pairs <- subj_data %>%
+  distinct(adjective, noun)
+
+#write_csv(all_pairs, here("data/final_pairs_ldp_cabnc.csv"))
+
+# then we run that file through word2vec/get_wiki_similarities.py to get this file ...
+w2v_judgments <- read_csv(here("data/all_judgments_ldp_cabnc.csv")) %>%
+  mutate(ldp_similarity = if_else(ldp_similarity == "nan", NA_character_, ldp_similarity),
+         wiki_similarity = as.numeric(wiki_similarity),
+         ldp_similarity = as.numeric(ldp_similarity))
+
+# and run through bert_gpt/get_GPT.py to get GPT-2 probabilities...
+gpt2_judgments <- read_csv(here("data/gpt2_judgments_ldp_cabnc.csv"))
+```
+
+```{r}
+
+min_max_ratings <- mean_ratings %>%
+  group_by(noun) %>%
+  mutate(min_typ = min(mean_typ), max_typ = max(mean_typ)) %>%
+  distinct(noun, min_typ, max_typ) %>%
+  filter(min_typ != max_typ, max_typ >= 5, min_typ <= 3) 
+
+high_low_pairs <- mean_ratings %>%
+  filter(noun %in% min_max_ratings$noun) %>%
+  left_join(min_max_ratings, by = c("noun")) %>%
+  filter(mean_typ == min_typ | mean_typ == max_typ) %>%
+  select(adjective, noun, mean_typ) %>%
+  group_by(noun) %>%
+  arrange(noun, desc(mean_typ)) 
+
+weighted_ratings <- subj_data %>%
+  group_by(adjective, noun) %>%
+  count(rating) %>%
+  mutate(p = n/sum(n)) %>%
+  ungroup()  %>%
+  group_by(rating) %>%
+  summarise(p = sum(p)) %>%
+  ungroup() %>%
+  mutate(p = p/sum(p))
+```
+
+```{r}
+mean_ratings %>%
+  ggplot(aes(x = mean)) +
+  geom_density() +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always'))
+
+weighted_ratings %>%
+  ggplot(aes(x = rating, y = p)) +
+  geom_bar(stat = "identity") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always'))
+```
+
+```{r}
+w2v_judgments %>%
+  ggplot(aes(x = turker_judgment, y = wiki_similarity)) +
+  geom_point(alpha = 0.2) + 
+  geom_smooth()
+
+w2v_judgments %>%
+  ggplot(aes(x = turker_judgment, y = ldp_similarity)) +
+  geom_point(alpha = 0.2) + 
+  geom_smooth()
+```
+
+```{r}
+
+gpt2_judgments %>% mutate(logprob = log(prob)) %>% filter(logprob < -20) %>% View()
+                          
+                          
+gpt2_judgments %>%
+  ggplot(aes(x = mean, y = log(prob))) +
+  geom_point(alpha = 0.2) + 
+  geom_smooth()
+```
+
+
+
+
+
+```{r}
+ldp_coded %>%
+  filter(person == "parent") %>%
+  mutate(typicality=mean_rating) %>%
+  mutate(age = (4*session + 10)) %>%
+  group_by(session) %>%
+  mutate(age = min(age)) %>%
+  ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))
+```
+
+
+```{r}
+ldp_coded %>%
+  filter(person == "child") %>%
+  mutate(typicality=mean_rating) %>%
+  mutate(age = (4*session + 10)) %>%
+  group_by(session) %>%
+  mutate(age = min(age)) %>%
+  ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))
+```
+
+```{r cabnc}
+
+
+```
