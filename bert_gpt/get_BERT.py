@@ -22,7 +22,7 @@ model.eval()
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 df = pd.read_csv("../data/final_pairs_ldp_cabnc.csv")
-alt_adjs = pd.read_csv("../data/500_common_adjs.csv")
+alt_adjs = pd.read_csv("../data/250_common_adjs.csv")
 alternative_adjs = np.unique(alt_adjs.adjective).tolist()
 
 def bert_completions(text, model, tokenizer):
@@ -55,7 +55,7 @@ def compare_completions(context, candidates, bertMaskedLM, tokenizer):
   return(continuations.loc[continuations.word.isin(candidates)])
 
 
-def bert_score(lst, w, sentence):     
+def bert_score(lst, w):     
   if lst[lst['word'] == w.lower()].empty:
   	print(w + ' is not in BERT vocab')
   	return(epsilon) # word is not in the BERT vocab    
@@ -71,7 +71,7 @@ def get_adj_prob_full(adjective, noun):
 	for adj_candidate in adjs:
 		adj_tokenized = tokenizer.tokenize(adj_candidate)
 		if len(adj_tokenized) == 1:
-			adj_prob = bert_score(all_probs, adj_candidate, sentence)
+			adj_prob = bert_score(all_probs, adj_candidate)
 			row = {'adj': adj_candidate, 'prob': adj_prob}
 			all_adj_probs = all_adj_probs.append(row, ignore_index = True)
 		else:
@@ -84,7 +84,7 @@ def get_adj_prob_full(adjective, noun):
 					token_probs = bert_completions(sentence, model, tokenizer)
 				else:
 					token_probs = all_probs
-				adj_prob = adj_prob * bert_score(all_probs, adj_tokenized[i], sentence)
+				adj_prob = adj_prob * bert_score(token_probs, adj_tokenized[i])
 				idx = token_sentence.index('[MASK]')
 				token_sentence = token_sentence[:idx] + adj_tokenized[i] + " " + token_sentence[idx:]
 			row = {'adj': adj_candidate, 'prob': adj_prob}
@@ -103,7 +103,7 @@ def get_adj_prob(adjective, noun):
 	adjs = alternative_adjs
 	for adj_candidate in adjs:
 		adj_tokenized = tokenizer.tokenize(adj_candidate)
-		adj_prob = bert_score(all_probs, adj_tokenized[0], sentence)
+		adj_prob = bert_score(all_probs, adj_tokenized[0])
 		row = {'adj': adj_candidate, 'prob': adj_prob}
 		all_adj_probs = all_adj_probs.append(row, ignore_index = True)
 	this_tokenized = tokenizer.tokenize(adjective)
@@ -113,11 +113,8 @@ def get_adj_prob(adjective, noun):
 		for i in range(0, len(this_tokenized)):
 			if (i == len(this_tokenized) - 1):
 				token_sentence = token_sentence + " ."
-			if (i != 0):
-				token_probs = bert_completions(sentence, model, tokenizer)
-			else:
-				token_probs = all_probs
-			adj_prob = adj_prob * bert_score(all_probs, adj_tokenized[i], sentence)
+			token_probs = bert_completions(sentence, model, tokenizer)
+			adj_prob = adj_prob * bert_score(token_probs, adj_tokenized[i])
 			idx = token_sentence.index('[MASK]')
 			token_sentence = token_sentence[:idx] + adj_tokenized[i] + " " + token_sentence[idx:]
 		all_adj_probs[all_adj_probs['adj'] == adjective]['prob'] = adj_prob

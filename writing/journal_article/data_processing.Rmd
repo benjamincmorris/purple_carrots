@@ -15,6 +15,9 @@ library(tidyverse)
 library(ggridges)
 library(scales)
 library(ggthemes)
+library(lme4)
+library(lmerTest)
+library(broom.mixed)
 ```
 
 ```{r read-data}
@@ -60,6 +63,7 @@ ldp <- ldp %>%
          article, adj_token_id, noun_token_id) 
 
 ldp_coded <- ldp %>%
+  mutate(age = (4*session + 10)) %>%
   left_join(mean_ratings, by = c("adjective", "noun")) %>%
   rename(mean_rating = mean_typ) %>%
   filter(!is.na(mean_rating))
@@ -76,15 +80,25 @@ common_adjs <- cabnc %>%
   arrange(desc(n)) %>%
   slice(1:500)
 
-#write_csv(common_adjs, here("data/500_common_adjs.csv"))
+common_adjs_250 <- cabnc %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  count(adjective) %>%
+  arrange(desc(n)) %>%
+  slice(1:250)
+
+#write_csv(common_adjs_250, here("data/250_common_adjs.csv"))
 
 cabnc <- cabnc %>%
   filter(dataset == "cabnc_utts_udpipe") %>%
   left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
   rename(adjective = adj_token) %>%
   select(doc_id, sentence, noun_token, adjective, noun, prenominal, 
-         dataset, subject, session, person, chat, utts, mass, adj_article, 
-         article, adj_token_id, noun_token_id) 
+         dataset, mass, adj_article, 
+         article, adj_token_id, noun_token_id) %>%
+  left_join(mean_ratings, by = c("adjective", "noun")) %>%
+  rename(mean_rating = mean_typ) %>%
+  filter(!is.na(mean_rating))
 ```
 
 ```{r}
@@ -104,7 +118,6 @@ gpt2_judgments <- read_csv(here("data/gpt2_judgments_ldp_cabnc.csv"))
 ```
 
 ```{r}
-
 min_max_ratings <- mean_ratings %>%
   group_by(noun) %>%
   mutate(min_typ = min(mean_typ), max_typ = max(mean_typ)) %>%
@@ -132,7 +145,7 @@ weighted_ratings <- subj_data %>%
 
 ```{r}
 mean_ratings %>%
-  ggplot(aes(x = mean)) +
+  ggplot(aes(x = mean_typ)) +
   geom_density() +
   scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always'))
 
@@ -155,9 +168,7 @@ w2v_judgments %>%
 ```
 
 ```{r}
-
 gpt2_judgments %>% mutate(logprob = log(prob)) %>% filter(logprob < -20) %>% View()
-                          
                           
 gpt2_judgments %>%
   ggplot(aes(x = mean, y = log(prob))) +
@@ -166,14 +177,10 @@ gpt2_judgments %>%
 ```
 
 
-
-
-
 ```{r}
-ldp_coded %>%
+ldp_parent_plot <- ldp_coded %>%
   filter(person == "parent") %>%
   mutate(typicality=mean_rating) %>%
-  mutate(age = (4*session + 10)) %>%
   group_by(session) %>%
   mutate(age = min(age)) %>%
   ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
@@ -190,15 +197,27 @@ ldp_coded %>%
     axis.text.y = element_text(size=11),
     legend.position = "none") +
   scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
-  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+ggsave(ldp_parent_plot, filename = "writing/journal_article/ldp_parent_plot.png",  width = 6, height = 8, units = "in", dpi = 300, bg = "transparent")
 ```
 
 
 ```{r}
-ldp_coded %>%
+ldp_child_plot <- ldp_coded %>%
   filter(person == "child") %>%
   mutate(typicality=mean_rating) %>%
-  mutate(age = (4*session + 10)) %>%
   group_by(session) %>%
   mutate(age = min(age)) %>%
   ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
@@ -215,10 +234,191 @@ ldp_coded %>%
     axis.text.y = element_text(size=11),
     legend.position = "none") +
   scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
-  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+ggsave(ldp_child_plot, filename = "writing/journal_article/ldp_child_plot.png",  width = 6, height = 8, units = "in", dpi = 300, bg = "transparent")
 ```
 
 ```{r cabnc}
+cabnc_plot <- cabnc %>%
+  mutate(typicality=mean_rating) %>%
+  ggplot(aes(x = typicality)) +
+  geom_density(fill="cornsilk") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
 
+ggsave(cabnc_plot, filename = "writing/journal_article/cabnc_plot.png",  width = 6, height = 3, units = "in", dpi = 300, bg = "transparent")
+```
+
+```{r}
+parent_typical_ratings <- ldp_coded %>%
+  filter(person == "parent") %>%
+  group_by(age, adjective, noun, mean_rating) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(typical = mean_rating >= 5)
+
+typicals_parent <- ldp_coded %>%
+  filter(person == "parent") %>%
+  group_by(age, adjective, noun, mean_rating) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(typical = mean_rating >= 5) %>%
+  group_by(age, typical) %>%
+  summarise(weighted_sum = sum(n), sum = n()) %>%
+  pivot_longer(cols = c(sum, weighted_sum), names_to = "measure", values_to = "sum") %>%
+  group_by(age, measure) %>%
+  mutate(prop = sum / sum(sum)) %>%
+  filter(typical)
+
+cabnc_typicals <- cabnc %>%
+  group_by(adjective, noun, mean_rating) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(typical = mean_rating >= 5) %>%
+  group_by(typical) %>%
+  summarise(weighted_sum = sum(n), sum = n()) %>%
+  pivot_longer(cols = c(sum, weighted_sum), names_to = "measure", values_to = "sum") %>%
+  group_by(measure) %>%
+  mutate(prop = sum / sum(sum)) %>%
+  filter(typical) %>%
+  mutate(corpus = "Adult-Adult Speech")
+
+typical_type_lmer <- glmer(typical ~ log(age) + (1|noun), 
+                      data = parent_typical_ratings, 
+     family = "binomial") %>% 
+  tidy() %>%
+  filter(effect == "fixed")
+
+typical_token_lmer <- glmer(typical ~ log(age) + (1|noun), 
+                      data = parent_typical_ratings, 
+                      weights = n,
+     family = "binomial") %>% 
+  tidy() %>%
+  filter(effect == "fixed")
+```
+
+```{r typicals-plot}
+parent_typicals_plot <- typicals_parent %>% 
+  filter(measure == "weighted_sum") %>% 
+  ggplot(aes(x = age,y = prop, colour = age)) +
+  geom_smooth(method = "glm", formula = y~x,
+                      method.args = list(family = gaussian(link = 'log')),color = "black") +
+  geom_point(aes(fill=age), colour="black",pch=21, size=5) +
+  ylab("Proportion of modifiers rated as \n typical of modified noun") +
+  xlab("Child's Age (months)") +
+  scale_x_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))+
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme(#axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(),
+        #axis.text = element_text(size=14),
+        #panel.grid = element_line(color="lightgrey",size=0.5),
+        #axis.text.x = element_text(size=10, angle=15),
+        legend.position = "none",
+        aspect.ratio = 1/1.62) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+ggsave(parent_typicals_plot, filename = "writing/journal_article/parent_typicals_plot.png",  width = 6, height = 4, units = "in", dpi = 300, bg = "transparent")
+
+cabnc_typicals_plot <- cabnc_typicals %>%
+  filter(measure == "weighted_sum") %>% 
+  ggplot(aes(x = corpus,y = prop, colour = age)) +
+  geom_point(colour="black",pch=21, size=5) +
+  scale_y_continuous(limits = c(0, 0.125)) +
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme(#axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(),
+        #axis.text = element_text(size=14),
+        #panel.grid = element_line(color="lightgrey",size=0.5),
+        #axis.text.x = element_text(size=10, angle=15),
+        legend.position = "none",
+        aspect.ratio = 1/1.62) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+ggsave(cabnc_typicals_plot, filename = "writing/journal_article/cabnc_typicals_plot.png",  width = 2, height = 8, units = "in", dpi = 300, bg = "transparent")
+
+```
+
+```{r}
+ldp_parent_overall_plot <- ldp_coded %>%
+  filter(person == "parent") %>%
+  mutate(typicality=mean_rating) %>%
+  ggplot(aes(x = typicality)) +
+  geom_density(fill="cornsilk") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+ggsave(ldp_parent_overall_plot, filename = "writing/journal_article/ldp_parent_overall_plot.png",  width = 6, height = 3, units = "in", dpi = 300, bg = "transparent")
 
 ```
