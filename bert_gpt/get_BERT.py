@@ -95,34 +95,30 @@ def get_adj_prob_full(adjective, noun):
 	print('probs took '+str(time.time() - begin)+'s')
 	return this_prob/sum
 
-def get_adj_prob(adjective, noun):
+def get_adj_prob(row):
 	begin = time.time()
-	sentence = 'The ' + noun + ' is [MASK] .'
+	print(row['adjective'] + " " + row['noun'])
+	sentence = '[MASK] ' + row['noun']
 	all_probs = bert_completions(sentence, model, tokenizer)
-	all_adj_probs = pd.DataFrame(columns = ['adj','prob'])
-	adjs = alternative_adjs
-	for adj_candidate in adjs:
-		adj_tokenized = tokenizer.tokenize(adj_candidate)
-		adj_prob = bert_score(all_probs, adj_tokenized[0])
-		row = {'adj': adj_candidate, 'prob': adj_prob}
-		all_adj_probs = all_adj_probs.append(row, ignore_index = True)
-	this_tokenized = tokenizer.tokenize(adjective)
+	this_tokenized = tokenizer.tokenize(row['adjective'])
 	if (len(this_tokenized) > 1):
+		is_multi_token = True
 		adj_prob = 1
-		token_sentence = 'The ' + noun + ' is [MASK]'
+		token_sentence = sentence
 		for i in range(0, len(this_tokenized)):
-			if (i == len(this_tokenized) - 1):
-				token_sentence = token_sentence + " ."
+			print(token_sentence)
 			token_probs = bert_completions(sentence, model, tokenizer)
-			adj_prob = adj_prob * bert_score(token_probs, adj_tokenized[i])
+			adj_prob = adj_prob * bert_score(token_probs, this_tokenized[i])
 			idx = token_sentence.index('[MASK]')
-			token_sentence = token_sentence[:idx] + adj_tokenized[i] + " " + token_sentence[idx:]
-		all_adj_probs[all_adj_probs['adj'] == adjective]['prob'] = adj_prob
-	sum = all_adj_probs['prob'].sum()
-	this_prob = all_adj_probs[all_adj_probs['adj'] == adjective]['prob'].iloc[0]
-	print(this_prob/sum)
+			token_sentence = token_sentence[:idx] + this_tokenized[i] + " " + "[MASK] " + row['noun']
+	else:
+		is_multi_token = False
+		adj_prob = bert_score(all_probs, row['adjective'])
+	print(adj_prob)
 	print('probs took '+str(time.time() - begin)+'s')
-	return this_prob/sum
+	row['prob'] = adj_prob
+	row['is_multi_token'] = is_multi_token
+	return row
 
-df['prob'] = df.apply(lambda x: get_adj_prob_full(x['adjective'], x['noun']), axis = 1)
+df = df.apply(get_adj_prob, axis = 1)
 df.to_csv('../data/bert_judgments_ldp_cabnc.csv')

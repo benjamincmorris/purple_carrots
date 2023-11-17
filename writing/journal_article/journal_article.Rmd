@@ -1,0 +1,937 @@
+---
+title             : "Children hear more about what is atypical than what is typical"
+shorttitle: "Children hear about the atypical"
+
+author: 
+  - name          : "Claire Augusta Bergey"
+    affiliation   : "1"
+    corresponding : yes    # Define only one corresponding author
+    address       : "5848 S. University Avenue, Chicago, IL 60637"
+    email         : "cbergey@wisc.edu"
+  - name          : "Ben Morris"
+    affiliation   : "1"
+    email         : "benmorris@uchicago.edu"
+  - name          : "Dan Yurovsky"
+    affiliation   : "2"
+
+affiliation:
+  - id            : "1"
+    institution   : "The University of Chicago"
+  - id            : "2"
+    institution   : "Carnegie Mellon University"
+
+ 
+
+abstract: |
+  XXXX CHANGE ABSTRACT How do children learn the typical features of objects in the world? For many objects, this information must come from the language they hear. However, language does not veridically reflect the world: People are more likely to talk about atypical features (e.g., “purple carrot”) than typical features (e.g., “orange carrot”). Does the speech children hear from their parents also overrepresent atypical features? We examined the typicality of adjectives produced by parents in a large, longitudinal corpus of parent-child interaction. Across nearly 2000 unique adjective–noun pairs, we found parents’ adjectives predominantly mark atypical features of objects, although parents of very young children are relatively more likely to comment on typical features as well. We then used vector space models to show that learning the typical features of common categories from linguistic input alone is challenging even with sophisticated statistical inference techniques.
+  
+
+keywords          : language input, language acquisition, child-directed speech, corpus analysis, language models
+
+bibliography      : ["purple-carrots.bib"]
+
+floatsintext      : yes
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : yes
+mask              : no
+draft             : no
+documentclass     : "apa6"
+classoption       : "man"    
+output            : papaja::apa6_pdf
+---
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=3, fig.height=3, fig.crop = F, 
+                      fig.pos = "tb", fig.path='figs/',
+                      echo = F, warning = F, cache = F, 
+                      message = F, sanitize = T)
+# Note: to build, 
+options(digits=2)
+```
+
+```{r, libraries}
+library(png)
+library(ggplot2)
+library(here)
+library(ggridges)
+library(scales)
+library(tidyboot)
+library(xtable)
+library(papaja)
+library(lme4)
+library(lmerTest)
+library(ggthemes)
+library(broom.mixed)
+library(weights)
+library(tidyverse)
+library(grid)
+
+theme_set(theme_few())
+```
+
+Children learn a tremendous amount about the structure of the world around them in just a few short years, from the rules that govern the movement of physical objects to the hierarchical structure of natural categories and even relational structures among social and cultural groups [@baillargeon1994; @rogers2004; @legare2016]. Where does the information driving this rapid acquisition come from? Undoubtedly, a sizeable component comes from direct experience observing and interacting with the world [@sloutsky2004; @stahl2015]. But another important source of information comes from the language people use to talk about the world [@landauer1997; @rhodes2012]. How similar is the information available from children's direct experience to the information available in the language children hear? 
+
+Two lines of work suggest that they may be surprisingly similar. One compelling area of work is the comparison of visual semantics learned by congenitally blind people to those of their sighted peers. In several domains that would seem at first blush to rely heavily on visual information, such as verbs of visual perception (e.g., *look*, *see*), blind children and adults make semantic similarity judgments that mirror their sighted peers [@landau2009; @bedny2019; @kim_knowledge_2019]. 
+
+A second line of evidence supporting the similarity of information in perception and language is the broad success of statistical models trained on language alone in approximating human judgments across a variety of domains [@landauer1997; @mikolov2013; @devlin2018; @brown_language_2020]. Even more compellingly, models trained on both language and perceptual features for some words can infer the perceptual features of linguistically related words entirely from the covariation of language and perception [@johns2012]. 
+<!-- update with more recent language modeling -->
+
+Still, there is reason to believe that some semantic features may be harder to learn from language than these data suggest. This is because we rarely use language merely to provide running commentary on the world around us; instead, we use language to talk about things that diverge from our expectations or those of our conversational partner [@grice1975]. People tend to avoid being over- or under-informative when they speak. In particular, when referring to objects, people are informative with respect to both the referential context and the typical features of the referent [@westerbeek2015; @rubio-fernandez2016]. People tend to refer to an object that is typical of its category with a bare noun (e.g., calling an orange carrot "a carrot"), but often specify when an object has an atypical feature (e.g, "a purple carrot"). Given these communicative pressures, naturalistic language statistics may provide surprisingly little evidence about what is typical [@willits2008]. 
+
+```{r utt_table, results="asis", tab.env = "table"}
+tab <- tibble(utterance = c("especially with wooden shoes.",
+                            "you like red onions?", 
+                            "the garbage is dirty."),
+              pair = c("wooden-shoe", "red-onion", "dirty-garbage"),
+              `rating 1` = c(2, 5, 7),
+              `rating 2` = c(2, 3, 6),
+              `rating 3` = c(2, 4, 6),
+              `mean` = c(2, 3.6, 6)) %>% 
+  xtable(display = c("s", "s", "s", "d", "d", "d", "f"),
+         caption = "Sample typicality ratings from three human coders for three adjective-noun pairs drawn from the corpus. Note that means may be slightly different from the mean of the three ratings shown here because some pairs have more than three ratings.",
+         label = "tab:utt_table")
+
+print(tab, type = "latex", comment = F, table.placement = "tb", floating = TRUE,
+      floating.environment = "table",
+      include.rownames = FALSE)
+```
+
+<!-- This is because people rarely use language merely to provide running comentary on the world around them. Instead, we use language to talk about things we find interesting--things that are surprising, exciting, or otherwise divergent from our conversational partners' expectations [@grice1975].  -->
+
+<!--When faced with an object that is typical of its kind, speakers overwhelmingly refer to that object with a bare noun- e.g., calling a banana that is yellow "a banana." But, when faced with an object that is atypical of its kind, speakers consistently produce description as well- e.g., calling a banana that is blue "a blue banana." This allows speakers to be as informative as needed, providing no description when it should be assumed (yellow banana) and providing information when it is unexpected (blue banana). These two empirical, lab-based phenomena demonstrate communicative pressures which, at scale, could mean naturalistic language is structured to contain much more description of what is atypical.-->
+
+If parents speak to children in this minimally informative way, children may be faced with input that emphasizes atypicality in relation to world knowledge they do not yet have. For things like carrots--which children learn about both from perception and from language--this issue may be resolved by integrating both sources of information. Likely almost all of the carrots children see are orange, and hearing an atypical exemplar noted as a "purple carrot" may make little difference in their inferences about the category of carrots more broadly. But for things to which they lack perceptual access---such as rare objects, unfamiliar social groups, or inaccessible features like the roundness of the Earth---much of the information must come from language [@harris2006]. If language predominantly notes atypical features rather than typical ones, children may overrepresent atypical features as they learn the way things in the world tend to be.
+
+On the other hand, parents may speak to children far differently from the way they speak to other adults. Parents' speech may reflect typical features of the world more veridically, or even emphasize typical features in order to teach children about the world. Parents alter their speech to children along a number of structural dimensions, using simpler syntax and more reduplications [@snow1972]. Their use of description may reflect similar alignment to children's abilities by emphasizing typical feature information children are still learning.
+
+We examine the typicality of adjectives with respect to the nouns they describe in a large, diverse corpus of parent-child interactions recorded in children's homes to ask whether parents talking to their children tend to use adjectives to mark atypical features. We find that they do: Parents overwhelmingly choose to mention atypical rather than typical features. We also find that parents use adjectives differently over the course of children's development, noting highly typical features more often to younger children. We additionally compare parents' speech to a corpus of adult-adult speech and find that parents' use of description when talking to children is quite similar to adults' use of description when talking to other adults, and becomes more so as children get older.
+
+We then ask whether the co-occurrence structure of language nonetheless captures typicality information by testing whether distributional semantics models trained on child-directed speech and adult-directed text capture adjective-noun typicality. We find that relatively little typical feature information is represented in these semantic spaces. We also test whether two more advanced language models, BERT and GPT-3, capture typicality, and find that the latter does fairly well. These models are unlikely to reflect children's learning mechanisms or language input, but tell us what kinds of typicality information are learnable from language in principle.
+
+Children's *own* speech offers a window into how children treat adjectives: do children choose to remark on atypical features themselves? We examine children's speech in the same corpus of parent-child interactions and find that children too mostly remark on the atypical rather than typical features of things. Though this observational finding cannot provide definitive evidence that children use description to be selectively informative about atypical features, it suggests that even early in life their speech is shaped by adults' pattern of selective description.
+
+## Adjective typicality
+
+In order to determine whether parents use adjectives mostly to mark atypical features of categories, we analyzed caregiver speech from a large corpus of parent-child interactions, as well as adult-adult speech as a comparison. We extracted adjectives and the nouns they modified from caregiver speech, and asked a sample of Amazon Mechanical Turkers to judge how typical the property described by each adjective was for the noun it modified. We then examined both the broad features of this typicality distribution and the way it changes over development. 
+
+### Corpora
+
+We used data from the Language Development Project, a large-scale, longitudinal corpus of parent-child interactions recorded in children's homes. Families were recruited to be representative of the Chicagoland area in both socio-economic and racial composition; all families spoke English at home [@goldin-meadow2014]. Recordings were taken in the home every 4 months from when the child was 14 months old until they were 58 months old, resulting in 12 timepoints. Each recording was of a 90-minute session in which parents and children were free to behave and interact as they liked.
+
+Our sample consisted of 64 typically-developing children and their caregivers with data from at least 4 timepoints (*mean* = 11.3 timepoints). Together, this resulted in a total of 641,402 parent utterances and 368,348 child utterances.
+
+As an adult-adult speech comparison, we used data from the Conversation Analytic British National Corpus, a corpus of naturalistic, informal conversations in people's everyday lives [@albert_cabnc_2015; @coleman_audio_2012]. We excluded any conversations with child participants, for a total of 99,305 adult-adult utterances.
+
+
+### Stimulus Selection
+
+We parsed each utterance in our corpora using UDPipe, an automated dependency parser, and extracted adjectives and the nouns they modified. This set contained a number abstract or evaluative adjective-noun pairs whose typicality would be difficult to classify (e.g., "good"--"job"; "little"--"bit"). To resolve this issue, we used human judgments of words' concreteness to identify and exclude non-concrete adjectives and nouns [@brysbaert2014]. We retained for analysis only pairs in which both the adjective and noun were in the top 25% of concreteness ratings (e.g., "dirty" -- "dish"; "green" -- "fish"). Additionally, one common adjective that is used abstractly and evaluatively in British English but is concrete in American English (*bloody*) was excluded from the set of pairs from the CABNC.
+
+Our final sample included 6,370 unique adjective-noun pairs drawn from 7,471 parent utterances, 2,775 child utterances, and 1,867 adult-adult utterances. The pairs were combinations of 1,498 distinct concrete nouns and 1,388 distinct concrete adjectives. We compiled these pairs and collected human judgments on Amazon Mechanical Turk for each pair, as described below. Table \ref{tab:utt_table} contains example utterances from the final set and typicality judgments from our human raters.
+
+## Participants
+
+Each participant rated 35 adjective-noun pairs, and we aimed for each pair to be rated five times, for a total of 910 rating tasks. Participants were allowed to rate more than one set of pairs and were paid $0.80 per task. Distribution of pairs was balanced using a MongoDB database that tracked how often sets of pairs had been rated. If a participant allowed their task to expire with the task partially complete, we included those ratings and re-recruited the task. Overall, participants completed 32,461 ratings. After exclusions using an attention check that asked participants to simply choose a specific number on the scale, we retained 32,293 judgments, with each adjective–noun pair retaining at least two judgments.
+
+## Design and Procedure
+
+To evaluate the typicality of the adjective–noun pairs that appeared in parents' speech, we asked participants on Amazon Mechanical Turk to rate each pair. Participants were presented with a question of the form "How common is it for a cow to be a brown cow?" and asked to provide a rating on a seven-point scale: (1) never, (2) rarely, (3) sometimes, (4) about half the time, (5) often, (6) almost always, (7) always. We also gave participants the option to select "Doesn't make sense" if they could not understand what the adjective-noun pair would mean. Pairs that were marked with "Doesn't make sense" by two or more participants were excluded from the final set of pairs: 1,591 pairs were excluded at this stage, for a final set of 4,779 rated adjective-noun pairs.
+
+```{r read-data-judgments}
+coded_data <- read_csv(here("data/ldp_cabnc_data.csv"))
+
+all_subjs <- coded_data %>%
+  count(subid)
+
+keep_subjs <- coded_data %>%
+  filter(is.na(adjective) & is.na(noun) & rating == 5)
+
+subj_data <- coded_data %>%
+  filter(!(is.na(adjective) & is.na(noun))) %>%
+  filter(subid %in% keep_subjs$subid) 
+
+nonsense_pairs <- subj_data %>%
+  group_by(adjective, noun) %>%
+  tally(rating == 8) %>%
+  filter(n >= 2) %>%
+  mutate(adj_noun_phrase = paste(adjective, noun, sep = " "))
+
+subj_data <- subj_data %>%
+  mutate(adj_noun_phrase = paste(adjective, noun, sep = " ")) %>%
+  filter(!(adj_noun_phrase %in% nonsense_pairs$adj_noun_phrase),
+         rating != 8)
+
+mean_ratings <- subj_data %>%
+  group_by(adjective, noun) %>%
+  summarise(mean_typ = mean(rating)) %>%
+  ungroup()
+
+ldp <- read_csv(here("data/ldp_conc_adj_noun_utts_with_session.csv"))
+orig_tokens <- read_csv(here("data/ldp_cabnc_pairs_all_info.csv"))
+
+ldp <- ldp %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  select(doc_id, sentence, noun_token, adjective, noun, prenominal, 
+         dataset, subject, session, person, chat, utts, mass, adj_article, 
+         article, adj_token_id, noun_token_id) 
+
+ldp_coded <- ldp %>%
+  mutate(age = (4*session + 10)) %>%
+  left_join(mean_ratings, by = c("adjective", "noun")) %>%
+  rename(mean_rating = mean_typ) %>%
+  filter(!is.na(mean_rating))
+```
+
+```{r read-cabnc}
+all_corpora <- read_csv(here("data/all_cabnc_ldpParentandKid_conc_unique_UTTS.csv"))
+
+# for now this has both cabnc and ldp utterances. let's get a list of most common adjectives to use ...
+common_adjs <- all_corpora %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  count(adjective) %>%
+  arrange(desc(n)) %>%
+  slice(1:500)
+
+common_adjs_250 <- all_corpora %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  count(adjective) %>%
+  arrange(desc(n)) %>%
+  slice(1:250)
+
+all_corpus_counts <- all_corpora %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  count(adjective, noun) %>%
+  ungroup()
+
+#write_csv(common_adjs_250, here("data/250_common_adjs.csv"))
+
+cabnc <- all_corpora %>%
+  filter(dataset == "cabnc_utts_udpipe") %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  select(doc_id, sentence, noun_token, adjective, noun, prenominal, 
+         dataset, mass, adj_article, 
+         article, adj_token_id, noun_token_id) %>%
+  left_join(mean_ratings, by = c("adjective", "noun")) %>%
+  rename(mean_rating = mean_typ) %>%
+  filter(!is.na(mean_rating))
+```
+
+```{r read-judgments}
+all_pairs <- subj_data %>%
+  distinct(adjective, noun, article, adj_article)
+
+#write_csv(all_pairs, here("data/final_pairs_ldp_cabnc.csv"))
+
+# then we run that file through word2vec/get_wiki_similarities.py to get this file ...
+w2v_judgments <- read_csv(here("data/w2v_sims_ldp_cabnc.csv")) %>%
+  mutate(
+         wiki_similarity = as.numeric(wiki_similarity),
+         ldp_similarity = as.numeric(ldp_similarity))
+
+bert_judgments <- read_csv(here("data/bert_judgments_ldp_cabnc.csv")) %>%
+  select(adjective, noun, prob, is_multi_token)
+
+gpt3_judgments_raw <- read_csv(here("data/gpt3_judgments_ldp_cabnc.csv")) %>%
+  rbind(read_csv(here("data/gpt3_judgments_ldp_cabnc_2.csv"))) %>%
+  rbind(read_csv(here("data/gpt3_judgments_ldp_cabnc_3.csv")))
+
+gpt3_judgments <- gpt3_judgments_raw %>%
+  mutate(gpt3_judgment = str_remove(tolower(gpt3_judgment), "[.]")) %>%
+  mutate(gpt3_judgment = if_else(gpt3_judgment == "usually rarely", "rarely", gpt3_judgment)) %>%
+  mutate(gpt3_score = case_when(gpt3_judgment == "never" ~ 1,
+                                gpt3_judgment == "rarely" ~ 2,
+                                gpt3_judgment == "sometimes" ~ 3,
+                                gpt3_judgment == "about half the time" ~ 4,
+                                gpt3_judgment == "often" ~ 5,
+                                gpt3_judgment == "almost always" ~ 6,
+                                gpt3_judgment == "always" ~ 7))
+
+all_judgments <- mean_ratings %>%
+  left_join(bert_judgments, by = c("adjective", "noun")) %>%
+  rename(bert_prob = prob) %>%
+  left_join(w2v_judgments, by = c("adjective", "noun")) %>%
+  left_join(gpt3_judgments, by = c("adjective", "noun"))
+```
+
+```{r models}
+parent_tokens <- ldp %>%
+  filter(person == "parent") %>%
+  mutate(age = 10 + 4 * session) %>%
+  count(session, age, adjective, noun) %>%
+  left_join(subj_data %>% select(adjective, noun, rating), relationship = "many-to-many") %>%
+  filter(!is.na(rating)) %>%
+  group_by(session, age, adjective, noun) %>%
+  mutate(rater_num = row_number()) %>%
+  ungroup() %>%
+  mutate(centered_rating = rating - 4)
+
+kid_tokens <- ldp %>%
+  filter(person == "child") %>%
+  mutate(age = 10 + 4 * session) %>%
+  count(session, age, adjective, noun) %>%
+  left_join(subj_data %>% select(adjective, noun, rating), relationship = "many-to-many") %>%
+  filter(!is.na(rating)) %>%
+  group_by(session, age, adjective, noun) %>%
+  mutate(rater_num = row_number()) %>%
+  ungroup() %>%
+  mutate(centered_rating = rating - 4)
+
+cabnc_tokens <- cabnc %>%
+  count(adjective, noun) %>%
+  left_join(subj_data %>% select(adjective, noun, rating), relationship = "many-to-many") %>%
+  filter(!is.na(rating)) %>%
+  group_by(adjective, noun) %>%
+  mutate(rater_num = row_number()) %>%
+  ungroup() %>%
+  mutate(centered_rating = rating - 4)
+
+mean_parent_type <- lmer(centered_rating ~ 1 + (1|noun),
+                     data = parent_tokens) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+mean_parent_type_byage <- parent_tokens %>%
+  group_by(age) %>%
+  nest() %>%
+  mutate(effect = map(data, ~lmer(centered_rating ~ 1 + (1|noun),
+                     data = .) %>%
+                       tidy() %>%
+                       filter(effect == "fixed"))) %>%
+  select(-data) %>%
+  unnest(cols = c(effect)) %>%
+  ungroup()
+
+mean_parent_token_byage <- parent_tokens %>%
+  group_by(age) %>%
+  nest() %>%
+  mutate(effect = map(data, ~lmer(centered_rating ~ 1 + (1|noun),
+                                  weights = n, data = .) %>%
+                       tidy() %>%
+                       filter(effect == "fixed"))) %>%
+  select(-data) %>%
+  unnest(cols = c(effect)) %>%
+  ungroup()
+
+mean_parent_token <- lmer(centered_rating ~ 1 + (1|noun), weights = n,
+                     data = parent_tokens) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+
+parent_token_weight <- lmer(centered_rating ~ log(age) + (1|noun),
+                     weights = n,
+                     data = parent_tokens) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+
+parent_type_weight <- lmer(centered_rating ~ log(age) + (1|noun),
+                     data = parent_tokens) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+
+mean_cabnc_token <- lmer(centered_rating ~ 1 + (1|noun), weights = n, data  = cabnc_tokens) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+mean_kid_token <- lmer(centered_rating ~ 1 + (1|noun), weights = n, data  = kid_tokens) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+```
+```{r result-effects}
+token_estimate <- mean_parent_token %>% pull(estimate)
+token_statistic <- mean_parent_token %>% pull(statistic)
+token_p <- mean_parent_token %>% pull(p.value) %>% printp()
+
+token_age_estimate <- mean_parent_token_byage %>% slice(1) %>% pull(estimate)
+token_age_statistic <- mean_parent_token_byage %>% slice(1) %>% pull(statistic)
+token_age_p <- mean_parent_token_byage %>% slice(1) %>% pull(p.value) %>% printp()
+
+cabnc_token_estimate <- mean_cabnc_token %>% pull(estimate)
+cabnc_token_statistic <- mean_cabnc_token %>% pull(statistic)
+cabnc_token_p <- mean_cabnc_token %>% pull(p.value) %>% printp()
+
+token_development_estimate <- parent_token_weight %>% filter(term == "log(age)") %>% 
+  pull(estimate)
+token_development_statistic <- parent_token_weight %>% filter(term == "log(age)") %>% 
+  pull(statistic)
+token_development_p <-parent_token_weight %>% filter(term == "log(age)") %>% 
+  pull(p.value) %>% printp()
+
+kid_token_estimate <- mean_kid_token %>% filter(term == "(Intercept)") %>%
+  pull(estimate)
+kid_token_statistic <- mean_kid_token %>% filter(term == "(Intercept)") %>%
+  pull(statistic)
+kid_token_p <- mean_kid_token %>% filter(term == "(Intercept)") %>%
+  pull(p.value) %>% printp()
+```
+
+
+### Results
+
+We combined the human typicality ratings with usage data from our corpora to examine the extent to which parents, children, and adults speaking to other adults use language to describe typical and atypical features. In our analyses, we token-weighted these judgments, giving higher weight to pairs that occurred more frequently in speech. However, results are qualitatively identical and all significant effects remain significant when examined on a type level.
+
+If caregivers speak informatively to convey what is atypical or surprising in relation to their own sophisticated world knowledge, we should see that caregiver description is dominated by adjectives that are sometimes or rarely true of the noun they modify. If instead child-directed speech privileges redundant information, perhaps to align to young children's limited world knowledge, caregiver description should yield a distinct distribution dominated by highly typical modifiers. As we predicted, we found that parents' description predominantly focuses on features that are atypical (Figure \ref{fig:distribution-plot}).
+
+```{r distribution-plot, fig.align = "center", fig.width=3.4, fig.height = 5.4, fig.cap = "Density plots showing parents' use of atypical and typical adjective-noun pairs across their child's age.", fig.pos="tb"}
+ldp_coded %>%
+  filter(person == "parent") %>%
+  mutate(typicality=mean_rating) %>%
+  group_by(session) %>%
+  mutate(age = min(age)) %>%
+  ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+```
+
+To confirm this effect statistically, we centered the ratings (i.e. "about half" was coded as 0), and then predicted the rating on each trial with a mixed effect model with only an intercept and a random effect of noun (\texttt{typicality $\sim$ 1 + (1|noun)}). The intercept was reliably negative, indicating that adjectives tend to refer to atypical features of objects ($\beta =$ `r token_estimate`, $t =$ `r token_statistic`, $p$ `r token_p`). We then re-estimated these models separately for each age in the corpus, and found a reliably negative intercept for every age group (smallest effect $\beta_{14} =$ `r token_age_estimate`, $t =$ `r token_age_statistic`, $p$ `r token_age_p`).  Even when talking with very young children, caregiver speech is structured according to the kind of communicative pressures observed in adult-adult conversation in the lab.
+
+To examine whether this holds for naturalistic adult-adult conversation, we performed the same analyses on usage of adjective-noun pairs in adult-adult speech in the Conversation Analytic British National Corpus. The overall distribution of adjective-noun typicality is remarkably similar between child-directed and adult-directed speech (Figure \ref{fig:cabnc-parent-overall}). Fitting the same mixed-effects model to the adult-directed data, we found that the intercept was reliably negative, indicating that adult-adult speech also predominantly highlights atypical features ($\beta =$ `r cabnc_token_estimate`, $t =$ `r cabnc_token_statistic`, $p$ `r cabnc_token_p`). 
+
+<!-- Examining usage data as a function of typicality (see Figure \ref{fig:distribution_plot}), we see evidence of a positive skew (0.65). Data from every time point from 14-58 months seems to show a similar pattern (skews 0.23 - 0.82). These skews provide further evidence that the the bulk of caregiver language reflects lower-typicality adjective-noun pairs. -->
+
+```{r cabnc-parent-overall, fig.align = "center", fig.height = 4, fig.cap = "Density plots showing use of atypical and typical adjective-noun pairs by parents speaking to children and adults speaking to other adults.", fig.pos="tb"}
+ldp_coded %>%
+  filter(person == "parent") %>%
+  mutate(corpus = "Parent speech") %>%
+  select(adjective, noun, sentence, mean_rating, corpus) %>%
+  bind_rows(cabnc %>% mutate(corpus = "Adult-adult speech") %>% 
+              select(adjective, noun, sentence, mean_rating, corpus)) %>%
+  mutate(typicality=mean_rating) %>%
+  ggplot(aes(x = typicality)) +
+  geom_density(fill="cornsilk") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  facet_wrap(~corpus, ncol = 1) +
+  theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+```
+
+```{r compute_prototypicals}
+parent_typical_ratings <- ldp_coded %>%
+  filter(person == "parent") %>%
+  group_by(age, adjective, noun, mean_rating) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(typical = mean_rating >= 5)
+
+typicals_parent <- ldp_coded %>%
+  filter(person == "parent") %>%
+  group_by(age, adjective, noun, mean_rating) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(typical = mean_rating >= 5) %>%
+  group_by(age, typical) %>%
+  summarise(weighted_sum = sum(n), sum = n()) %>%
+  pivot_longer(cols = c(sum, weighted_sum), names_to = "measure", values_to = "sum") %>%
+  group_by(age, measure) %>%
+  mutate(prop = sum / sum(sum)) %>%
+  filter(typical)
+
+
+typical_type_lmer <- glmer(typical ~ log(age) + (1|noun), 
+                      data = parent_typical_ratings, 
+     family = "binomial") %>% 
+  tidy() %>%
+  filter(effect == "fixed")
+
+typical_token_lmer <- glmer(typical ~ log(age) + (1|noun), 
+                      data = parent_typical_ratings, 
+                      weights = n,
+     family = "binomial") %>% 
+  tidy() %>%
+  filter(effect == "fixed")
+```
+```{r typical-effects}
+typical_effect <- typical_token_lmer %>% filter(term == "log(age)") %>%
+  pull(estimate)
+typical_statistic <- typical_token_lmer %>% filter(term == "log(age)") %>% 
+  pull(statistic)
+typical_p <- typical_token_lmer %>% filter(term == "log(age)") %>% 
+  pull(p.value) %>% printp()
+```
+
+
+Returning to caregiver speech, while descriptions at every age tended to point out atypical features (as in adult-adult speech), this effect changed in strength over development. As predicted, an age effect added to the previous model was reliably negative, indicating that parents of older children are relatively more likely to focus on atypical features  ($\beta =$ `r token_development_estimate`, $t =$ `r token_development_statistic`, $p$ `r token_development_p`). In line with the idea that caregivers adapt their speech to their children's knowledge, it seems that caregivers are more likely to provide description of typical features for their young children, compared with older children. As a second test of this idea, we defined adjectives as highly typical if Turkers judged them to be 'often', 'almost always', or 'always' true. We predicted whether each judgment was highly typical from a mixed-effects logistic regression with a fixed effect of age (log-scaled) and a random effect of noun. Age was a highly reliable predictor ($\beta =$ `r typical_effect`, 
+$t =$ `r typical_statistic`, $p$ `r typical_p`). While children at all ages hear more talk about what is atypically true (Figure  \ref{fig:distribution-plot}), younger children hear relatively more talk about what is typically true than older children do (Figure \ref{fig:prototypical-plot}).
+
+```{r prototypical-plot, fig.align = "center", fig.cap = "Proportion of caregiver description that is about highly typical features (often, almost always, or always true), as a function of age."}
+
+typicals_parent %>% 
+  filter(measure == "weighted_sum") %>% 
+  ggplot(aes(x = age,y = prop, colour = age)) +
+  geom_smooth(method = "glm", formula = y~x,
+                      method.args = list(family = gaussian(link = 'log')),color = "black") +
+  geom_point(aes(fill=age), colour="black",pch=21, size=5) +
+  ylab("Proportion of modifiers rated as \n highly typical of modified noun") +
+  xlab("Child's Age (months)") +
+  scale_x_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))+
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme(#axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(),
+        #axis.text = element_text(size=14),
+        #panel.grid = element_line(color="lightgrey",size=0.5),
+        #axis.text.x = element_text(size=10, angle=15),
+        legend.position = "none",
+        aspect.ratio = 1/1.62) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+```
+
+### Child Speech.
+
+Given the striking consistency in adult-to-adult speech and caregiver speech across ages, we next consider what kind of information is contained in children's speech. By analyzing children's own utterances, we can determine when children come to use description in a way that looks like adult speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe more typical features of the world?
+
+We analyzed children's own use of description and found that, following the pattern of parent speech and adult-adult speech, they predominantly mention atypical rather than typical features (Figure \ref{fig:child-ridge-plot}). The fact that children are remarking on atypical features is intriguing, but it would be premature to conclude that they are doing so to be selectively informative. Note also that especially at young ages, children produce few adjective-noun pairs—they are not producing any at 14 months old, our earliest timepoint—so our data on children's speech is somewhat sparse. We discuss potential interpretations of this finding further in the Conclusion.
+
+<!-- Mirroring caregiver and adult-adult speech, children's productions show a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). -->
+
+```{r child-ridge-plot, fig.align = "center", fig.width=3.4, fig.height = 5.4, fig.cap = "Density plots showing children's use of atypical and typical adjective-noun pairs across age.", fig.pos="tb"}
+ldp_coded %>%
+  filter(person == "child") %>%
+  mutate(typicality=mean_rating) %>%
+  group_by(session) %>%
+  mutate(age = min(age)) %>%
+  ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  scale_fill_gradient(low="cornsilk", high=muted("green")) +
+  theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+```
+
+## Discussion
+
+In sum, we find robust evidence that language is used to discuss atypical, rather than typical, features of the world. Description in caregiver speech seems to largely mirror the usage patterns that we observed in adult-to-adult speech, suggesting that these patterns arise from general communicative pressures. Interestingly, the descriptions children hear change over development, becoming increasingly focused on atypical features. The higher prevalence of typical descriptors in early development may help young learners learn what is typical; however, even at the earliest point we measured, the bulk of language input describes atypical features. 
+
+It should be noted that children's utterances come from naturalistic conversations with caregivers, and their use of atypical description may be prompted by parent-led discourse. That is, if a caregiver chooses to describe the *purpleness* of a cat in book, the child may well respond by asking about that same feature. Further, atypical descriptors may actually be more likely to elicit imitation from child speakers, compared with typical descriptors [@bannard2017]. Future analyses would need to better disentangle the extent to which children's productions are imitative of caregivers. 
+
+<!-- their pattern of description is likely highly dependent on their caregiver's utterances.... Thus, it is possible that some of the children's use of atypical description is prompted by a parent-led discourse. -->
+
+<!-- Interestingly, the descriptions children hear change over development, becoming increasingly focused on atypical features. The higher prevalence of typical descriptors in early development may help young learners learn what is typical; however, even at the earliest point we measured, the bulk of language input describes atypical features. -->
+
+<!-- Across adult, parent, and child language corpora, we find robust evidence that language use systematically overerpresents atypical features.  -->
+
+This usage pattern aligns with the idea that language is used informatively in relation to background knowledge about the world. It may pose a problem, however, for young language learners with still-developing world knowledge. If language does not transparently convey the typical features of objects, and instead (perhaps misleadingly) notes the atypical ones, how might children come to learn what objects are typically like? One possibility is that information about typical features is captured in more complex regularities across many utterances. If this is true, language may still be an important source of information about typicality as children may be able to extract more accurate typicality information by tracking statistical regularities across many utterances.
+
+# Extracting Typicality from Language Structure
+
+Much information can be gleaned from language that does not seem available at first glance. From language alone, simple distributional learning models can recover enough information to perform comparably to non-native college applicants on the Test of English as a Foreign Language [@landauer1997]. Recently, @lewis2019 demonstrated that even nuanced feature information may be learnable through distributional semantics alone, without any complex inferential machinery. Further, experiments with adults and children suggest that co-occurrence regularities may help structure semantic knowledge [@unger_statistical_2020; @savic_experience_2023; @savic_exposure_2022]. Here, we ask whether a simple distributional semantics model trained on the language children hear can capture typical feature information. Further, we test whether a distributional semantics model trained on a larger corpus of adult-directed text as well as two more sophisticated language models capture adjective-noun typicality. These models are trained on more and different language than is available to children, but tell us more about whether and how typicality information is learnable by applying simple learning objectives to text.  
+
+```{r word2vec-cors}
+ldp_cor <- wtd.cor(all_judgments %>% pull(mean_typ),
+                    all_judgments %>% pull(ldp_similarity)) %>%
+  as_tibble()
+
+wiki_cor <- wtd.cor(all_judgments %>% pull(mean_typ),
+                   all_judgments %>% pull(wiki_similarity)) %>%
+  as_tibble()
+
+bert_cor <- wtd.cor(all_judgments %>% pull(mean_typ),
+                    all_judgments %>% pull(bert_prob)) %>%
+  as_tibble()
+
+gpt3_cor <- wtd.cor(all_judgments %>% pull(mean_typ),
+                    all_judgments %>% pull(gpt3_score)) %>%
+  as_tibble()
+
+models_cor <- wtd.cor(all_judgments %>% pull(ldp_similarity),
+                    all_judgments %>% pull(wiki_similarity)) %>%
+  as_tibble()
+
+bert_wikiw2v_cor <- wtd.cor(all_judgments %>% pull(bert_prob),
+                    all_judgments %>% pull(wiki_similarity)) %>%
+  as_tibble()
+
+ldp_cor_estimate <- ldp_cor %>% pull(correlation)
+ldp_cor_p <- ldp_cor %>% pull(p.value) %>% printp()
+
+
+wiki_cor_estimate <- wiki_cor %>% pull(correlation)
+wiki_cor_p <- wiki_cor %>% pull(p.value) %>% printp()
+
+bert_cor_estimate <- bert_cor %>% pull(correlation)
+bert_cor_p <- bert_cor %>% pull(p.value) %>% printp()
+
+gpt3_cor_estimate <- gpt3_cor %>% pull(correlation)
+gpt3_cor_p <- gpt3_cor %>% pull(p.value) %>% printp()
+
+w2v_models_cor_estimate <- models_cor %>% pull(correlation)
+w2v_models_cor_p <- models_cor %>% pull(p.value) %>% printp()
+w2v_bert_cor_estimate <- bert_wikiw2v_cor %>% pull(correlation)
+w2v_bert_cor_p <- bert_wikiw2v_cor %>% pull(p.value) %>% printp()
+
+```
+
+```{r, eval = FALSE}
+split_half <- tidy_turk_counts %>%
+  mutate(rater = as.numeric(gsub("x", "", rater))) %>%
+  filter(rater %in% c(1, 2)) %>%
+  group_by(rater, noun, adj) %>%
+  summarise(score = mean(score, na.rm = T)) %>%
+  pivot_wider(names_from = rater, values_from = score)
+
+half_model <- lmer(`1` ~ `2` + (1|adj) + (1|noun), data = split_half)
+
+split_half %>%
+  ungroup() %>%
+  mutate(prediction = predict(half_model)) %>%
+  summarise(cor = cor(`1`, prediction))
+
+data <- tidy_turk_counts_for_plots %>% 
+       left_join(tidy_turk_counts %>% filter(rater == "x1"))
+
+cor(data$score, data$wiki_similarity, use = "pairwise")
+
+wiki_model <- lm(score ~ wiki_similarity ,
+     data = data) 
+
+tidy_turk_counts_for_plots %>%
+  filter(!is.na(wiki_similarity)) %>%
+  mutate(prediction = predict(wiki_model)) %>%
+  summarise(cor = cor(prediction, turker_judgment))
+
+```
+
+```{r word2vec-pairs}
+min_max_ratings <- mean_ratings %>%
+  group_by(noun) %>%
+  mutate(min_typ = min(mean_typ), max_typ = max(mean_typ)) %>%
+  distinct(noun, min_typ, max_typ) %>%
+  filter(min_typ != max_typ, max_typ >= 5, min_typ <= 3) 
+
+
+high_low_pairs <- mean_ratings %>%
+  filter(noun %in% min_max_ratings$noun) %>%
+  left_join(min_max_ratings, by = c("noun")) %>%
+  filter(mean_typ == min_typ | mean_typ == max_typ) %>%
+  select(adjective, noun, mean_typ) %>%
+  group_by(noun) %>%
+  arrange(noun, desc(mean_typ)) %>%
+  slice(1, n()) %>%
+  mutate(typicality = c("high", "low"),
+         typicality = factor(typicality, levels = c("low", "high"))) %>%
+  left_join(all_corpus_counts, by = c("adjective", "noun"))
+
+high_low_all <- high_low_pairs %>%
+  left_join(all_judgments %>% select(-is_multi_token)) %>%
+  mutate(typicality = c("high", "low"),
+         typicality = factor(typicality, levels = c("low", "high")))
+
+
+correct_orders <- high_low_all %>%
+  select(-n) %>%
+  pivot_longer(cols = c(ldp_similarity, wiki_similarity, bert_prob, gpt3_score), 
+               names_to = "measure", values_to = "similarity") %>%
+  select(-adjective, -mean_typ, -gpt3_judgment) %>%
+  pivot_wider(names_from = "typicality", values_from = "similarity") %>%
+  mutate(correct = high - low > 0) %>%
+  filter(!is.na(correct)) %>%
+  group_by(measure) %>%
+  summarise(correct = sum(correct), total = n())
+
+ldp_correct <- correct_orders %>%
+  filter(measure == "ldp_similarity") %>%
+  pull(correct)
+
+wiki_correct <- correct_orders %>%
+  filter(measure == "wiki_similarity") %>%
+  pull(correct)
+
+bert_correct <- correct_orders %>%
+  filter(measure == "bert_prob") %>%
+  pull(correct)
+
+gpt3_correct <- correct_orders %>%
+  filter(measure == "gpt3_score") %>%
+  pull(correct)
+
+pairs_total <- correct_orders %>% pull(total) %>% first()
+
+ldp_binom <- binom.test(ldp_correct, pairs_total)$p.value %>%
+  printp()
+wiki_binom <- binom.test(wiki_correct, pairs_total)$p.value %>%
+  printp()
+bert_binom <- binom.test(bert_correct, pairs_total)$p.value %>%
+  printp()
+gpt3_binom <- binom.test(gpt3_correct, pairs_total)$p.value %>%
+  printp()
+```
+```{r typ-plots-compute}
+
+# The black dotted line shows average human typicality ratings (scaled) for these items. The blue line shows how well our models do at capturing this trend, with grey lines representing individual pairs
+
+halves_data <- high_low_all %>%
+  select(-gpt3_judgment) %>%
+  pivot_longer(cols = c(mean_typ, wiki_similarity, ldp_similarity, bert_prob, gpt3_score),
+              names_to = "measure", values_to = "score") %>%
+  mutate(measure = factor(measure, 
+                          levels = c("mean_typ", "ldp_similarity", 
+                                     "wiki_similarity", "bert_prob", "gpt3_score"), 
+                          labels = c("Human", "LDP word2vec", 
+                                     "Wiki word2vec", "BERT", "GPT-3"))) %>%
+  mutate(score = if_else(measure=="Human", (score - 1)/6, score)) 
+
+human <- halves_data %>%
+  filter(measure =="Human") %>%
+  group_by(typicality) %>% 
+  summarise(mean=mean(score))
+
+means <- halves_data %>%
+    group_by(measure, typicality) %>% 
+    summarise(mean=mean(score, na.rm=T)) %>%
+  mutate(mean = if_else(measure=="GPT-3", (mean - 1)/6, mean)) %>%
+    filter(measure != "Human") 
+
+grob <- grobTree(textGrob("Human ratings \n (scaled)", x=0.97,  y=0.85, hjust=1,
+  gp=gpar(col="Black", fontsize=9, fontface="italic")))
+  
+grob2 <- grobTree(textGrob("Model average", x=.96,  y=0.43, hjust=1,
+  gp=gpar(col="steelblue", fontsize=9, fontface="italic")))
+
+typicality_axis <- c("Low Typicality", "High Typicality")
+
+```
+
+
+## Method
+
+To test this possibility, we trained word2vec---a distributional semantics model---on the same corpus of child-directed speech used in our first set of analyses. Word2vec is a neural network model that learns to predict words from the contexts in which they appear. This leads word2vec to encode words that appear in similar contexts as similar to one another [@firth1957].
+
+We used the continuous-bag-of-words (CBOW) implementation of word2vec in the `gensim` package [@rehurek2010]. We trained the model using a surrounding context of 5 words on either side of the target word and 100 dimensions (weights in the hidden layer) to represent each word. After training, we extracted the hidden layer representation of each word in the model's vocabulary---these are the vectors used to represent these words. 
+
+If the model captures information about the typical features of objects, we should see that the model's noun-adjective word pair similarities are correlated with the typicality ratings we elicited from human raters. For a second comparison, we also used an off-the-shelf implementation of word2vec trained on Wikipedia [@mikolov2018]. While the Language Development Project corpus likely underestimates the amount of structure in children's linguistic input, Wikipedia likely overestimates it.
+
+While word2vec straightforwardly represents what can be learned about word similarity by associating words with similar contexts, it does not represent the cutting edge of language modeling. Perhaps more sophisticated models trained on larger corpora would represent these typicalities better. To test this, we asked how BERT [@devlin2018] and GPT-3 [@brown_language_2020] represent typicality. BERT is a masked language model trained on BookCorpus and English Wikipedia, which represents the probability of words occurring in slots in a phrase. We gave BERT phrases of the form "____ apple", and asked it the probability of different adjectives filling the empty slot. 
+
+GPT-3 is a generative language model trained on large quantities of internet text, including Wikipedia, book corpora, and web page text from crawling the internet. Because it is a generative language model, we can ask GPT-3 the same question we asked human participants directly and it can generate a text response. We prompted the `davinci-text-003` instance of GPT-3 questions of the form: "You are doing a task in which you rate how common it is for certain things to have certain features. You respond out of the following options: Never, Rarely, Sometimes, About half the time, Often, Almost always, or Always. How common is it for a cow to be a brown cow?" Because BERT and GPT-3 are trained on more and different kinds of language than what children hear, results from these models likely do not straightforwardly represent the information available to children in language. However, results from BERT and GPT-3 can indicate the challenges language models face in representing world knowledge when the language people use emphasizes remarkable rather than typical features.
+
+## Results
+
+We find that similarities in the model trained on the Language Development Project corpus have near zero correlation with human adjective–noun typicality ratings ($r =$ `r ldp_cor_estimate`, $p =$ `r ldp_cor_p`). However, our model does capture other meaningful information about the structure of language, such as similarity within part of speech categories. Comparing with pre-existing large-scale human similarity judgements for word pairs, our model shows significant correlations (correlation with wordsim353 similarities of noun pairs, 0.28; correlation with simlex similarities of noun, adjective, and verb pairs, 0.16). This suggests that statistical patterns in child-directed speech are likely insufficient to encode information about the typical features of objects, despite encoding at least some information about word meaning more broadly. 
+
+However, the corpus on which we trained this model was small; perhaps our model did not get enough language to draw out the patterns that would reflect the typical features of objects. To test this possibility, we asked whether word vectors trained on a much larger corpus—English Wikipedia—correlate with typicality ratings. This model's similarities were significantly correlated with human judgments, although the strength of the correlation was still fairly weak ($r =$ `r wiki_cor_estimate`, $p$ `r wiki_cor_p`). How do larger and more sophisticated language models fare? Like Wikipedia-trained word2vec, BERT's probabilities were significantly correlated with human judgments, though weakly so ($r =$ `r bert_cor_estimate`, $p$ `r bert_cor_p`). However, GPT-3's ratings were much better aligned with human judgments ($r =$ `r gpt3_cor_estimate`, $p$ `r gpt3_cor_p`). 
+
+Similarity judgments produced by our models reflect many dimensions of similarity, but our human judgments reflect only typicality. To account for this fact and control for semantic differences among the nouns in our set, we performed a second analysis in which we considered only the subset of `r pairs_total` nouns that had both a high-typicality (rated as at least "often") and a low-typicality (rated as at most "sometimes") adjective. We then asked whether the word2vec models rated the high-typicality adjective as more similar to the noun it modified than the low-typicality adjective. The LDP model correctly classified `r ldp_correct` out of `r pairs_total` (`r ldp_correct / pairs_total`), which was not different from chance ($p =$ `r ldp_binom`). The Wikipedia-trained word2vec model correctly classified `r wiki_correct` out of `r pairs_total` (`r wiki_correct / pairs_total`), which was better than chance according to a binomial test, though not highly accurate ($p$ `r wiki_binom`). Figure \ref{fig:halfs} shows the word2vec models' similarities for the `r pairs_total` nouns and their typical and atypical adjectives alongside scaled average human ratings. 
+
+The analogous analysis on BERT asks whether the model rates the high-typicality adjective as more likely to come before the noun than the low typicality adjective (e.g., P("red") > P("brown") in "____ apple"). BERT correctly classified `r bert_correct` out of `r pairs_total` (`r bert_correct / pairs_total`), which is significantly better than chance ($p =$ `r bert_binom`). However, BERT's performance was directionally less accurate than Wikipedia-trained word2vec: though BERT is a more sophisticated model, it does not capture adjective-noun typicality better than word2vec in this analysis. GPT-3 performs much better than BERT and the word2vec models, with `r gpt3_correct` out of `r pairs_total` (`r gpt3_correct / pairs_total`; $p$ `r gpt3_binom`). Figure \ref{fig:bert-gpt} shows BERT and GPT-3 ratings for the `r pairs_total` nouns and their typical and atypical adjectives alongside scaled average human ratings. 
+
+```{r halfs, cache=F, fig.align = "center", fig.width = 6, fig.cap = 'Plots of word2vec noun-adjective similarities for nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective (rated at least "often").'}
+
+halves_data %>%
+  filter(measure %in% c("Wiki word2vec", "LDP word2vec")) %>%
+  mutate(measure = factor(measure, 
+                          levels = c("LDP word2vec", "Wiki word2vec"))) %>%
+  ggplot(aes(x = typicality, y = score, group = noun)) +
+  facet_wrap(~measure) +
+  geom_point(alpha = .5, position=position_dodge(0.06), color = "light gray") +
+  geom_line(alpha = .5, color = "light gray", position=position_dodge(0.06)) +
+  geom_line(data=human, aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
+  geom_point(data=human, aes(x=typicality, y=mean, group=NA), color="black") +
+  geom_line(data=means %>% filter(measure %in% c("LDP word2vec", "Wiki word2vec")),
+            aes(x=typicality, y=mean, group=NA), color="steelblue", size=.8) +
+  geom_point(data=means %>% filter(measure %in% c("LDP word2vec", "Wiki word2vec")), 
+             aes(x=typicality, y=mean, group=NA), color="steelblue") +
+  labs(x = "Binned Human-Rated Typicality", y = "Cosine Similarity") +
+  theme_few() +
+  coord_cartesian(ylim=c(-0.17,1)) +
+  annotation_custom(grob) +
+  annotation_custom(grob2) +
+  scale_x_discrete(labels= typicality_axis, expand = c(.2, .2)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+#ggsave(bertplot, filename = "figs/bert_w2v_plot.png",  width = 8, height = 4, units = "in", dpi = 300, bg = "transparent")
+```
+
+```{r bert-gpt, cache=F, fig.align = "center", fig.width = 6, fig.cap = 'Plots of BERT and GPT-3 noun-adjective similarities for nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective (rated at least "often").'}
+
+halves_data %>%
+  filter(measure %in% c("BERT", "GPT-3")) %>%
+  mutate(score = if_else(measure=="GPT-3", (score - 1)/6, score)) %>%
+  mutate(measure = factor(measure, 
+                          levels = c("BERT", "GPT-3"))) %>%
+  ggplot(aes(x = typicality, y = score, group = noun)) +
+  facet_wrap(~measure) +
+  geom_point(alpha = .5, position=position_dodge(0.06), color = "light gray") +
+  geom_line(alpha = .5, color = "light gray", position=position_dodge(0.06)) +
+  geom_line(data=human, aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
+  geom_point(data=human, aes(x=typicality, y=mean, group=NA), color="black") +
+  geom_line(data=means %>% filter(measure %in% c("BERT", "GPT-3")),
+            aes(x=typicality, y=mean, group=NA), color="steelblue", size=.8) +
+  geom_point(data=means %>% filter(measure %in% c("BERT", "GPT-3")), 
+             aes(x=typicality, y=mean, group=NA), color="steelblue") +
+  labs(x = "Binned Human-Rated Typicality", y = "Probability for BERT \n Scaled rating for GPT-3") +
+  theme_few() +
+  coord_cartesian(ylim=c(-0.17,1)) +
+  annotation_custom(grob) +
+  annotation_custom(grob2) +
+  scale_x_discrete(labels= typicality_axis, expand = c(.2, .2)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+#ggsave(bertplot, filename = "figs/bert_w2v_plot.png",  width = 8, height = 4, units = "in", dpi = 300, bg = "transparent")
+```
+
+```{r pairs_tab, eval = FALSE}
+pair_tab <- high_low_pairs %>%
+  group_by(noun) %>%
+  summarise(diff = first(wiki_similarity) - last(wiki_similarity)) %>%
+  filter(diff < 0) %>%
+  left_join(high_low_pairs %>% select(noun, adj)) %>%
+  group_by(noun) %>%
+  mutate(typicality = c("high", "low")) %>%
+  pivot_wider(names_from = "typicality", values_from = "adj") %>%
+  select(diff, noun, high, low) %>%
+  arrange(diff) %>%
+  ungroup() %>%
+  # slice(1:10) %>%
+  slice(1:6) %>%
+  select(-diff) %>%
+  rename("typical adjective" = "high",
+         "atypical adjective" = "low") %>%
+  xtable(caption = "The top six cases in which Wikipedia-trained word2vec similarities were worst at predicting human typicality judgments. In each case, word2vec judged the low-typicality adjective to be more similar to the noun than the high-typicality adjective.",
+         label = "tab:pairs_tab")
+
+print(pair_tab, type = "latex", comment = F, table.placement = "tb", floating = TRUE,
+      include.rownames = FALSE)
+
+```
+
+# General Discussion
+
+Language provides children a rich source of information about the world. However, this information is not always transparently available: because language is used to comment on the atypical, it does not perfectly mirror the world. Among adult conversational partners whose world knowledge is well-aligned, this allows people to converse informatively and avoid redundancy. But between a child and caregiver whose world knowledge is asymmetric, this pressure competes with other demands: what is minimally informative to an adult may be misleading to a child. Our results show that this pressure structures language to create a peculiar learning environment, one in which caregivers predominantly point out the atypical features of things. 
+
+How, then, do children learn about the typical features of things? While younger children may gain an important foothold from hearing more description of typical features, they still face language dominated by atypical description. When we looked at more nuanced ways of extracting information from language (which may or may not be available to the developing learner), we found that two word2vec models, one trained on child-directed language and one trained on adult-adult language, did not capture typicality very well. Even BERT, a language model trained on much more text and with a more complex architecture, did not perform better than a Wikipedia-trained word2vec model in reflecting typicality. This may be because these models are designed to capture language statistics, with BERT in particular capturing which words are likely to occur following one another—and as we show in our corpus analyses, adjective-noun pairs that come together often reflect atypicality rather than typicality. Note that a consistent *inverse* relationship—rating high-typicality pairs as *less* similar or *less* probable—would also be evidence that these models capture typicality, but the word2vec models and BERT do not evince this pattern either. However, GPT-3 captured typicality quite well, suggesting that the way people structure language to emphasize atypicality is not necessarily an impediment for much larger models' representation of typicality. Further work remains to understand how GPT-3 comes to represent typicality relationships so much better than the smaller models we tested. Overall, a large language model trained on text much greater in quantity and different in quality from child-directed language did capture adjective-noun typicality well, but models with simpler learning mechanisms and language input more similar to what is available to children did not.
+
+Of course, perceptual information from the world may simplify the problem of learning about typicality. In many cases, perceptual information may swamp information from language; children likely see enough orange carrots in the world to outweigh hearing "purple carrot." It remains unclear, however, how children learn about categories for which they have scarcer evidence. Indeed, language information likely swamps perceptual information for many other categories, such as abstract concepts or those that cannot be learned about by direct experience. If such concepts pattern similarly to the concrete objects analyzed here, children are in a particularly difficult bind. 
+
+It is also possible that other cues from language and interaction provide young learners with clues to what is typical or atypical, and these cues are uncaptured by our measure of usage statistics. Caregivers may highlight when a feature is typical by using certain syntactic constructions, such as generics (e.g., "tomatoes are red"). Caregivers may also mark the atypicality of a feature using extralinguistic cues, e.g., by demonstrating surprise using prosody and facial expressions. Such cues from language and interaction may provide key information in some cases; however, given the sheer frequency of atypical descriptors, it seems unlikely that they are consistently well-marked.
+
+<!-- Though perceptual information is undoubtedly useful in learning about the typical features of things, it remains to be explained how children learn what is typical when this perceptual information is scant, irrelevant, or incomplete. -->
+
+<!-- Given that the present work is limited to concrete concepts, we can only speculate about the information caregivers provide about abstract concepts. But,  -->
+
+Another possibility is that children expect language to be used informatively at a young age. Under this hypothesis, their language environment is not misleading at all, even without additional cues from caregivers. Children as young as two years old tend to use words to comment on what is new rather than what is known or assumed [@baker1988]. Children may therefore expect adjectives to comment on surprising features of objects. If young children expect adjectives to mark atypical features [@horowitz_childrens_2016], they can use description and the lack thereof to learn more about the world. Our finding that children themselves mostly remark on atypical rather than typical features of things is consistent with this possibility, though does not provide strong evidence that children understand to use description informatively.
+
+<!-- It is further possible that children are tracking more nuanced syntactic information, which could provide helpful cues to what is typical (e.g., adjectives used in a generic) -->
+
+<!--and may provide roughly informative speech themselves by age 5-6 [@nadig2002].  More naturalistic studies find that children at the one-word stage selectively imitate words that convey new information—that is, words that are informative with respect to what is obvious or assumed in the environment—when describing events (Greenfield & Zukow, 1978). -->
+
+Whether adult-directed, child-directed, or a child's own speech, language is used with remarkable consistency: people talk about the atypical. Though parents might reasonably be broadly over-informative in order to teach their children about the world, this is not the case. This presents a potential puzzle for young learners who have limited world knowledge and limited pragmatic inferential abilities. Perceptual information and nascent pragmatic abilities may help fill in the gaps, but much remains to be explored to link these explanations to actual learning. Communication pressures are pervasive forces structuring the language children hear, and future work must disentangle whether children capitalize on them or are misled by them in learning about the world.
+
+\vspace{1em} \fbox{\parbox[b][][c]{7.3cm}{\centering Stimuli, data, and analysis code available at\ \url{XXXXXXXX}}}
+
+# Acknowledgements
+
+This research was funded by a James S. McDonnell Foundation Scholar Award to DY. 
+
+# References 
+
+```{r}
+# References will be generated automatically by Pandoc and included here.
+# The following code is some latex to format the bibliography. Do not remove it.
+```
+
+\setlength{\parindent}{-0.1in} 
+\setlength{\leftskip}{0.125in}
+\noindent

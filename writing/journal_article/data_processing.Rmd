@@ -12,21 +12,27 @@ library(feather)
 library(data.table)
 library(tidytext)
 library(tidyverse)
+library(papaja)
 library(ggridges)
 library(scales)
 library(ggthemes)
 library(lme4)
 library(lmerTest)
 library(broom.mixed)
+library(ggrepel)
+library(grid)
 ```
 
 ```{r read-data}
 coded_data <- read_csv(here("data/ldp_cabnc_data.csv"))
 ```
 
-```{r}
+```{r filter-subjs}
 all_subjs <- coded_data %>%
   count(subid)
+
+coded_data %>%
+  filter(!is.na(noun))
 
 keep_subjs <- coded_data %>%
   filter(is.na(adjective) & is.na(noun) & rating == 5)
@@ -48,10 +54,11 @@ subj_data <- subj_data %>%
 
 mean_ratings <- subj_data %>%
   group_by(adjective, noun) %>%
-  summarise(mean_typ = mean(rating))
+  summarise(mean_typ = mean(rating)) %>%
+  ungroup()
 ```
 
-```{r}
+```{r read-ldp}
 ldp <- read_csv(here("data/ldp_conc_adj_noun_utts_with_session.csv"))
 orig_tokens <- read_csv(here("data/ldp_cabnc_pairs_all_info.csv"))
 
@@ -70,26 +77,32 @@ ldp_coded <- ldp %>%
 ```
 
 ```{r read-cabnc}
-cabnc <- read_csv(here("data/all_cabnc_ldpParentandKid_conc_unique_UTTS.csv"))
+all_corpora <- read_csv(here("data/all_cabnc_ldpParentandKid_conc_unique_UTTS.csv"))
 
 # for now this has both cabnc and ldp utterances. let's get a list of most common adjectives to use ...
-common_adjs <- cabnc %>%
+common_adjs <- all_corpora %>%
   left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
   rename(adjective = adj_token) %>%
   count(adjective) %>%
   arrange(desc(n)) %>%
   slice(1:500)
 
-common_adjs_250 <- cabnc %>%
+common_adjs_250 <- all_corpora %>%
   left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
   rename(adjective = adj_token) %>%
   count(adjective) %>%
   arrange(desc(n)) %>%
   slice(1:250)
 
+all_corpus_counts <- all_corpora %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  count(adjective, noun) %>%
+  ungroup()
+
 #write_csv(common_adjs_250, here("data/250_common_adjs.csv"))
 
-cabnc <- cabnc %>%
+cabnc <- all_corpora %>%
   filter(dataset == "cabnc_utts_udpipe") %>%
   left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
   rename(adjective = adj_token) %>%
@@ -101,37 +114,50 @@ cabnc <- cabnc %>%
   filter(!is.na(mean_rating))
 ```
 
-```{r}
+```{r read-model-judgments}
 all_pairs <- subj_data %>%
-  distinct(adjective, noun)
+  distinct(adjective, noun, article, adj_article)
 
 #write_csv(all_pairs, here("data/final_pairs_ldp_cabnc.csv"))
 
 # then we run that file through word2vec/get_wiki_similarities.py to get this file ...
-w2v_judgments <- read_csv(here("data/all_judgments_ldp_cabnc.csv")) %>%
+w2v_judgments <- read_csv(here("data/w2v_sims_ldp_cabnc.csv")) %>%
   mutate(ldp_similarity = if_else(ldp_similarity == "nan", NA_character_, ldp_similarity),
          wiki_similarity = as.numeric(wiki_similarity),
          ldp_similarity = as.numeric(ldp_similarity))
 
 # and run through bert_gpt/get_GPT.py to get GPT-2 probabilities...
-gpt2_judgments <- read_csv(here("data/gpt2_judgments_ldp_cabnc.csv"))
+bert_judgments <- read_csv(here("data/bert_judgments_ldp_cabnc.csv")) %>%
+  select(adjective, noun, prob, is_multi_token)
+
+
+
+
+# for some reason there are 4777 instead of 4779 judgments ... 
+gpt3_judgments_raw <- read_csv(here("data/gpt3_judgments_ldp_cabnc.csv")) %>%
+  rbind(read_csv(here("data/gpt3_judgments_ldp_cabnc_2.csv"))) %>%
+  rbind(read_csv(here("data/gpt3_judgments_ldp_cabnc_3.csv")))
+
+gpt3_judgments <- gpt3_judgments_raw %>%
+  mutate(gpt3_judgment = str_remove(tolower(gpt3_judgment), "[.]")) %>%
+  mutate(gpt3_judgment = if_else(gpt3_judgment == "usually rarely", "rarely", gpt3_judgment)) %>%
+  mutate(gpt3_score = case_when(gpt3_judgment == "never" ~ 1,
+                                gpt3_judgment == "rarely" ~ 2,
+                                gpt3_judgment == "sometimes" ~ 3,
+                                gpt3_judgment == "about half the time" ~ 4,
+                                gpt3_judgment == "often" ~ 5,
+                                gpt3_judgment == "almost always" ~ 6,
+                                gpt3_judgment == "always" ~ 7))
+
+all_judgments <- mean_ratings %>%
+  left_join(bert_judgments, by = c("adjective", "noun")) %>%
+  rename(bert_prob = prob) %>%
+  left_join(w2v_judgments, by = c("adjective", "noun")) %>%
+  left_join(gpt3_judgments, by = c("adjective", "noun"))
+
 ```
 
-```{r}
-min_max_ratings <- mean_ratings %>%
-  group_by(noun) %>%
-  mutate(min_typ = min(mean_typ), max_typ = max(mean_typ)) %>%
-  distinct(noun, min_typ, max_typ) %>%
-  filter(min_typ != max_typ, max_typ >= 5, min_typ <= 3) 
-
-high_low_pairs <- mean_ratings %>%
-  filter(noun %in% min_max_ratings$noun) %>%
-  left_join(min_max_ratings, by = c("noun")) %>%
-  filter(mean_typ == min_typ | mean_typ == max_typ) %>%
-  select(adjective, noun, mean_typ) %>%
-  group_by(noun) %>%
-  arrange(noun, desc(mean_typ)) 
-
+```{r weighted-ratings}
 weighted_ratings <- subj_data %>%
   group_by(adjective, noun) %>%
   count(rating) %>%
@@ -143,7 +169,7 @@ weighted_ratings <- subj_data %>%
   mutate(p = p/sum(p))
 ```
 
-```{r}
+```{r plot-density-overall}
 mean_ratings %>%
   ggplot(aes(x = mean_typ)) +
   geom_density() +
@@ -155,29 +181,7 @@ weighted_ratings %>%
   scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always'))
 ```
 
-```{r}
-w2v_judgments %>%
-  ggplot(aes(x = turker_judgment, y = wiki_similarity)) +
-  geom_point(alpha = 0.2) + 
-  geom_smooth()
-
-w2v_judgments %>%
-  ggplot(aes(x = turker_judgment, y = ldp_similarity)) +
-  geom_point(alpha = 0.2) + 
-  geom_smooth()
-```
-
-```{r}
-gpt2_judgments %>% mutate(logprob = log(prob)) %>% filter(logprob < -20) %>% View()
-                          
-gpt2_judgments %>%
-  ggplot(aes(x = mean, y = log(prob))) +
-  geom_point(alpha = 0.2) + 
-  geom_smooth()
-```
-
-
-```{r}
+```{r ldp-parent-density}
 ldp_parent_plot <- ldp_coded %>%
   filter(person == "parent") %>%
   mutate(typicality=mean_rating) %>%
@@ -213,8 +217,7 @@ ldp_parent_plot <- ldp_coded %>%
 ggsave(ldp_parent_plot, filename = "writing/journal_article/ldp_parent_plot.png",  width = 6, height = 8, units = "in", dpi = 300, bg = "transparent")
 ```
 
-
-```{r}
+```{r ldp-child-density}
 ldp_child_plot <- ldp_coded %>%
   filter(person == "child") %>%
   mutate(typicality=mean_rating) %>%
@@ -225,7 +228,7 @@ ldp_child_plot <- ldp_coded %>%
   ylab("Child Age (months)") +
   xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
   geom_vline(xintercept = 4, size=1, linetype="solid")+
-  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  scale_fill_gradient(low="cornsilk", high=muted("green")) +
   theme_few() +
   theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
     axis.line = element_line(colour = "black"),
@@ -247,10 +250,15 @@ ldp_child_plot <- ldp_coded %>%
     axis.line = element_line(colour = "black") # adding a black line for x and y axis
 )
 
-ggsave(ldp_child_plot, filename = "writing/journal_article/ldp_child_plot.png",  width = 6, height = 8, units = "in", dpi = 300, bg = "transparent")
+#ggsave(ldp_child_plot, filename = "writing/journal_article/ldp_child_plot.png",  width = 6, height = 8, units = "in", dpi = 300, bg = "transparent")
 ```
 
-```{r cabnc}
+```{r child-remove-imitation}
+
+
+```
+
+```{r cabnc-density}
 cabnc_plot <- cabnc %>%
   mutate(typicality=mean_rating) %>%
   ggplot(aes(x = typicality)) +
@@ -281,7 +289,7 @@ cabnc_plot <- cabnc %>%
 ggsave(cabnc_plot, filename = "writing/journal_article/cabnc_plot.png",  width = 6, height = 3, units = "in", dpi = 300, bg = "transparent")
 ```
 
-```{r}
+```{r typicals}
 parent_typical_ratings <- ldp_coded %>%
   filter(person == "parent") %>%
   group_by(age, adjective, noun, mean_rating) %>%
@@ -291,6 +299,19 @@ parent_typical_ratings <- ldp_coded %>%
 
 typicals_parent <- ldp_coded %>%
   filter(person == "parent") %>%
+  group_by(age, adjective, noun, mean_rating) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(typical = mean_rating >= 5) %>%
+  group_by(age, typical) %>%
+  summarise(weighted_sum = sum(n), sum = n()) %>%
+  pivot_longer(cols = c(sum, weighted_sum), names_to = "measure", values_to = "sum") %>%
+  group_by(age, measure) %>%
+  mutate(prop = sum / sum(sum)) %>%
+  filter(typical)
+
+typicals_child <- ldp_coded %>%
+  filter(person == "child") %>%
   group_by(age, adjective, noun, mean_rating) %>%
   count() %>%
   ungroup() %>%
@@ -365,6 +386,67 @@ cabnc_typicals_plot <- cabnc_typicals %>%
   filter(measure == "weighted_sum") %>% 
   ggplot(aes(x = corpus,y = prop, colour = age)) +
   geom_point(colour="black",pch=21, size=5) +
+  scale_y_continuous(limits = c(0.018, 0.125)) +
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme(#axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(),
+        #axis.text = element_text(size=14),
+        #panel.grid = element_line(color="lightgrey",size=0.5),
+        #axis.text.x = element_text(size=10, angle=15),
+        legend.position = "none",
+        aspect.ratio = 1/1.62) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+ggsave(cabnc_typicals_plot, filename = "writing/journal_article/cabnc_typicals_plot.png",  width = 6, height = 4, units = "in", dpi = 300, bg = "transparent")
+
+```
+
+```{r typicals-child-plot}
+child_typicals_plot <- typicals_child %>% 
+  filter(measure == "weighted_sum") %>% 
+  ggplot(aes(x = age,y = prop, colour = age)) +
+  geom_smooth(method = "glm", formula = y~x,
+                      method.args = list(family = gaussian(link = 'log')),color = "black") +
+  geom_point(aes(fill=age), colour="black",pch=21, size=5) +
+  ylab("Proportion of modifiers rated as \n typical of modified noun") +
+  xlab("Child's Age (months)") +
+  scale_x_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))+
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme(#axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(),
+        #axis.text = element_text(size=14),
+        #panel.grid = element_line(color="lightgrey",size=0.5),
+        #axis.text.x = element_text(size=10, angle=15),
+        legend.position = "none",
+        aspect.ratio = 1/1.62) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+ggsave(child_typicals_plot, filename = "writing/journal_article/child_typicals_plot.png",  width = 6, height = 4, units = "in", dpi = 300, bg = "transparent")
+
+cabnc_typicals_plot <- cabnc_typicals %>%
+  filter(measure == "weighted_sum") %>% 
+  ggplot(aes(x = corpus,y = prop, colour = age)) +
+  geom_point(colour="black",pch=21, size=5) +
   scale_y_continuous(limits = c(0, 0.125)) +
   scale_fill_gradient(low="cornsilk", high=muted("red")) +
   theme(#axis.line = element_line(colour = "black"),
@@ -387,17 +469,21 @@ cabnc_typicals_plot <- cabnc_typicals %>%
 )
 
 ggsave(cabnc_typicals_plot, filename = "writing/journal_article/cabnc_typicals_plot.png",  width = 2, height = 8, units = "in", dpi = 300, bg = "transparent")
-
 ```
 
-```{r}
-ldp_parent_overall_plot <- ldp_coded %>%
+```{r parent-cabnc-overall-plot}
+ldp_coded %>%
   filter(person == "parent") %>%
+  mutate(corpus = "Parent speech") %>%
+  select(adjective, noun, sentence, mean_rating, corpus) %>%
+  bind_rows(cabnc %>% mutate(corpus = "Adult-adult speech") %>% 
+              select(adjective, noun, sentence, mean_rating, corpus)) %>%
   mutate(typicality=mean_rating) %>%
   ggplot(aes(x = typicality)) +
   geom_density(fill="cornsilk") +
   xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
   geom_vline(xintercept = 4, size=1, linetype="solid")+
+  facet_wrap(~corpus, ncol = 1) +
   theme_few() +
   theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
     axis.line = element_line(colour = "black"),
@@ -419,6 +505,295 @@ ldp_parent_overall_plot <- ldp_coded %>%
     axis.line = element_line(colour = "black") # adding a black line for x and y axis
 )
 
-ggsave(ldp_parent_overall_plot, filename = "writing/journal_article/ldp_parent_overall_plot.png",  width = 6, height = 3, units = "in", dpi = 300, bg = "transparent")
+#ggsave(ldp_parent_overall_plot, filename = "writing/journal_article/ldp_parent_overall_plot.png",  width = 6, height = 3, units = "in", dpi = 300, bg = "transparent")
 
+```
+
+```{r model-corr-plots}
+all_judgments %>%
+  ggplot(aes(x = mean_typ, y = wiki_similarity)) +
+  geom_point(alpha = 0.2) + 
+  geom_smooth()
+
+all_judgments %>%
+  ggplot(aes(x = mean_typ, y = ldp_similarity)) +
+  geom_point(alpha = 0.2) + 
+  geom_smooth()
+
+all_judgments %>%
+  filter(!is_multi_token) %>%
+  mutate(phrase = paste(adjective, noun, sep = " ")) %>%
+  ggplot(aes(x = mean_typ, y = log(bert_prob), label = phrase)) +
+  geom_point(alpha = 0.2) + 
+  geom_text(hjust=0, vjust=0) +
+  geom_smooth()
+
+all_judgments %>%
+  ggplot(aes(x = mean_typ, y = log(gpt2_prob))) +
+  geom_point(alpha = 0.2) + 
+  geom_smooth()
+```
+
+```{r high-low}
+min_max_ratings <- mean_ratings %>%
+  group_by(noun) %>%
+  mutate(min_typ = min(mean_typ), max_typ = max(mean_typ)) %>%
+  distinct(noun, min_typ, max_typ) %>%
+  filter(min_typ != max_typ, max_typ >= 5, min_typ <= 3) 
+
+high_low_pairs <- mean_ratings %>%
+  filter(noun %in% min_max_ratings$noun) %>%
+  left_join(min_max_ratings, by = c("noun")) %>%
+  filter(mean_typ == min_typ | mean_typ == max_typ) %>%
+  select(adjective, noun, mean_typ) %>%
+  group_by(noun) %>%
+  arrange(noun, desc(mean_typ)) %>%
+  slice(1, n()) %>%
+  mutate(typicality = c("high", "low"),
+         typicality = factor(typicality, levels = c("low", "high"))) %>%
+  left_join(all_corpus_counts, by = c("adjective", "noun"))
+
+high_low_all <- high_low_pairs %>%
+  left_join(all_judgments %>% select(-gpt3_judgment)) %>%
+  mutate(typicality = c("high", "low"),
+         typicality = factor(typicality, levels = c("low", "high")))
+
+
+correct_orders <- high_low_all %>%
+  select(-n) %>%
+  pivot_longer(cols = c(ldp_similarity, wiki_similarity, bert_prob, gpt3_score), 
+               names_to = "measure", values_to = "similarity") %>%
+  select(-adjective, -mean_typ) %>%
+  pivot_wider(names_from = "typicality", values_from = "similarity") %>%
+  mutate(correct = high - low > 0) %>%
+  filter(!is.na(correct)) %>%
+  group_by(measure) %>%
+  summarise(correct = sum(correct), total = n())
+
+ldp_correct <- correct_orders %>%
+  filter(measure == "ldp_similarity") %>%
+  pull(correct)
+
+wiki_correct <- correct_orders %>%
+  filter(measure == "wiki_similarity") %>%
+  pull(correct)
+
+
+bert_correct <- correct_orders %>%
+  filter(measure == "bert_prob") %>%
+  pull(correct)
+
+gpt3_correct <- correct_orders %>%
+  filter(measure == "gpt3_score") %>%
+  pull(correct)
+
+pairs_total <- correct_orders %>% pull(total) %>% first()
+
+ldp_binom <- binom.test(ldp_correct, pairs_total)$p.value %>%
+  printp()
+wiki_binom <- binom.test(wiki_correct, pairs_total)$p.value %>%
+  printp()
+bert_binom <- binom.test(bert_correct, pairs_total)$p.value %>%
+  printp()
+gpt3_binom <- binom.test(gpt3_correct, pairs_total)$p.value %>%
+  printp()
+```
+
+```{r high-low-plot}
+halves_data <- high_low_all %>%
+  pivot_longer(cols = c(mean_typ, wiki_similarity, ldp_similarity, bert_prob, gpt3_score),
+              names_to = "measure", values_to = "score") %>%
+  mutate(measure = factor(measure, 
+                          levels = c("mean_typ", "ldp_similarity", 
+                                     "wiki_similarity", "bert_prob", "gpt3_score"), 
+                          labels = c("Human", "LDP word2vec", 
+                                     "Wiki word2vec", "BERT", "GPT-3"))) %>%
+  mutate(score = if_else(measure=="Human", score/7, score)) 
+
+human <- halves_data %>%
+  filter(measure =="Human") %>%
+  group_by(typicality) %>% 
+  summarise(mean=mean(score))
+
+means <- halves_data %>%
+    group_by(measure, typicality) %>% 
+    summarise(mean=mean(score, na.rm=T)) %>%
+    filter(measure != "Human")
+
+grob <- grobTree(textGrob("Human ratings \n (scaled)", x=0.97,  y=0.85, hjust=1,
+  gp=gpar(col="Black", fontsize=9, fontface="italic")))
+  
+grob2 <- grobTree(textGrob("Model average", x=.96,  y=0.33, hjust=1,
+  gp=gpar(col="steelblue", fontsize=9, fontface="italic")))
+
+typicality_axis <- c("Low Typicality", "High Typicality")
+```
+
+```{r high-low-plots}
+ldp_w2v_plot <- halves_data %>%
+  filter(measure %in% c("LDP word2vec")) %>%
+  mutate(measure = factor(measure, 
+                          levels = c("LDP word2vec"))) %>%
+  ggplot(aes(x = typicality, y = score, group = noun)) +
+  geom_point(alpha = .5, position=position_dodge(0.06), color = "light gray") +
+  geom_line(alpha = .5, color = "light gray", position=position_dodge(0.06)) +
+  geom_line(data=human, aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
+  geom_point(data=human, aes(x=typicality, y=mean, group=NA), color="black") +
+  geom_line(data=means %>% filter(measure %in% c("LDP word2vec")),
+            aes(x=typicality, y=mean, group=NA), color="steelblue", size=.8) +
+  geom_point(data=means %>% filter(measure %in% c("LDP word2vec")), 
+             aes(x=typicality, y=mean, group=NA), color="steelblue") +
+  labs(x = "Binned Human-Rated Typicality", y = "Cosine Similarity") +
+  theme_few() +
+  coord_cartesian(ylim=c(-0.17,1)) +
+  annotation_custom(grob) +
+  annotation_custom(grob2) +
+  scale_x_discrete(labels= typicality_axis, expand = c(.2, .2)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+
+ggsave(ldp_w2v_plot, filename = "writing/journal_article/ldp_w2v_plot.png",  width = 4, height = 4, units = "in", dpi = 300, bg = "transparent")
+
+w2v_plot <- halves_data %>%
+  filter(measure %in% c("Wiki word2vec", "LDP word2vec")) %>%
+  mutate(measure = factor(measure, 
+                          levels = c("LDP word2vec", "Wiki word2vec"))) %>%
+  ggplot(aes(x = typicality, y = score, group = noun)) +
+  facet_wrap(~measure) +
+  geom_point(alpha = .5, position=position_dodge(0.06), color = "light gray") +
+  geom_line(alpha = .5, color = "light gray", position=position_dodge(0.06)) +
+  geom_line(data=human, aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
+  geom_point(data=human, aes(x=typicality, y=mean, group=NA), color="black") +
+  geom_line(data=means %>% filter(measure %in% c("LDP word2vec", "Wiki word2vec")),
+            aes(x=typicality, y=mean, group=NA), color="steelblue", size=.8) +
+  geom_point(data=means %>% filter(measure %in% c("LDP word2vec", "Wiki word2vec")), 
+             aes(x=typicality, y=mean, group=NA), color="steelblue") +
+  labs(x = "Binned Human-Rated Typicality", y = "Cosine Similarity") +
+  theme_few() +
+  coord_cartesian(ylim=c(-0.17,1)) +
+  annotation_custom(grob) +
+  annotation_custom(grob2) +
+  scale_x_discrete(labels= typicality_axis, expand = c(.2, .2)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+#ggsave(w2v_plot, filename = "writing/journal_article/w2v_plot.png",  width = 6, height = 3, units = "in", dpi = 300, bg = "transparent")
+
+grob4 <- grobTree(textGrob("Model average", x=.96,  y=0.6, hjust=1,
+  gp=gpar(col="steelblue", fontsize=9, fontface="italic")))
+
+gpt3_plot <- halves_data %>%
+  filter(measure %in% c("GPT-3")) %>%
+  mutate(measure = factor(measure, 
+                          levels = c("GPT-3"))) %>%
+  mutate(score = if_else(measure=="Human", score*7, score)) %>%
+  ggplot(aes(x = typicality, y = score, group = noun)) +
+  facet_wrap(~measure) +
+  geom_point(alpha = .5, position=position_dodge(0.06), color = "light gray") +
+  geom_line(alpha = .5, color = "light gray", position=position_dodge(0.06)) +
+  geom_line(data=human %>% mutate(mean = mean*7), aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
+  geom_point(data=human %>% mutate(mean = mean*7), aes(x=typicality, y=mean, group=NA), color="black") +
+  geom_line(data=means %>% 
+              filter(measure %in% c("GPT-3")), 
+            aes(x=typicality, y=mean, group=NA), color="steelblue", size=.8) +
+  geom_point(data=means %>%
+               filter(measure %in% c("GPT-3")), 
+             aes(x=typicality, y=mean, group=NA), color="steelblue") +
+  labs(x = "Binned Human-Rated Typicality", y = "Probability") +
+  theme_few() +
+  #coord_cartesian(ylim=c(-0.17,1)) +
+  annotation_custom(grob) +
+  annotation_custom(grob4) +
+  scale_x_discrete(labels= typicality_axis, expand = c(.2, .2)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+ggsave(gpt3_plot, filename = "writing/journal_article/gpt3_plot.png",  width = 5, height = 4, units = "in", dpi = 300, bg = "transparent")
+
+grob3 <- grobTree(textGrob("Model average", x=.96,  y=0.15, hjust=1,
+  gp=gpar(col="steelblue", fontsize=9, fontface="italic")))
+
+bert_plot <- halves_data %>%
+  filter(measure %in% c("BERT")) %>%
+  ggplot(aes(x = typicality, y = score, group = noun)) +
+  facet_wrap(~measure) +
+  geom_point(alpha = .5, position=position_dodge(0.06), color = "light gray") +
+  geom_line(alpha = .5, color = "light gray", position=position_dodge(0.06)) +
+  geom_line(data=means %>% 
+              filter(measure %in% c("BERT")), 
+            aes(x=typicality, y=mean, group=NA), color="steelblue", size=.8) +
+  geom_point(data=means %>%
+               filter(measure %in% c("BERT")), 
+             aes(x=typicality, y=mean, group=NA), color="steelblue") +
+  labs(x = "Binned Human-Rated Typicality", y = "Probability") +
+  theme_few() +
+  #coord_cartesian(ylim=c(-0.17,1)) +
+  annotation_custom(grob3) +
+  scale_x_discrete(labels= typicality_axis, expand = c(.2, .2)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+ggsave(bert_plot, filename = "writing/journal_article/bert_plot.png",  width = 5, height = 4, units = "in", dpi = 300, bg = "transparent")
+
+```
+
+```{r}
+pair_tab <- high_low_all %>%
+  group_by(noun) %>%
+  summarise(diff = first(wiki_similarity) - last(wiki_similarity)) %>%
+  filter(diff < 0) %>%
+  left_join(high_low_pairs %>% select(noun, adjective)) %>%
+  group_by(noun) %>%
+  mutate(typicality = c("high", "low")) %>%
+  pivot_wider(names_from = "typicality", values_from = "adjective") %>%
+  select(diff, noun, high, low) %>%
+  arrange(diff) %>%
+  ungroup() %>%
+  # slice(1:10) %>%
+  slice(1:40) %>%
+  rename("typical adjective" = "high",
+         "atypical adjective" = "low")
+
+```
+
+```{r}
+ldp_all <- read_csv(here("data/ldp_full_utts_1mill.csv"))
+
+ldp_all %>% filter(person == "child")
 ```
