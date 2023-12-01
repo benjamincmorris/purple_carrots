@@ -1,0 +1,33 @@
+---
+title: "imitation"
+output: html_document
+date: "2023-12-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(tidyverse)
+```
+
+```{r read-data}
+ldp <- read_csv(here("data/ldp_full_utts_1mill.csv"))
+adj_utts <- read_csv(here("data/ldp_conc_adj_noun_utts_with_session.csv"))
+
+ldp_adjs <- ldp %>%
+  left_join(adj_utts, by = c("id" = "doc_id", "subject", "session", "person", "chat", "utts")) %>%
+  arrange(id)
+
+#how many duplicated ids
+#.  ie how many utts with mutliple adjnoun pairs identified
+ldp_adjs %>% count(id) %>%
+  filter(n>1)
+
+ldp_lag_pairs <- ldp_adjs %>%
+  distinct(id, .keep_all)
+  mutate(adj_one_back = lag(adj_token), noun_one_back = lag(noun_token)) %>%
+  mutate(adj_two_back = lag(adj_one_back), noun_two_back = lag(noun_one_back)) %>%
+  mutate(adj_three_back = lag(adj_two_back), noun_three_back = lag(noun_two_back)) %>%
+  mutate(adj_four_back = lag(adj_three_back), noun_four_back = lag(noun_three_back)) %>%
+  mutate(adj_five_back = lag(adj_four_back), noun_five_back = lag(noun_four_back))
+```
