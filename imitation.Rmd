@@ -18,6 +18,19 @@ ldp_adjs <- ldp %>%
   left_join(adj_utts, by = c("id" = "doc_id", "subject", "session", "person", "chat", "utts")) %>%
   arrange(id)
 
+ldp_lag_pairs <- ldp_adjs %>%
+  select(utt_id, subject, session, chat, adj_token, noun_token) %>%
+  group_by(utt_id, subject, session, chat) %>%
+  summarise(all_adjs = paste(adj_token),
+            all_nouns = paste(noun_token))
+
+
+
+  mutate(lag_data = c(lag_1, lag_2, lag_3)) %>%
+  mutate(lag_data = rbind(lag_data, lag(data, 3))) %>%
+  mutate(lag_data = rbind(lag_data, lag(data, 4))) %>%
+  mutate(lag_data = rbind(lag_data, lag(data, 5)))
+         
 #how many duplicated ids
 #.  ie how many utts with mutliple adjnoun pairs identified
 ldp_adjs %>% count(id) %>%
