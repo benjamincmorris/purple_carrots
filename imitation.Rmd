@@ -8,6 +8,7 @@ date: "2023-12-01"
 knitr::opts_chunk$set(echo = TRUE)
 library(here)
 library(tidyverse)
+library(udpipe)
 ```
 
 ```{r read-data}
@@ -20,27 +21,33 @@ ldp_adjs <- ldp %>%
 
 ldp_lag_pairs <- ldp_adjs %>%
   select(utt_id, subject, session, chat, adj_token, noun_token) %>%
-  group_by(utt_id, subject, session, chat) %>%
-  summarise(all_adjs = paste(adj_token),
-            all_nouns = paste(noun_token))
+  mutate(adj_noun_phrase = paste(adj_token, noun_token)) %>%
+  paste.data.frame(term = "adj_noun_phrase", 
+                   group = c("utt_id", "subject", "session", "chat"), collapse = " ") %>%
+  mutate(adj_noun_phrase = trimws(str_remove_all(adj_noun_phrase, "NA")),
+         adj_noun_phrase = str_replace_all(adj_noun_phrase, "  ", " "),
+         adj_noun_phrase = str_replace_all(adj_noun_phrase, "  ", " ")) %>%
+  group_by(subject, session) %>%
+  mutate(lag_data = paste(lag(adj_noun_phrase), lag(adj_noun_phrase, 2), lag(adj_noun_phrase, 3),
+                          lag(adj_noun_phrase, 4), lag(adj_noun_phrase, 5))) %>%
+  ungroup() %>%
+  mutate(lag_data = trimws(str_remove_all(lag_data, "NA")),
+         lag_data = str_replace_all(lag_data, "  ", " "),
+         lag_data = str_replace_all(lag_data, "  ", " ")) 
+   
+ldp_adjs_rep <- ldp_adjs %>%
+  left_join(ldp_lag_pairs %>% select(-adj_noun_phrase), by = c("utt_id", "subject", "session", "chat"))
+```
 
 
+```{r}
+ldp_child_non_rep <- ldp_adjs_rep %>%
+  filter(person == "child", !is.na(adj_token), !is.na(noun_token)) %>%
+  mutate(adj_noun_phrase = paste(adj_token, noun_token)) %>%
+  filter(!str_detect(lag_data, adj_noun_phrase))
 
-  mutate(lag_data = c(lag_1, lag_2, lag_3)) %>%
-  mutate(lag_data = rbind(lag_data, lag(data, 3))) %>%
-  mutate(lag_data = rbind(lag_data, lag(data, 4))) %>%
-  mutate(lag_data = rbind(lag_data, lag(data, 5)))
-         
-#how many duplicated ids
-#.  ie how many utts with mutliple adjnoun pairs identified
-ldp_adjs %>% count(id) %>%
-  filter(n>1)
+ldp_child_all <- ldp_adjs_rep %>%
+  filter(person == "child", !is.na(adj_token), !is.na(noun_token)) %>%
+  mutate(adj_noun_phrase = paste(adj_token, noun_token))
 
-ldp_lag_pairs <- ldp_adjs %>%
-  distinct(id, .keep_all)
-  mutate(adj_one_back = lag(adj_token), noun_one_back = lag(noun_token)) %>%
-  mutate(adj_two_back = lag(adj_one_back), noun_two_back = lag(noun_one_back)) %>%
-  mutate(adj_three_back = lag(adj_two_back), noun_three_back = lag(noun_two_back)) %>%
-  mutate(adj_four_back = lag(adj_three_back), noun_four_back = lag(noun_three_back)) %>%
-  mutate(adj_five_back = lag(adj_four_back), noun_five_back = lag(noun_four_back))
 ```

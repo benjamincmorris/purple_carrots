@@ -538,6 +538,77 @@ typicals_parent %>%
 )
 ```
 
+```{r read-data-all-utts}
+ldp <- read_csv(here("data/ldp_full_utts_1mill.csv"))
+adj_utts <- read_csv(here("data/ldp_conc_adj_noun_utts_with_session.csv"))
+
+ldp_adjs <- ldp %>%
+  left_join(adj_utts, by = c("id" = "doc_id", "subject", "session", "person", "chat", "utts")) %>%
+  arrange(id)
+
+ldp_lag_pairs <- ldp_adjs %>%
+  select(utt_id, subject, session, chat, adj_token, noun_token) %>%
+  mutate(adj_noun_phrase = paste(adj_token, noun_token)) %>%
+  paste.data.frame(term = "adj_noun_phrase", 
+                   group = c("utt_id", "subject", "session", "chat"), collapse = " ") %>%
+  mutate(adj_noun_phrase = trimws(str_remove_all(adj_noun_phrase, "NA")),
+         adj_noun_phrase = str_replace_all(adj_noun_phrase, "  ", " "),
+         adj_noun_phrase = str_replace_all(adj_noun_phrase, "  ", " ")) %>%
+  group_by(subject, session) %>%
+  mutate(lag_data = paste(lag(adj_noun_phrase), lag(adj_noun_phrase, 2), lag(adj_noun_phrase, 3),
+                          lag(adj_noun_phrase, 4), lag(adj_noun_phrase, 5))) %>%
+  ungroup() %>%
+  mutate(lag_data = trimws(str_remove_all(lag_data, "NA")),
+         lag_data = str_replace_all(lag_data, "  ", " "),
+         lag_data = str_replace_all(lag_data, "  ", " ")) 
+   
+ldp_adjs_rep <- ldp_adjs %>%
+  left_join(ldp_lag_pairs %>% select(-adj_noun_phrase), by = c("utt_id", "subject", "session", "chat"))
+```
+
+
+```{r analyze-reps, fig.width=3.4, fig.height = 5.4}
+ldp_child_non_rep <- ldp_adjs_rep %>%
+  filter(person == "child", !is.na(adj_token), !is.na(noun_token)) %>%
+  mutate(adj_noun_phrase = paste(adj_token, noun_token)) %>%
+  filter(!str_detect(lag_data, adj_noun_phrase)) %>%
+  left_join(mean_ratings, by = c("adj_token" = "adjective", "noun_token" = "noun")) %>%
+  filter(!is.na(mean_typ)) %>% # filter out nonsense pairs
+  mutate(age = (4*session + 10))
+
+ldp_child_non_rep %>%
+  mutate(typicality=mean_typ) %>%
+  group_by(session) %>%
+  mutate(age = min(age)) %>%
+  ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
+  geom_density_ridges2() +
+  ylab("Child Age (months)") +
+  xlab("More Atypical                   More Typical \n Typicality of adjective-noun pairs") +
+  geom_vline(xintercept = 4, size=1, linetype="solid")+
+  scale_fill_gradient(low="cornsilk", high=muted("green")) +
+  theme_few() +
+  theme(#panel.grid = element_line(color="lightgrey",size=0.5), 
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(),
+    axis.text.x = element_text(size=11, angle=28, hjust=1),
+    axis.text.y = element_text(size=11),
+    legend.position = "none") +
+  scale_x_continuous(minor_breaks = seq(1 , 7, 1), breaks = seq(1, 7, 1), labels = c('never', 'rarely', 'sometimes', 'about half', 'often', 'almost always', 'always')) +
+  scale_y_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)) +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    axis.line = element_line(colour = "black") # adding a black line for x and y axis
+)
+
+```
+
 ### Child Speech.
 
 Given the striking consistency in adult-to-adult speech and caregiver speech across ages, we next consider what kind of information is contained in children's speech. By analyzing children's own utterances, we can determine when children come to use description in a way that looks like adult speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe more typical features of the world?
