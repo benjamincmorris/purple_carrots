@@ -68,6 +68,7 @@ library(broom.mixed)
 library(weights)
 library(tidyverse)
 library(grid)
+library(udpipe)
 
 theme_set(theme_few())
 ```
@@ -566,18 +567,18 @@ ldp_adjs_rep <- ldp_adjs %>%
   left_join(ldp_lag_pairs %>% select(-adj_noun_phrase), by = c("utt_id", "subject", "session", "chat"))
 ```
 
+### Child Speech.
 
-```{r analyze-reps, fig.width=3.4, fig.height = 5.4}
-ldp_child_non_rep <- ldp_adjs_rep %>%
-  filter(person == "child", !is.na(adj_token), !is.na(noun_token)) %>%
-  mutate(adj_noun_phrase = paste(adj_token, noun_token)) %>%
-  filter(!str_detect(lag_data, adj_noun_phrase)) %>%
-  left_join(mean_ratings, by = c("adj_token" = "adjective", "noun_token" = "noun")) %>%
-  filter(!is.na(mean_typ)) %>% # filter out nonsense pairs
-  mutate(age = (4*session + 10))
+Given the striking consistency in adult-to-adult speech and caregiver speech across ages, we next consider what kind of information is contained in children's speech. By analyzing children's own utterances, we can determine when children come to use description in a way that looks like adult speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe more typical features of the world?
 
-ldp_child_non_rep %>%
-  mutate(typicality=mean_typ) %>%
+We analyzed children's own use of description and found that, following the pattern of parent speech and adult-adult speech, they predominantly mention atypical rather than typical features (Figure \ref{fig:child-ridge-plot}). The fact that children are remarking on atypical features is intriguing, but it would be premature to conclude that they are doing so to be selectively informative. Note also that especially at young ages, children produce few adjective-noun pairs—they are not producing any at 14 months old, our earliest timepoint—so our data on children's speech is somewhat sparse. We discuss potential interpretations of this finding further in the Conclusion.
+
+<!-- Mirroring caregiver and adult-adult speech, children's productions show a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). -->
+
+```{r child-ridge-plot, fig.align = "center", fig.width=3.4, fig.height = 5.4, fig.cap = "Density plots showing children's use of atypical and typical adjective-noun pairs across age.", fig.pos="tb"}
+ldp_coded %>%
+  filter(person == "child") %>%
+  mutate(typicality=mean_rating) %>%
   group_by(session) %>%
   mutate(age = min(age)) %>%
   ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
@@ -608,19 +609,17 @@ ldp_child_non_rep %>%
 )
 
 ```
+```{r analyze-reps, fig.width=3.4, fig.height = 5.4, fig.cap = "Density plots showing children's use of atypical and typical adjective-noun pairs across age after excluding repeated utterances.", fig.pos="tb"}
+ldp_child_non_rep <- ldp_adjs_rep %>%
+  filter(person == "child", !is.na(adj_token), !is.na(noun_token)) %>%
+  mutate(adj_noun_phrase = paste(adj_token, noun_token)) %>%
+  filter(!str_detect(lag_data, adj_noun_phrase)) %>%
+  left_join(mean_ratings, by = c("adj_token" = "adjective", "noun_token" = "noun")) %>%
+  filter(!is.na(mean_typ)) %>% # filter out nonsense pairs
+  mutate(age = (4*session + 10))
 
-### Child Speech.
-
-Given the striking consistency in adult-to-adult speech and caregiver speech across ages, we next consider what kind of information is contained in children's speech. By analyzing children's own utterances, we can determine when children come to use description in a way that looks like adult speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe more typical features of the world?
-
-We analyzed children's own use of description and found that, following the pattern of parent speech and adult-adult speech, they predominantly mention atypical rather than typical features (Figure \ref{fig:child-ridge-plot}). The fact that children are remarking on atypical features is intriguing, but it would be premature to conclude that they are doing so to be selectively informative. Note also that especially at young ages, children produce few adjective-noun pairs—they are not producing any at 14 months old, our earliest timepoint—so our data on children's speech is somewhat sparse. We discuss potential interpretations of this finding further in the Conclusion.
-
-<!-- Mirroring caregiver and adult-adult speech, children's productions show a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). -->
-
-```{r child-ridge-plot, fig.align = "center", fig.width=3.4, fig.height = 5.4, fig.cap = "Density plots showing children's use of atypical and typical adjective-noun pairs across age.", fig.pos="tb"}
-ldp_coded %>%
-  filter(person == "child") %>%
-  mutate(typicality=mean_rating) %>%
+ldp_child_non_rep %>%
+  mutate(typicality=mean_typ) %>%
   group_by(session) %>%
   mutate(age = min(age)) %>%
   ggplot(aes(x = typicality, y=age, group=age, fill=age)) +
