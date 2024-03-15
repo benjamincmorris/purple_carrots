@@ -174,7 +174,7 @@ mean_ratings <- subj_data %>%
 
 # TODO: MAKE FILE WITH NO UTTERANCES
 
-ldp <- read_csv(here("data/ldp_conc_adj_noun_utts_with_session.csv"))
+ldp <- read_csv(here("data/ldp_adj_noun_by_utts_redacted.csv"))
 orig_tokens <- read_csv(here("data/ldp_cabnc_pairs_all_info.csv"))
 
 ldp <- ldp %>%
@@ -529,8 +529,8 @@ typicals_parent %>%
 ```
 
 ```{r read-data-all-utts}
-ldp <- read_csv(here("data/ldp_full_utts_1mill.csv"))
-adj_utts <- read_csv(here("data/ldp_conc_adj_noun_utts_with_session.csv"))
+ldp <- read_csv(here("data/ldp_full_corpus_redacted.csv"))
+adj_utts <- read_csv(here("data/ldp_adj_noun_by_utts_redacted.csv"))
 
 ldp_adjs <- ldp %>%
   left_join(adj_utts, by = c("id" = "doc_id", "subject", "session", "person", "chat", "utts")) %>%
