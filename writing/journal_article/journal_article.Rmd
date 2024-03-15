@@ -3,21 +3,23 @@ title             : "Children hear more about what is atypical than what is typi
 shorttitle: "Children hear about the atypical"
 
 author: 
-  - name          : "Claire Augusta Bergey"
+  - name          : "Claire Augusta Bergey*"
     affiliation   : "1"
     corresponding : yes    # Define only one corresponding author
-    address       : "5848 S. University Avenue, Chicago, IL 60637"
+    address       : "330 N Orchard St, Madison, WI 53715"
     email         : "cbergey@wisc.edu"
-  - name          : "Ben Morris"
-    affiliation   : "1"
+  - name          : "Ben Morris*"
+    affiliation   : "2"
     email         : "benmorris@uchicago.edu"
   - name          : "Dan Yurovsky"
-    affiliation   : "2"
+    affiliation   : "3"
 
 affiliation:
   - id            : "1"
-    institution   : "The University of Chicago"
+    institution   : "University of Wisconsin-Madison"
   - id            : "2"
+    institution   : "The University of Chicago"
+  - id            : "3"
     institution   : "Carnegie Mellon University"
 
  
@@ -170,6 +172,8 @@ mean_ratings <- subj_data %>%
   summarise(mean_typ = mean(rating)) %>%
   ungroup()
 
+# TODO: MAKE FILE WITH NO UTTERANCES
+
 ldp <- read_csv(here("data/ldp_conc_adj_noun_utts_with_session.csv"))
 orig_tokens <- read_csv(here("data/ldp_cabnc_pairs_all_info.csv"))
 
@@ -190,31 +194,26 @@ ldp_coded <- ldp %>%
 ```{r read-cabnc}
 all_corpora <- read_csv(here("data/all_cabnc_ldpParentandKid_conc_unique_UTTS.csv"))
 
-# for now this has both cabnc and ldp utterances. let's get a list of most common adjectives to use ...
-common_adjs <- all_corpora %>%
-  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
-  rename(adjective = adj_token) %>%
-  count(adjective) %>%
-  arrange(desc(n)) %>%
-  slice(1:500)
-
-common_adjs_250 <- all_corpora %>%
-  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
-  rename(adjective = adj_token) %>%
-  count(adjective) %>%
-  arrange(desc(n)) %>%
-  slice(1:250)
-
 all_corpus_counts <- all_corpora %>%
   left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
   rename(adjective = adj_token) %>%
   count(adjective, noun) %>%
   ungroup()
 
-#write_csv(common_adjs_250, here("data/250_common_adjs.csv"))
-
 cabnc <- all_corpora %>%
   filter(dataset == "cabnc_utts_udpipe") %>%
+  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
+  rename(adjective = adj_token) %>%
+  select(doc_id, sentence, noun_token, adjective, noun, prenominal, 
+         dataset, mass, adj_article, 
+         article, adj_token_id, noun_token_id) %>%
+  left_join(mean_ratings, by = c("adjective", "noun")) %>%
+  rename(mean_rating = mean_typ) %>%
+  filter(!is.na(mean_rating))
+
+# TODO: Add session to this and get rid of old ldp dataframe above
+ldp_new <- all_corpora %>%
+  filter(dataset %in% c("ldp_parent_utts_udpipe", "ldp_child_utts_udpipe")) %>%
   left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
   rename(adjective = adj_token) %>%
   select(doc_id, sentence, noun_token, adjective, noun, prenominal, 
@@ -267,32 +266,23 @@ parent_tokens <- ldp %>%
   filter(person == "parent") %>%
   mutate(age = 10 + 4 * session) %>%
   count(session, age, adjective, noun) %>%
-  left_join(subj_data %>% select(adjective, noun, rating), relationship = "many-to-many") %>%
-  filter(!is.na(rating)) %>%
-  group_by(session, age, adjective, noun) %>%
-  mutate(rater_num = row_number()) %>%
-  ungroup() %>%
-  mutate(centered_rating = rating - 4)
+  left_join(mean_ratings) %>%
+  filter(!is.na(mean_typ)) %>%
+  mutate(centered_rating = mean_typ - 4)
 
 kid_tokens <- ldp %>%
   filter(person == "child") %>%
   mutate(age = 10 + 4 * session) %>%
   count(session, age, adjective, noun) %>%
-  left_join(subj_data %>% select(adjective, noun, rating), relationship = "many-to-many") %>%
-  filter(!is.na(rating)) %>%
-  group_by(session, age, adjective, noun) %>%
-  mutate(rater_num = row_number()) %>%
-  ungroup() %>%
-  mutate(centered_rating = rating - 4)
+  left_join(mean_ratings) %>%
+  filter(!is.na(mean_typ)) %>%
+  mutate(centered_rating = mean_typ - 4)
 
 cabnc_tokens <- cabnc %>%
   count(adjective, noun) %>%
-  left_join(subj_data %>% select(adjective, noun, rating), relationship = "many-to-many") %>%
-  filter(!is.na(rating)) %>%
-  group_by(adjective, noun) %>%
-  mutate(rater_num = row_number()) %>%
-  ungroup() %>%
-  mutate(centered_rating = rating - 4)
+  left_join(mean_ratings) %>%
+  filter(!is.na(mean_typ)) %>%
+  mutate(centered_rating = mean_typ - 4)
 
 mean_parent_type <- lmer(centered_rating ~ 1 + (1|noun),
                      data = parent_tokens) %>%
@@ -310,6 +300,11 @@ mean_parent_type_byage <- parent_tokens %>%
   unnest(cols = c(effect)) %>%
   ungroup()
 
+mean_parent_token <- lmer(centered_rating ~ 1 + (1|noun), weights = n,
+                     data = parent_tokens) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
 mean_parent_token_byage <- parent_tokens %>%
   group_by(age) %>%
   nest() %>%
@@ -320,11 +315,6 @@ mean_parent_token_byage <- parent_tokens %>%
   select(-data) %>%
   unnest(cols = c(effect)) %>%
   ungroup()
-
-mean_parent_token <- lmer(centered_rating ~ 1 + (1|noun), weights = n,
-                     data = parent_tokens) %>%
-                     tidy() %>%
-                     filter(effect == "fixed")
 
 
 parent_token_weight <- lmer(centered_rating ~ log(age) + (1|noun),
@@ -375,7 +365,6 @@ kid_token_statistic <- mean_kid_token %>% filter(term == "(Intercept)") %>%
 kid_token_p <- mean_kid_token %>% filter(term == "(Intercept)") %>%
   pull(p.value) %>% printp()
 ```
-
 
 ### Results
 
@@ -548,34 +537,30 @@ ldp_adjs <- ldp %>%
   arrange(id)
 
 ldp_lag_pairs <- ldp_adjs %>%
-  select(utt_id, subject, session, chat, adj_token, noun_token) %>%
+  select(utt_id, subject, session, person, chat, adj_token, noun_token) %>%
   mutate(adj_noun_phrase = paste(adj_token, noun_token)) %>%
   paste.data.frame(term = "adj_noun_phrase", 
-                   group = c("utt_id", "subject", "session", "chat"), collapse = " ") %>%
+                   group = c("utt_id", "subject", "session", "chat", "person"), 
+                   collapse = " ") %>%
   mutate(adj_noun_phrase = trimws(str_remove_all(adj_noun_phrase, "NA")),
          adj_noun_phrase = str_replace_all(adj_noun_phrase, "  ", " "),
          adj_noun_phrase = str_replace_all(adj_noun_phrase, "  ", " ")) %>%
+  mutate(parent_adj_noun_phrase = if_else(person == "parent",
+                                          adj_noun_phrase, "")) %>%
   group_by(subject, session) %>%
-  mutate(lag_data = paste(lag(adj_noun_phrase), lag(adj_noun_phrase, 2), lag(adj_noun_phrase, 3),
-                          lag(adj_noun_phrase, 4), lag(adj_noun_phrase, 5))) %>%
+  mutate(lag_data = paste(lag(parent_adj_noun_phrase), 
+                          lag(parent_adj_noun_phrase, 2), lag(parent_adj_noun_phrase, 3),
+                          lag(parent_adj_noun_phrase, 4), lag(parent_adj_noun_phrase, 5))) %>%
   ungroup() %>%
   mutate(lag_data = trimws(str_remove_all(lag_data, "NA")),
          lag_data = str_replace_all(lag_data, "  ", " "),
          lag_data = str_replace_all(lag_data, "  ", " ")) 
    
 ldp_adjs_rep <- ldp_adjs %>%
-  left_join(ldp_lag_pairs %>% select(-adj_noun_phrase), by = c("utt_id", "subject", "session", "chat"))
+  left_join(ldp_lag_pairs %>% select(-adj_noun_phrase), by = c("utt_id", "person", "subject", "session", "chat"))
 ```
 
-### Child Speech.
-
-Given the striking consistency in adult-to-adult speech and caregiver speech across ages, we next consider what kind of information is contained in children's speech. By analyzing children's own utterances, we can determine when children come to use description in a way that looks like adult speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe more typical features of the world?
-
-We analyzed children's own use of description and found that, following the pattern of parent speech and adult-adult speech, they predominantly mention atypical rather than typical features (Figure \ref{fig:child-ridge-plot}). The fact that children are remarking on atypical features is intriguing, but it would be premature to conclude that they are doing so to be selectively informative. Note also that especially at young ages, children produce few adjective-noun pairs—they are not producing any at 14 months old, our earliest timepoint—so our data on children's speech is somewhat sparse. We discuss potential interpretations of this finding further in the Conclusion.
-
-<!-- Mirroring caregiver and adult-adult speech, children's productions show a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). -->
-
-```{r child-ridge-plot, fig.align = "center", fig.width=3.4, fig.height = 5.4, fig.cap = "Density plots showing children's use of atypical and typical adjective-noun pairs across age.", fig.pos="tb"}
+```{r child-ridge-plot, fig.align = "center", fig.width=3.4, fig.height = 5.4, fig.cap = "Density plots showing children's use of atypical and typical adjective-noun pairs across age.", fig.pos="tb", eval = FALSE}
 ldp_coded %>%
   filter(person == "child") %>%
   mutate(typicality=mean_rating) %>%
@@ -609,7 +594,7 @@ ldp_coded %>%
 )
 
 ```
-```{r analyze-reps, fig.width=3.4, fig.height = 5.4, fig.cap = "Density plots showing children's use of atypical and typical adjective-noun pairs across age after excluding repeated utterances.", fig.pos="tb"}
+```{r child-non-reps-plot, fig.width=3.4, fig.height = 5.4, fig.cap = "Density plots showing children's use of atypical and typical adjective-noun pairs across age after excluding repeated utterances.", fig.pos="tb"}
 ldp_child_non_rep <- ldp_adjs_rep %>%
   filter(person == "child", !is.na(adj_token), !is.na(noun_token)) %>%
   mutate(adj_noun_phrase = paste(adj_token, noun_token)) %>%
@@ -650,6 +635,66 @@ ldp_child_non_rep %>%
 )
 
 ```
+
+```{r kid-rep-model}
+kid_tokens_no_rep <- ldp_child_non_rep %>%
+  count(session, age, adj_token, noun_token, mean_typ) %>%
+  filter(!is.na(mean_typ)) %>%
+  mutate(centered_rating = mean_typ - 4)
+
+kid_model_no_rep <- lmer(centered_rating ~ 1 + (1|noun_token), weights = n, 
+                       data = kid_tokens_no_rep) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+kid_no_rep_token_estimate <- kid_model_no_rep %>% filter(term == "(Intercept)") %>%
+  pull(estimate)
+kid_no_rep_token_statistic <- kid_model_no_rep %>% filter(term == "(Intercept)") %>%
+  pull(statistic)
+kid_no_rep_token_p <- kid_model_no_rep %>% filter(term == "(Intercept)") %>%
+  pull(p.value) %>% printp()
+
+kid_model_no_rep_type <- lmer(centered_rating ~ 1 + (1|noun_token),  
+                       data = kid_tokens_no_rep) %>%
+                     tidy() %>%
+                     filter(effect == "fixed")
+
+kid_no_rep_type_estimate <- kid_model_no_rep %>% filter(term == "(Intercept)") %>%
+  pull(estimate)
+kid_no_rep_type_statistic <- kid_model_no_rep %>% filter(term == "(Intercept)") %>%
+  pull(statistic)
+kid_no_rep_type_p <- kid_model_no_rep %>% filter(term == "(Intercept)") %>%
+  pull(p.value) %>% printp()
+
+kid_model_no_rep_token_byage <- kid_tokens_no_rep %>%
+  filter(age > 18) %>%
+  group_by(age) %>%
+  nest() %>%
+  mutate(effect = map(data, ~lmer(centered_rating ~ 1 + (1|noun_token),
+                                  weights = n, data = .) %>%
+                       tidy() %>%
+                       filter(effect == "fixed"))) %>%
+  select(-data) %>%
+  unnest(cols = c(effect)) %>%
+  ungroup()
+
+kid_youngest_estimate <- kid_model_no_rep_token_byage %>% filter(age == 22, term == "(Intercept)") %>%
+  pull(estimate)
+kid_youngest_statistic <- kid_model_no_rep_token_byage %>% filter(age == 22, term == "(Intercept)") %>%
+  pull(statistic)
+kid_youngest_p <- kid_model_no_rep_token_byage %>% filter(age == 22, term == "(Intercept)") %>%
+  pull(p.value) %>% printp()
+```
+
+### Child Speech.
+
+Given the striking consistency in adult-to-adult speech and caregiver speech across ages, we next consider what kind of information is contained in children's speech. By analyzing children's own utterances, we can determine when children come to use description in a way that looks like adult speech. Are children mirroring adult-like uses of description even from a young age, or are they choosing to describe more typical features of the world?
+
+We analyzed children's own use of description and found that, following the pattern of parent speech and adult-adult speech, they predominantly mention atypical rather than typical features; confirmed statistically as above, we find a reliably negative intercept ($\beta =$ `r kid_token_estimate`, $t =$ `r kid_token_statistic`, $p$ `r kid_token_p`). One deflationary explanation for this pattern is that children are simply often repeating the adjective-noun pairs their parents just produced. To rule out this explanation, we re-analyzed the data excluding any adjective-noun pairs produced by a parent in the past five utterances in conversation, still finding a reliably negative intercept ($\beta =$ `r kid_no_rep_token_estimate`, $t =$ `r kid_no_rep_token_statistic`, $p$ `r kid_no_rep_token_p`). Further, when testing within each age group, even the 22-month-olds (the first age for which we have sufficient child adjective-noun utterances to estimate) are reliably producing more atypical than typical adjective-noun pairs; the intercept is reliably negative when estimated within every age (14-month-olds and 18-month-olds are excluded due to having 0 and 3 adjective-noun pairs, respectively; estimate at 22 months old, $\beta =$ `r kid_youngest_estimate`, $t =$ `r kid_youngest_statistic`, $p$ `r kid_youngest_p`) That is, even when excluding utterances children may have immediately imitated from their parents, and from the earliest ages they are consistently using adjective-noun pairs, children more often mention atypical than typical features of things (Figure \ref{fig:child-non-reps-plot}).
+
+The fact that children are remarking on atypical features is intriguing, but it would be premature to conclude that they are doing so to be selectively informative. Note also that especially at young ages, children produce few adjective-noun pairs—they are not producing any at 14 months old, our earliest timepoint—so our data on children's speech is somewhat sparse. We discuss potential interpretations of this finding further in the Conclusion.
+
+<!-- Mirroring caregiver and adult-adult speech, children's productions show a positive skew (0.61, comapre with skewness = 0.65 seen in the adults), such that the bulk of language reflects adjective-noun pairs rated < 4 on typicality (i.e. 'sometimes', 'rarely' or 'never'). -->
 
 ## Discussion
 
