@@ -73,6 +73,7 @@ library(grid)
 library(udpipe)
 library(ggh4x)
 library(ggpubr)
+library(ggh4x)
 
 theme_set(theme_few())
 ```
@@ -173,28 +174,15 @@ mean_ratings <- subj_data %>%
   group_by(adjective, noun) %>%
   summarise(mean_typ = mean(rating)) %>%
   ungroup()
-
-# TODO: MAKE FILE WITH NO UTTERANCES
-
-ldp <- read_csv(here("data/ldp_adj_noun_by_utts_redacted.csv"))
-orig_tokens <- read_csv(here("data/ldp_cabnc_pairs_all_info.csv"))
-
-ldp <- ldp %>%
-  left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
-  rename(adjective = adj_token) %>%
-  select(doc_id, noun_token, adjective, noun, prenominal, 
-         dataset, subject, session, person, mass, adj_article, 
-         article, adj_token_id, noun_token_id) 
-
-ldp_coded <- ldp %>%
-  mutate(age = (4*session + 10)) %>%
-  left_join(mean_ratings, by = c("adjective", "noun")) %>%
-  rename(mean_rating = mean_typ) %>%
-  filter(!is.na(mean_rating))
 ```
 
-```{r read-cabnc}
-all_corpora <- read_csv(here("data/all_cabnc_ldpParentandKid_conc_unique_UTTS.csv"))
+```{r read-corpora}
+all_corpora <- read_csv(here("data/all_corpora_adj_noun_utts_redacted.csv"))
+
+orig_tokens <- read_csv(here("data/ldp_cabnc_pairs_all_info.csv"))
+
+ldp <- all_corpora %>%
+  filter(dataset != "cabnc_utts_udpipe")
 
 all_corpus_counts <- all_corpora %>%
   left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
@@ -213,16 +201,19 @@ cabnc <- all_corpora %>%
   rename(mean_rating = mean_typ) %>%
   filter(!is.na(mean_rating))
 
-# TODO: Add session to this and get rid of old ldp dataframe above
-ldp_new <- all_corpora %>%
+
+# NOTE: actual utterances from LDP are redacted for data sharing 
+  # to preserve anonymity while sharing as much as possible
+ldp_coded <- all_corpora %>%
   filter(dataset %in% c("ldp_parent_utts_udpipe", "ldp_child_utts_udpipe")) %>%
   left_join(orig_tokens, by = c("adj_token" = "adj", "noun_token" = "noun_orig")) %>%
-  rename(adjective = adj_token) %>%
+  mutate(adjective = adj_token) %>%
   select(doc_id, noun_token, adjective, noun, prenominal, 
-         dataset, mass, adj_article, 
-         article, adj_token_id, noun_token_id) %>%
+         dataset, mass, adj_article,adj_token, 
+         article, adj_token_id, noun_token_id, subject, session, person) %>%
   left_join(mean_ratings, by = c("adjective", "noun")) %>%
   rename(mean_rating = mean_typ) %>%
+  mutate(age = (4*session + 10)) %>%
   filter(!is.na(mean_rating))
 ```
 
@@ -266,17 +257,15 @@ all_judgments <- mean_ratings %>%
 ```
 
 ```{r models}
-parent_tokens <- ldp %>%
+parent_tokens <- ldp_coded %>%
   filter(person == "parent") %>%
-  mutate(age = 10 + 4 * session) %>%
   count(session, age, adjective, noun) %>%
   left_join(mean_ratings) %>%
   filter(!is.na(mean_typ)) %>%
   mutate(centered_rating = mean_typ - 4)
 
-kid_tokens <- ldp %>%
+kid_tokens <- ldp_coded %>%
   filter(person == "child") %>%
-  mutate(age = 10 + 4 * session) %>%
   count(session, age, adjective, noun) %>%
   left_join(mean_ratings) %>%
   filter(!is.na(mean_typ)) %>%
@@ -631,11 +620,13 @@ typicals_parent %>%
 ```
 
 ```{r read-data-all-utts}
+# full corpus with utterance ids
+  # note actual utterances are redacted for data sharing 
+  # to preserve anonymity while sharing as much as possible
 ldp <- read_csv(here("data/ldp_full_corpus_redacted.csv"))
-adj_utts <- read_csv(here("data/ldp_adj_noun_by_utts_redacted.csv"))
 
 ldp_adjs <- ldp %>%
-  left_join(adj_utts, by = c("id" = "doc_id", "subject", "session", "person")) %>%
+  left_join(ldp_coded, by = c("id" = "doc_id", "subject", "session", "person")) %>%
   arrange(id)
 
 ldp_lag_pairs <- ldp_adjs %>%
