@@ -258,7 +258,9 @@ all_judgments <- mean_ratings %>%
   left_join(bert_judgments, by = c("adjective", "noun")) %>%
   rename(bert_prob = prob) %>%
   left_join(w2v_judgments, by = c("adjective", "noun")) %>%
-  left_join(gpt3_judgments, by = c("adjective", "noun"))
+  left_join(gpt3_judgments, by = c("adjective", "noun")) %>%
+  mutate(wiki_similarity = if_else(is.nan(wiki_similarity), NA_real_, wiki_similarity)) %>%
+  mutate(ldp_similarity = if_else(is.nan(ldp_similarity), NA_real_, ldp_similarity))
 ```
 
 ```{r models}
@@ -857,6 +859,13 @@ gpt3_binom <- binom.test(gpt3_correct, pairs_total)$p.value %>%
 
 # The black dotted line shows average human typicality ratings (scaled) for these items. The blue line shows how well our models do at capturing this trend, with grey lines representing individual pairs
 
+wiki_min = min(all_judgments$wiki_similarity, na.rm = TRUE)
+wiki_max = max(all_judgments$wiki_similarity, na.rm = TRUE)
+ldp_min = min(all_judgments$ldp_similarity, na.rm = TRUE)
+ldp_max = max(all_judgments$ldp_similarity, na.rm = TRUE)
+bert_min = min(all_judgments$bert_prob, na.rm = TRUE)
+bert_max = max(all_judgments$bert_prob, na.rm = TRUE)
+
 halves_data <- high_low_all %>%
   select(-gpt3_judgment) %>%
   pivot_longer(cols = c(mean_typ, wiki_similarity, ldp_similarity, bert_prob, gpt3_score),
@@ -871,7 +880,18 @@ halves_data <- high_low_all %>%
 human <- halves_data %>%
   filter(measure =="Human") %>%
   group_by(typicality) %>% 
-  summarise(mean=mean(score))
+  summarise(true_mean=mean(score)) %>%
+  mutate(wiki_similarity = true_mean*(wiki_max - wiki_min) + wiki_min,
+         ldp_similarity = true_mean*(ldp_max - ldp_min) + ldp_min,
+         bert_prob = true_mean*(bert_max - bert_min) + bert_min,
+         gpt3_score = true_mean*1) %>%
+  pivot_longer(c(true_mean, wiki_similarity, ldp_similarity, bert_prob, gpt3_score),
+               names_to = "measure", values_to = "mean") %>%
+  mutate(measure = factor(measure, 
+                          levels = c("true_mean", "ldp_similarity", 
+                                     "wiki_similarity", "bert_prob", "gpt3_score"), 
+                          labels = c("True mean", "LDP word2vec", 
+                                     "Wiki word2vec", "BERT", "GPT-3"))) 
 
 means <- halves_data %>%
     group_by(measure, typicality) %>% 
@@ -912,7 +932,7 @@ Similarity judgments produced by our models reflect many dimensions of similarit
 
 The analogous analysis on BERT asks whether the model rates the high-typicality adjective as more likely to come before the noun than the low typicality adjective (e.g., P("red") > P("brown") in "____ apple"). BERT correctly classified `r bert_correct` out of `r pairs_total` (`r bert_correct / pairs_total`), which is significantly better than chance ($p =$ `r bert_binom`). However, BERT's performance was directionally less accurate than Wikipedia-trained word2vec: though BERT is a more sophisticated model, it does not capture adjective-noun typicality better than word2vec in this analysis. GPT-3 performs much better than BERT and the word2vec models, with `r gpt3_correct` out of `r pairs_total` (`r gpt3_correct / pairs_total`; $p$ `r gpt3_binom`). Figure \ref{fig:bert-gpt} shows BERT and GPT-3 ratings for the `r pairs_total` nouns and their typical and atypical adjectives alongside scaled average human ratings. 
 
-```{r halfs, cache=F, fig.align = "center", fig.width = 6, fig.cap = 'Plots of word2vec noun-adjective similarities for nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective (rated at least "often").'}
+```{r halfs, cache=F, fig.align = "center", fig.width = 6, fig.cap = 'Plots of word2vec noun-adjective similarities for nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective (rated at least "often"). Human ratings line depicts the mean human rating in each group, scaled to the range of model outputs.'}
 
 halves_data %>%
   filter(measure %in% c("Wiki word2vec", "LDP word2vec")) %>%
@@ -922,8 +942,10 @@ halves_data %>%
   facet_wrap(~measure) +
   geom_point(alpha = .5, position=position_dodge(0.06), color = "light gray") +
   geom_line(alpha = .5, color = "light gray", position=position_dodge(0.06)) +
-  geom_line(data=human, aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
-  geom_point(data=human, aes(x=typicality, y=mean, group=NA), color="black") +
+  geom_line(data=human %>% filter(measure %in% c("LDP word2vec", "Wiki word2vec")),
+            aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
+  geom_point(data=human %>% filter(measure %in% c("LDP word2vec", "Wiki word2vec")),
+             aes(x=typicality, y=mean, group=NA), color="black") +
   geom_line(data=means %>% filter(measure %in% c("LDP word2vec", "Wiki word2vec")),
             aes(x=typicality, y=mean, group=NA), color="steelblue", size=.8) +
   geom_point(data=means %>% filter(measure %in% c("LDP word2vec", "Wiki word2vec")), 
@@ -949,19 +971,22 @@ halves_data %>%
 #ggsave(bertplot, filename = "figs/bert_w2v_plot.png",  width = 8, height = 4, units = "in", dpi = 300, bg = "transparent")
 ```
 
-```{r bert-gpt, cache=F, fig.align = "center", fig.width = 6, fig.cap = 'Plots of BERT and GPT-3 noun-adjective similarities for nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective (rated at least "often").'}
+```{r bert-gpt, cache=F, fig.align = "center", fig.width = 6, fig.cap = 'Plots of BERT and GPT-3 noun-adjective similarities for nouns for which there was at least one atypical adjective (rated at most "sometimes"), and at least one typical adjective (rated at least "often"). Human ratings line depicts the mean human rating in each group, scaled to the range of model outputs.'}
 
 halves_data %>%
   filter(measure %in% c("BERT", "GPT-3")) %>%
   mutate(score = if_else(measure=="GPT-3", (score - 1)/6, score)) %>%
+  #mutate(score = if_else(measure=="BERT", log(score), score)) %>%
   mutate(measure = factor(measure, 
                           levels = c("BERT", "GPT-3"))) %>%
   ggplot(aes(x = typicality, y = score, group = noun)) +
   facet_wrap(~measure) +
   geom_point(alpha = .5, position=position_dodge(0.06), color = "light gray") +
   geom_line(alpha = .5, color = "light gray", position=position_dodge(0.06)) +
-  geom_line(data=human, aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
-  geom_point(data=human, aes(x=typicality, y=mean, group=NA), color="black") +
+  geom_line(data=human %>% filter(measure %in% c("BERT", "GPT-3")),
+            aes(x=typicality, y=mean, group=NA), color="black", linetype="dashed") +
+  geom_point(data=human %>% filter(measure %in% c("BERT", "GPT-3")),
+             aes(x=typicality, y=mean, group=NA), color="black") +
   geom_line(data=means %>% filter(measure %in% c("BERT", "GPT-3")),
             aes(x=typicality, y=mean, group=NA), color="steelblue", size=.8) +
   geom_point(data=means %>% filter(measure %in% c("BERT", "GPT-3")), 
