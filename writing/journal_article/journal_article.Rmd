@@ -71,6 +71,7 @@ library(weights)
 library(tidyverse)
 library(grid)
 library(udpipe)
+library(ggh4x)
 library(ggpubr)
 
 theme_set(theme_few())
@@ -555,6 +556,7 @@ adult <- typicals_cabnc %>%
   xlab("") +
   facetted_pos_scales() +
   ylim(0.02,0.125) +
+  xlim(0,1)+
   scale_x_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4))+
   scale_fill_gradient(low="cornsilk", high=muted("red")) +
   theme(#axis.line = element_line(colour = "black"),
@@ -575,10 +577,57 @@ adult <- typicals_cabnc %>%
     legend.background = element_rect(fill = "transparent"), # get rid of legend bg
     legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
     legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
+    
+)
+
+
+typicals_parent %>% 
+  mutate(corpus = "Parent speech") %>%
+  rbind(typicals_cabnc %>% mutate(corpus = "Adult-Adult speech", age = 60)) %>%
+  mutate(corpus = factor(corpus, levels = c("Parent speech", "Adult-Adult speech"))) %>%
+  filter(measure == "weighted_sum") %>% 
+  ggplot(aes(x = age,y = prop, colour = age)) +
+  facet_grid2(cols = vars(corpus), scales = "free_x", space = "free_x") +
+  geom_smooth(method = "glm", formula = y~x,
+                      method.args = list(family = gaussian(link = 'log')),color = "black") +
+  geom_point(aes(fill=age), colour="black",pch=21, size=5) +
+  ylab("Proportion of modifiers rated as \n highly typical of modified noun") +
+  xlab("Child's Age (months)") +
+  facetted_pos_scales(
+    x = list(corpus == "Parent speech" ~ scale_x_continuous(minor_breaks = seq(14, 58, 4), breaks = seq(14, 58, 4)),
+             corpus == "Adult-Adult speech" ~ scale_x_continuous(minor_breaks = seq(58, 62, 2), breaks = seq(58, 62, 2)))
+  ) +
+  ylim(0.02,0.125) +
+  scale_fill_gradient(low="cornsilk", high=muted("red")) +
+  theme(#axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(),
+        #axis.text = element_text(size=14),
+        #panel.grid = element_line(color="lightgrey",size=0.5),
+        #axis.text.x = element_text(size=10, angle=15),
+        legend.position = "none") +
+  theme(
+    strip.background =element_rect(fill="transparent"),
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent"), # get rid of legend panel bg
+    legend.key = element_rect(fill = "transparent", colour = NA), # get rid of key legend fill, and of the surrounding
     axis.line = element_line(colour = "black") # adding a black line for x and y axis
 )
 
-ggarrange(parent, adult, ncol = 2, nrow = 1, widths = c(7,4))
+#gp <- ggplotGrob(typicals_plot)
+#facet.columns <- gp$layout$l[grepl("panel", gp$layout$name)]
+#x.var <- sapply(ggplot_build(typicals_plot)$layout$panel_scales_x,
+#                function(l) length(l$range$range))
+
+# change the relative widths of the facet columns based on
+# how many unique x-axis values are in each facet
+#gp$widths[facet.columns] <- gp$widths[facet.columns] * x.var
+
+# plot result
+#grid::grid.draw(gp)
 ```
 
 ```{r read-data-all-utts}
