@@ -1,31 +1,38 @@
 ---
-title             : "Children hear more about what is atypical than what is typical"
-shorttitle: "Children hear about the atypical"
+title             : "Language selectively encodes atypical features of the world"
+shorttitle: "Language encodes the atypical"
+
+# author: 
+#   - name          : "Claire Augusta Bergey*"
+#     affiliation   : "1"
+#     corresponding : yes    # Define only one corresponding author
+#     address       : "450 Jane Stanford Way, Building 420, Stanford, CA 94305"
+#     email         : "cbergey@stanford.edu"
+#   - name          : "Ben Morris*"
+#     affiliation   : "2"
+#     email         : "benjamin.morris@yale.edu"
+#   - name          : "Dan Yurovsky"
+#     affiliation   : "3"
+# 
+# affiliation:
+#   - id            : "1"
+#     institution   : "Stanford University"
+#   - id            : "2"
+#     institution   : "Yale University"
+#   - id            : "3"
+#     institution   : "Carnegie Mellon University"
 
 author: 
-  - name          : "Claire Augusta Bergey*"
-    affiliation   : "1"
-    corresponding : yes    # Define only one corresponding author
-    address       : "450 Jane Stanford Way, Building 420, Stanford, CA 94305"
-    email         : "cbergey@stanford.edu"
-  - name          : "Ben Morris*"
-    affiliation   : "2"
-    email         : "benmorris@uchicago.edu"
-  - name          : "Dan Yurovsky"
-    affiliation   : "3"
+   - name          : "Anonymous Authors"
+     affiliation   : "1"
 
 affiliation:
-  - id            : "1"
-    institution   : "Stanford University"
-  - id            : "2"
-    institution   : "Yale University"
-  - id            : "3"
-    institution   : "Carnegie Mellon University"
-
+   - id            : "1"
+     institution   : "Institution Anonymized for Review"
  
 
 abstract: |
-  How do children learn the typical features of things in the world? For many objects, this information must come from the language they hear. However, language does not necessarily reflect the world veridically. If the language children hear selectively picks out the atypical features of things (e.g., "purple carrot") rather than the typical features of things (e.g., "orange carrot"), learning about the world from language is less straightforward. Here, we test whether the language children hear from parents, as well as everyday conversation among adults, overrepresents atypical features. To do so, we examined the typicality of features in adjective-noun pairs produced by parents in a large, longitudinal corpus of parent-child interaction, as well as a comparison set of adjective-noun pairs from adult-adult speech. Across over 6,000 unique adjective–noun pairs, we found that parents speaking to children—like adults speaking to other adults—predominantly use adjectives to mark atypical features of things. We also found that parents of very young children comment on typical features slightly more often than parents of older children. Thus, language is structured to emphasize what is atypical—so how can one learn about what things are typically like from language? We also show that distributional semantics models that use word co-occurrence to derive word meaning (word2vec) do not capture the typicality of adjective–noun pairs well. A much more sophisticated language model (GPT-3) does capture the typicality of adjective noun pairs well; though this model has input unlike what children have access to, it provides useful bounds on the typicality information learnable from applying simple training objectives to language alone. Taken together, this work raises new foundational questions about how children manage to learn so much from language that does not directly reflect the world, but selectively picks out remarkable facets of it.
+  Language contains a wealth of information about the world. However, language does not necessarily reflect the world veridically; instead, communicative pressure may lead it to selectively encode surprising or atypical information. If language picks out the atypical features of things (e.g., “purple carrot”) more often than the typical features of things (e.g., “orange carrot”), learning about the world from language is not straightforward. Here, we test whether a bias to overrepresent atypical information is present and robust across a variety of sources: everyday conversations among adults, the language children hear from parents, and children’s own language.  To do so, we extracted usage data for nearly 5,000 unique adjective-noun pairs and collected human typicality ratings for each pair. We found adults speaking to other adults, parents speaking to children, and even children themselves predominantly use adjectives to mark atypical features of things. We also found that parents of very young children comment on typical features slightly more often than parents of older children. Thus, language is structured to emphasize what is atypical—so how can one learn about what things are typically like from language? Using large language models, we test how this bias shapes what can be learned from language alone.  We find that even language models with extensive training data (word2vec and BERT) fail to capture the typicality of adjective–noun pairs well, and only a much more sophisticated large language model (GPT-3) succeeds. Though large language models have input unlike what human learners have access to, they provide useful bounds on the typicality information learnable from applying simple training objectives to language alone. In sum, we find that people talk more about the atypical than the typical, and we examine how this shapes the problem of learning about the world from language in children, adults, and language models.
   
 
 keywords          : language input, language acquisition, child-directed speech, corpus analysis, language models
@@ -108,7 +115,7 @@ We then ask whether the co-occurrence structure of language nonetheless captures
 
 ## Method
 
-In order to determine whether people use adjectives mostly to mark atypical features of categories, we analyzed speech from large corpora of everyday conversations: adult-adult conversations, caregivers' speech to children, and children's own speech. We extracted adjectives and the nouns they modified from conversational speech, and asked a sample of Amazon Mechanical Turkers to judge how typical the property described by each adjective was for the noun it modified. We then examined both the broad features of this typicality distribution and the way it changes over development.^[Our typicality elicitation method, and analyses and predicted results regarding child-directed speech were pre-registered at the following link: https://osf.io/ypdzv/?view_only=4d34d324f2964336a28d8fa4b43e5580 . This pre-registration specifies a prior version of our method for extracting adjective-noun pairs, and results from the exact pre-registered analyses are available in a proceedings paper (redacted for blind review), and conform to our pre-registered predictions. The analyses in the present manuscript use an improved method for extracting adjective-noun pairs, and conform to those same predictions. We did not pre-register the extraction method we use in the present work because the corpus, analysis plan, and predictions about child-directed speech did not change from the first pre-registration. The fact that the same hypotheses are borne out under both extraction methods demonstrates that these findings are robust to these data processing decisions.]
+In order to determine whether people use adjectives mostly to mark atypical features of categories, we analyzed speech from large corpora of everyday conversations: adult-adult conversations, caregivers' speech to children, and children's own speech. We extracted adjectives and the nouns they modified from conversational speech, and asked a sample of Amazon Mechanical Turkers to judge how typical the property described by each adjective was for the noun it modified. We then examined both the broad features of this typicality distribution and the way it changes over development.^[Our typicality elicitation method, and analyses and predicted results regarding child-directed speech were pre-registered at the following link: https://osf.io/g4c7r/?view_only=0b46742f44174d09b5c4dd790197e18f . This pre-registration specifies a prior version of our method for extracting adjective-noun pairs; results from the exact pre-registered analyses are available in a proceedings paper (redacted for blind review) and conform to our pre-registered predictions. The analyses in the present manuscript use an improved method for extracting adjective-noun pairs, and conform to those same predictions. The corpus, analysis plan, and predictions about child-directed speech did not change from the first pre-registration. The fact that the same hypotheses are borne out under both extraction methods demonstrates that these findings are robust to these data processing decisions.]
 
 ### Corpora
 
@@ -1185,11 +1192,11 @@ Another possibility is that children expect language to be used informatively at
 
 Whether adult-directed, child-directed, or a child's own speech, language is used with remarkable consistency: people talk about the atypical. Though parents might have reasonably been broadly over-informative in order to calibrate to their children's limited world knowledge, this is not the case. This presents a potential puzzle for young learners who have limited world knowledge and limited pragmatic inferential abilities. Indeed, only cutting-edge language models with extensive (and developmentally implausible) training data are able to solve this puzzle, leaving other sophisticated models stumped. For human learners, perceptual information and nascent pragmatic abilities may help fill in the gaps, but much remains to be explored to link these explanations to actual learning. The pressure for language to be informative is a pervasive force structuring language at every level, and future work must disentangle whether children capitalize on or are misled by this selective informativity in learning about the world.
 
-\vspace{1em} \fbox{\parbox[b][][c]{7.3cm}{\centering Stimuli, data, and analysis code available at\ \url{XXXXXXXX}}}
+\vspace{1em} \fbox{\parbox[b][][c]{7.3cm}{\centering Stimuli, data, and analysis code available at\ \url{https://osf.io/ypdzv/?view_only=82d769d2963f4a30b24d50588c3d047d}}}
 
 # Acknowledgements
 
-This research was funded by a James S. McDonnell Foundation Scholar Award to DY. 
+Acknowledgements anonymized for peer review. 
 
 # References 
 
