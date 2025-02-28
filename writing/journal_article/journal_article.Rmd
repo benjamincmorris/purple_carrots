@@ -1184,7 +1184,7 @@ It is also possible that other cues from language and interaction provide young 
 
 <!-- Given that the present work is limited to concrete concepts, we can only speculate about the information caregivers provide about abstract concepts. But,  -->
 
-Another possibility is that children expect language to be used informatively at a young age. Under this hypothesis, their language environment is not misleading at all, even without additional cues from caregivers. Children as young as two years old tend to use words to comment on what is new rather than what is known or assumed [@baker1988;@bohn2021young]. Children may therefore expect adjectives to comment on surprising features of objects. If young children expect adjectives to mark atypical features [@horowitz_childrens_2016], as adults do [@bergey2023using], they can use description and the lack thereof to learn more about the world. Our finding that children themselves mostly remark on atypical rather than typical features of things is consistent with this possibility, though does not provide strong evidence that children understand to use description informatively.
+Another possibility is that children expect language to be used informatively at a young age. Under this hypothesis, their language environment is not misleading at all, even without additional cues from caregivers. Children as young as two years old tend to use words to comment on what is new rather than what is known or assumed [@baker1988;@bohn2021young]. Children may therefore expect adjectives to comment on surprising features of objects. If young children expect adjectives to mark atypical features or events [@horowitz_childrens_2016], as adults do [@bergey2023using;@kravtchenko2022informationally], they can use description and the lack thereof to learn more about the world. Our finding that children themselves mostly remark on atypical rather than typical features of things is consistent with this possibility, though does not provide strong evidence that children understand to use description informatively.
 
 <!-- It is further possible that children are tracking more nuanced syntactic information, which could provide helpful cues to what is typical (e.g., adjectives used in a generic) -->
 
@@ -1192,7 +1192,9 @@ Another possibility is that children expect language to be used informatively at
 
 Whether adult-directed, child-directed, or a child's own speech, language is used with remarkable consistency: people talk about the atypical. Though parents might have reasonably been broadly over-informative in order to calibrate to their children's limited world knowledge, this is not the case. This presents a potential puzzle for young learners who have limited world knowledge and limited pragmatic inferential abilities. Indeed, only cutting-edge language models with extensive (and developmentally implausible) training data are able to solve this puzzle, leaving other sophisticated models stumped. For human learners, perceptual information and nascent pragmatic abilities may help fill in the gaps, but much remains to be explored to link these explanations to actual learning. The pressure for language to be informative is a pervasive force structuring language at every level, and future work must disentangle whether children capitalize on or are misled by this selective informativity in learning about the world.
 
-\vspace{1em} \fbox{\parbox[b][][c]{7.3cm}{\centering Stimuli, data, and analysis code available at\ \url{https://osf.io/ypdzv/?view_only=82d769d2963f4a30b24d50588c3d047d}}}
+# Data and Materials 
+
+Stimuli, data, and analysis code available at\ \url{https://osf.io/ypdzv/?view_only=82d769d2963f4a30b24d50588c3d047d}.
 
 # Acknowledgements
 
