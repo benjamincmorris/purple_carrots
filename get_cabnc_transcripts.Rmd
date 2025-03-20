@@ -1,0 +1,316 @@
+---
+title: "Get CABNC Transcripts"
+author: "ben morris"
+date: "10/6/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(fs)
+```
+
+```{r}
+#testing
+tmp <- readLines("~/Downloads/KB1RE00D.cha")
+
+tmp_df <- data.frame(line = tmp)
+
+tmp_df %>%
+  filter(grepl("@ID", line)) %>%
+  rowwise() %>%
+  mutate(age = strsplit(line, "|", fixed = T)[[1]][4]) %>%
+  mutate(age = strsplit(age, ";", fixed = T)[[1]][1]) %>%
+  mutate(particpant = strsplit(line, "|", fixed = T)[[1]][3])
+```
+
+
+```{r}
+#get all corpus .cha files
+file_list <- fs::dir_ls(path = "~/Downloads/CABNC/", recurse = TRUE, type = "file", glob = "*.cha")
+
+#run through each file to grab speaker ID, age, and file name
+ages <- data.frame() 
+for (dir in file_list) {
+  tmp <- readLines(file_list[dir])
+  tmp_df <- data.frame(line = tmp)
+
+  thing <- tmp_df %>%
+    filter(grepl("@ID", line)) %>%
+    mutate(directory = dir) %>%
+    rowwise() %>%
+    mutate(participant = strsplit(line, "|", fixed = T)[[1]][3]) %>%
+    mutate(age = strsplit(line, "|", fixed = T)[[1]][4]) %>%
+    mutate(age = strsplit(age, ";", fixed = T)[[1]][1])
+  
+  ages <- bind_rows(ages, thing)
+  ages
+}
+
+subjects <- ages %>%
+  select(-line) %>%
+  mutate(age = as.numeric(age)) %>%
+  # flag which speakers are kiddos
+    # note that some of the files have speakers with age listed as 1 who are adult speakers so keep them
+  mutate(kid = if_else(str_starts(participant, "P") &
+                         age < 18, T, F))
+
+# get list of the the transcript files that have kids
+transcripts_with_kids <- subjects %>%
+  filter(kid) %>%
+  distinct(directory) %>%
+  pull(.)
+
+# use this info to drop all files with kid interlocutors
+final_CABNC_transcript_list_txt <- ages %>%
+  filter(! directory %in% transcripts_with_kids) %>%
+  distinct(directory) %>%
+  rowwise() %>%
+  mutate(directory_clean = str_split(directory, "/Users/benmorris/Downloads/CABNC")[[1]][2]) %>%
+  mutate(directory_clean = str_split(directory_clean, ".cha")[[1]][1]) %>%
+  mutate(directory_clean = str_glue(directory_clean, ".txt")) %>%
+  mutate(directory_clean = str_glue("/Users/benmorris/Documents/corpora/CABNC-Corpus/cabnc_data/text", directory_clean)) %>%
+  pull(directory_clean)
+
+# so called "missing" directory
+final_CABNC_transcript_list_txt <- final_CABNC_transcript_list_txt[141:length(final_CABNC_transcript_list_txt)]
+```
+
+```{r}
+# get convo txt based on final list
+file_list <- fs::dir_ls(path = "~/Documents/corpora/CABNC-Corpus/cabnc_data/text/", recurse = TRUE, type = "file", glob = "*.txt")
+
+#testing
+tmp <- readLines(final_CABNC_transcript_list_txt[1])
+
+tmp_df <- data.frame(line = tmp)
+
+tmp_df %>%
+  rowwise() %>%
+  mutate(speaker = strsplit(line, "|", fixed = T)[[1]][1]) %>%
+  mutate(utterance = strsplit(line, "|", fixed = T)[[1]][2]) %>%
+  select(-line)
+
+
+
+#run through each file to grab speaker ID, age, and file name
+cabnc_transcripts <- data.frame() 
+for (dir in final_CABNC_transcript_list_txt) {
+  tmp <- readLines(file_list[dir])
+  tmp_df <- data.frame(line = tmp)
+
+  thing <- tmp_df %>%
+    mutate(directory = dir) %>%
+    rowwise() %>%
+    mutate(speaker = strsplit(line, "|", fixed = T)[[1]][1]) %>%
+    mutate(utterance = strsplit(line, "|", fixed = T)[[1]][2]) %>%
+    select(-line)
+  
+  cabnc_transcripts <- bind_rows(cabnc_transcripts, thing)
+  cabnc_transcripts
+}
+
+cabnc_transcripts
+
+write.table(file = cabnc_transcripts, "~/Downloads/cabnc_adult_utterances.csv")
+```
+
+
+```{r}
+#prep utts for expected udpipe format
+cabnc_utterances_for_udpipe <- cabnc_transcripts %>%
+    mutate(text = utterance) %>%
+    select(text) %>%
+    rowid_to_column(var = "doc_id")
+
+udmodel <- udpipe_load_model(file = "english-ewt-ud-2.5-191206.udpipe")
+
+cabnc_parses <- cabnc_utterances_for_udpipe %>%
+    udpipe(., udmodel, parallel.cores = 4) %>%
+    as_tibble() %>%
+    # mutate(doc_id = as.numeric(doc_id)) %>%
+    left_join(cabnc_transcripts, by = c("doc_id", "sentence" = "text"))
+  
+write_feather(cabnc_parses, here(glue("data/cabnc_parses.feather")))
+```
+
+
+```{r}
+cabnc_parses <- read_feather("data/cabnc_parses.feather")
+
+get_pairs <- function(filename) {
+  
+  parses <- read_feather(here(glue("data/{filename}_parses.feather")))
+
+  adj_parses <- parses %>%
+    group_by(doc_id) %>%
+    filter(any(upos == "ADJ"))
+  
+  #Fixes: 
+  #1. nouns that are compounds we think are really adjectives.
+  #2. adjs that modify ROOT modify something else in the sentence. 
+    # note those that have more than 1 possible noun so that we can hand-code (head_token_id == 0)
+  compound_parses <- parses %>%
+    group_by(doc_id) %>%
+    filter(any(upos == "NOUN" && dep_rel == "compound"))
+  
+  adjs <- adj_parses %>%
+    filter(upos == "ADJ") %>%
+    select(doc_id, sentence, any_of("chat"), token_id, token, head_token_id, lemma, upos,
+           dep_rel) %>%
+    rename(adj_token = token, adj_token_id = token_id, adj_pos = upos,
+           adj_lemma = lemma) %>%
+    mutate(parse_type = "adj")
+ 
+  nouns_setup <- adj_parses %>%
+    select(doc_id, sentence, any_of("chat"), token_id, token, lemma, upos, dep_rel,
+           head_token_id)
+
+  #fix compounds
+  compounds <- nouns_setup %>%
+    filter(dep_rel == "compound") %>%
+    rename(adj_token_id = token_id, adj_lemma = lemma, adj_token = token,
+           adj_pos = upos) %>%
+    mutate(parse_type = "compound")
+  
+  # get root-modifying ADJS
+  root_adjs <- adj_parses %>%
+    group_by(doc_id) %>%
+    filter(any(upos == "NOUN")) %>%
+    mutate(noun_count = sum(upos == "NOUN"),
+           pron_count = sum(upos == "PRON")) %>%
+    ungroup() %>%
+    filter(upos == "ADJ" | upos == "NOUN")
+  
+  single_noun_roots <- root_adjs %>%
+    filter(upos == "NOUN", noun_count == 1, pron_count == 0) %>%
+    rename(noun_token_id = token_id, noun_lemma = lemma, noun_token = token) %>%
+    select(doc_id, sentence, noun_token_id, noun_lemma, noun_token)
+  
+  root_adjs_processed <- root_adjs %>%
+    filter(upos == "ADJ") %>%
+    select(doc_id, paragraph_id, sentence, any_of("chat"), token_id, token, head_token_id,
+           lemma, upos, dep_rel) %>%
+    rename(adj_token = token, adj_token_id = token_id, adj_pos = upos,
+           adj_lemma = lemma) %>%
+    filter(head_token_id == 0, str_detect(sentence, " ")) %>%
+    left_join(single_noun_roots, by = c("doc_id", "sentence")) %>% 
+    mutate(noun_token_id = if_else(is.na(noun_token_id), 
+                                   head_token_id, noun_token_id),
+           noun_token = if_else(is.na(noun_token), "ROOT", noun_token),
+           noun_lemma = if_else(is.na(noun_lemma), "ROOT", noun_lemma),
+           adj_token_id = as.numeric(adj_token_id),
+           noun_token_id = as.numeric(noun_token_id),
+           prenominal = if_else(noun_token_id == 0, NA, 
+                                (noun_token_id - adj_token_id) == 1),
+           parse_type = "ROOT") %>%
+    select(doc_id, sentence, adj_token_id, adj_token, noun_token_id,noun_token, 
+           adj_lemma, noun_lemma, prenominal, parse_type)
+  
+  # Note: Cases where adj_token != adj_lemma should be hand-checked
+  pairs <- adjs %>%
+    bind_rows(compounds) %>% # add compounds
+    left_join(nouns_setup %>% select(-head_token_id), 
+              by = c("doc_id", "sentence",
+                                 "head_token_id"="token_id")) %>%
+    rename(noun_pos = upos, noun_token_id = head_token_id, noun_token = token,
+           noun_lemma = lemma) %>%
+    filter(noun_pos == "NOUN") %>%
+    select(doc_id, adj_token_id, noun_token_id, sentence, any_of("chat"), adj_token, 
+           noun_token, adj_lemma, noun_lemma, parse_type) %>%
+    mutate_at(vars(adj_token_id, noun_token_id), as.numeric) %>%
+    mutate(prenominal = adj_token_id == noun_token_id - 1) %>%
+    bind_rows(root_adjs_processed) %>% # add ROOT adjs
+    filter(!adj_token == "um", !noun_token == "one") %>%
+    mutate(adj_lower = str_to_lower(adj_token)) %>%
+    select(-adj_lemma)
+  
+  # # write out list of root adj utterances for hand coding
+  pairs %>%
+    filter(noun_token == "ROOT") %>%
+    select(doc_id, sentence, adj_lower, noun_token) %>%
+    sample_frac(1) %>%
+    write_csv(here("data/cabnc_root_adjs_to_code.csv"))
+
+  write_csv(pairs, here(glue("data/{filename}_parsed_pairs_compounds_and_root.csv")))
+  
+}
+
+get_pairs("cabnc")
+```
+
+```{r}
+cabnc_pairs <- read.csv("data/cabnc_parsed_pairs_compounds_and_root.csv")
+View(cabnc_pairs)
+```
+
+
+
+#Use Brysbaert threshold
+```{r}
+#get brysbaert concreteness
+concrete_concepts <- read.csv("data/concreteness.csv") %>%
+  mutate(stem= wordStem(Word)) %>%
+  # filter(stem %in% target_nouns) %>%
+  select(Word, stem, Conc.M, Conc.SD) %>%
+  mutate(conc_rank = ntile(Conc.M,4))
+
+#get sense of concretness range across all 40,000 items
+hist(concrete_concepts$Conc.M)
+
+most_concrete <- concrete_concepts %>%
+  mutate(conc_rank = ntile(Conc.M,4)) %>%
+  arrange(desc(Conc.M)) %>%
+  filter(conc_rank == 4)
+#using 4 bins thresholds concreteness scores of 3.89 or higher...
+
+#filter to concrete adjective + noun
+cabnc_adj_noun_concrete <- cabnc_pairs %>%
+  mutate(adj_stem = wordStem(adj_token),
+         noun_stem = wordStem(noun_token)) %>%
+  filter(adj_token %in% most_concrete$Word &
+         noun_stem %in% most_concrete$stem) %>%
+  distinct(adj_token, noun_token)
+
+
+adj_noun_concrete %>% 
+  count(adj_token) %>%
+  arrange(desc(n)) %>%
+  head(., 10)
+
+adj_noun_concrete %>% 
+  count(noun_token)  %>%
+  arrange(desc(n)) %>%
+  head(., 10) 
+
+
+adj_noun_concrete %>% 
+  filter(adj_token != "bloody") %>%
+  count(adj_token, noun_token) %>%
+  arrange(desc(n)) %>% nrow(.)
+  head(., 10)
+
+```
+
+
+```{r}
+# threshold root adj
+cabnc_roots <- read.csv("data/cabnc_root_adjs_to_code.csv")
+cabnc_roots_conc <- roots %>%
+  filter(adj_lower %in% most_concrete$Word)
+
+View(cabnc_roots)
+View(cabnc_roots_conc)
+```
+
+
+
+
+
+```{r}
+#minimally saves basic info about my workspace
+sessionInfo()
+```
+
+
+
