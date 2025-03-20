@@ -150,6 +150,11 @@ subj_data <- coded_data %>%
   filter(!(is.na(adjective) & is.na(noun))) %>%
   filter(subid %in% keep_subjs$subid) 
 
+incomplete_subs <- coded_data %>%
+  group_by(subid) %>%
+  summarise(ntrials = n()) %>%
+  filter(ntrials != 36)
+
 nonsense_pairs <- subj_data %>%
   group_by(adjective, noun) %>%
   tally(rating == 8) %>%
