@@ -8,10 +8,11 @@ For extracting adjective-noun pairs from the CABNC (adult corpus), run get_cabnc
 
 For preparing adjective-noun pairs for the experiment by coding them for articles (a/an), run and follow instructions article_coding.R. This involves hand-coding of mass vs. count nouns and some ambiguous a/an cases.
 
-For running the experiment, see the repos https://github.com/cbergey/many_typicality_judgments and https://github.com/cbergey/typicality_front .
+For running the experiment, see the repos https://github.com/cbergey/many_typicality_judgments and https://github.com/cbergey/typicality_front. These must be hosted on the web to run the experiment.
 
 For post-experiment data processing to create final data files, run process_turk_data.Rmd and writing/journal_article/data_processing.Rmd .
 
+Runtime: Repo should take less than 5 minutes to download. Code extracting adjective-noun pairs may be expected to take a few hours to run. Code extracting language model responses may be expected to take a few hours to run. Other analysis code is expected to take less than 15 minutes to run on a typical desktop computer.
 
 Analysis code was run using the following packages and versions:
 R version 4.3.1 (2023-06-16), ggpubr_0.6.0, ggh4x_0.3.0 , udpipe_0.8.11, lubridate_1.9.4, forcats_1.0.0, stringr_1.5.1, dplyr_1.1.4, purrr_1.0.4, readr_2.1.5, tidyr_1.3.1, tibble_3.2.1, tidyverse_2.0.0, weights_1.0.4, Hmisc_5.2-2, broom.mixed_0.2.9.6. ggthemes_5.1.0, lmerTest_3.1-3, lme4_1.1-36, Matrix_1.6-1.1, papaja_0.1.3, tinylabels_0.2.4, xtable_1.8-4, tidyboot_0.1.1, scales_1.3.0, ggridges_0.5.6, here_1.0.1, ggplot2_3.5.1, png_0.1-8     
