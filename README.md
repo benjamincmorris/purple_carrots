@@ -1,16 +1,18 @@
 Analyses of everyday language showing people more often talk about atypical features ("purple carrot") than typical features ("orange carrot") of things. 
 
-To reproduce analyses in the paper, download this repo and knit the file writing/journal_article/journal_article.Rmd. All reported analyses and plots are executed in this Rmd file from available data files.
+To reproduce all analyses in the paper from our data files, download this repo and knit the file `writing/journal_article/journal_article.Rmd`. All reported analyses and plots are executed in this Rmd file from available data files.
 
-Note that the the LDP (Language Development Project - child corpus) is currently not publicly available because of privacy concerns associated with densely sampled conversational data containing private, identifiable information about children. We provide intermediary data files with extracted adjective-noun pairs from the corpus.
+To replicate the entire corpus analysis and experiment, do as follows:
 
-For extracting adjective-noun pairs from the CABNC (adult corpus), run get_cabnc_transcripts.Rmd. The CABNC can be downloaded here: https://ca.talkbank.org/access/CABNC.html 
+Note that the the LDP (Language Development Project - child corpus) is currently not publicly available because of privacy concerns associated with densely sampled conversational data containing private, identifiable information about children. We provide intermediary data files with extracted adjective-noun pairs from the corpus. The files `ldp_cabnc_data.csv` and `ldp_full_corpus_redacted` provide the adjective-noun pairs, usage data, and utterance order data.
 
-For preparing adjective-noun pairs for the experiment by coding them for articles (a/an), run and follow instructions article_coding.R. This involves hand-coding of mass vs. count nouns and some ambiguous a/an cases.
+For extracting adjective-noun pairs from the CABNC (adult corpus), run `get_cabnc_transcripts.Rmd`. The CABNC can be downloaded here: https://ca.talkbank.org/access/CABNC.html.
 
-For running the experiment, see the repos https://github.com/cbergey/many_typicality_judgments and https://github.com/cbergey/typicality_front. These must be hosted on the web to run the experiment.
+For preparing adjective-noun pairs for the experiment by coding them for articles (a/an), run and follow instructions `article_coding.R`. This involves hand-coding of mass vs. count nouns and some ambiguous a/an cases.
 
-For post-experiment data processing to create final data files, run process_turk_data.Rmd and writing/journal_article/data_processing.Rmd .
+For running the experiment, use the repos https://github.com/cbergey/many_typicality_judgments and https://github.com/cbergey/typicality_front. These must be hosted on the web to run the experiment.
+
+For post-experiment data processing to create final data files, run `process_turk_data.Rmd` and `writing/journal_article/data_processing.Rmd` to generate final data files that can be analyzed in `writing/journal_article/journal_article.Rmd`.
 
 Runtime: Repo should take less than 5 minutes to download. Code extracting adjective-noun pairs may be expected to take a few hours to run. Code extracting language model responses may be expected to take a few hours to run. Other analysis code is expected to take less than 15 minutes to run on a typical desktop computer.
 
