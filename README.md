@@ -1,6 +1,6 @@
 Analyses of everyday language showing people more often talk about atypical features ("purple carrot") than typical features ("orange carrot") of things. 
 
-To reproduce all analyses in the paper from our data files, download this repo and knit the file `writing/journal_article/journal_article.Rmd`. All reported analyses and plots are executed in this Rmd file from available data files.
+To reproduce all analyses in the paper from our data files, download this repo and knit the file `writing/journal_article/journal_article.Rmd`. All reported analyses and plots are executed in this Rmd file from available data files. The findings reported in the paper are the expected output of this reproduction process.
 
 To replicate the entire corpus analysis and experiment, do as follows:
 
@@ -12,7 +12,7 @@ For preparing adjective-noun pairs for the experiment by coding them for article
 
 For running the experiment, use the repos https://github.com/cbergey/many_typicality_judgments and https://github.com/cbergey/typicality_front. These must be hosted on the web to run the experiment.
 
-For post-experiment data processing to create final data files, run `process_turk_data.Rmd` and `writing/journal_article/data_processing.Rmd` to generate final data files that can be analyzed in `writing/journal_article/journal_article.Rmd`.
+For post-experiment data processing to create final data files, run `process_turk_data.Rmd` and `writing/journal_article/data_processing.Rmd` to generate final data files that can be analyzed in `writing/journal_article/journal_article.Rmd`. The data files we provide are the expected output of this process.
 
 Runtime: Repo should take less than 5 minutes to download. Code extracting adjective-noun pairs may be expected to take a few hours to run. Code extracting language model responses may be expected to take a few hours to run. Other analysis code is expected to take less than 15 minutes to run on a typical desktop computer.
 
